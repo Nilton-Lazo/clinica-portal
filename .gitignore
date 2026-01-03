@@ -1,0 +1,70 @@
+# =========================
+# Logs
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================
+# Dependencias
+# =========================
+node_modules
+.pnpm-store
+
+# =========================
+# Build / Distribución
+# =========================
+dist
+dist-ssr
+
+# =========================
+# Variables de entorno
+# =========================
+.env
+.env.*
+!.env.example
+*.local
+
+# =========================
+# Vite / Cache
+# =========================
+.vite
+.vite-cache
+
+# =========================
+# Lint / Tooling cache
+# =========================
+.eslintcache
+.stylelintcache
+.postcss-cache
+
+# =========================
+# Tests / Coverage
+# =========================
+coverage
+
+# =========================
+# Editor / IDE
+# =========================
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# =========================
+# OS / Sistema
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Otros editores / Visual Studio
+# =========================
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
