@@ -1,0 +1,133 @@
+import { tokenStore } from "./tokenStore";
+import type { ApiError, ApiValidationErrors } from "./apiError";
+
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+type RequestOptions = {
+  method: HttpMethod;
+  path: string;
+  body?: unknown;
+};
+
+type ErrorResponseShape = {
+  message?: string;
+  errors?: ApiValidationErrors;
+  code?: string;
+};
+
+function buildUrl(baseUrl: string, path: string) {
+  const a = baseUrl.replace(/\/+$/, "");
+  const b = path.startsWith("/") ? path : `/${path}`;
+  return `${a}${b}`;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseErrorResponse(data: unknown): ErrorResponseShape {
+  if (!isObject(data)) return {};
+
+  const result: ErrorResponseShape = {};
+
+  if (typeof data.message === "string") {
+    result.message = data.message;
+  }
+
+  if (isObject(data.errors)) {
+    result.errors = data.errors as ApiValidationErrors;
+  }
+
+  if (typeof data.code === "string") {
+    result.code = data.code;
+  }
+
+  return result;
+}
+
+export class HttpClient {
+  private readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  async request<T>(opts: RequestOptions): Promise<T> {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+    };
+
+    const token = tokenStore.get();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    let body: string | undefined;
+    if (opts.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(opts.body);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(buildUrl(this.baseUrl, opts.path), {
+        method: opts.method,
+        headers,
+        body,
+      });
+    } catch {
+      throw {
+        kind: "network",
+        status: 0,
+        message: "No se pudo conectar con el servidor.",
+      } as ApiError;
+    }
+
+    const data = await response.json().catch(() => null);
+    const parsed = parseErrorResponse(data);
+
+    if (response.ok) {
+      return data as T;
+    }
+
+    if (response.status === 422) {
+      throw {
+        kind: "validation",
+        status: 422,
+        message: parsed.message ?? "Error de validación.",
+        errors: parsed.errors ?? {},
+      } as ApiError;
+    }
+
+    if (response.status === 401) {
+      throw {
+        kind: "unauthorized",
+        status: 401,
+        message: parsed.message ?? "No autorizado.",
+        code: parsed.code,
+      } as ApiError;
+    }
+
+    if (response.status === 403) {
+      throw {
+        kind: "forbidden",
+        status: 403,
+        message: parsed.message ?? "Acceso denegado.",
+      } as ApiError;
+    }
+
+    throw {
+      kind: "server",
+      status: 500,
+      message: parsed.message ?? "Error interno del servidor.",
+    } as ApiError;
+  }
+
+  get<T>(path: string): Promise<T> {
+    return this.request<T>({ method: "GET", path });
+  }
+
+  post<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>({ method: "POST", path, body });
+  }
+}

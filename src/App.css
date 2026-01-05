@@ -175,3 +175,24 @@ body,
    Colores principales
    ========================= */
 
+:root {
+  /* Marca */
+  --color-primary: #1A388B;
+  --color-primary-hover: #142f75;
+  --color-primary-active: #10255f;
+
+  /* Texto */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-inverse: #ffffff;
+
+  /* Superficies */
+  --color-surface: #ffffff;
+  --color-background: #f1f5f9;
+  --color-border: #e2e8f0;
+
+  /* Estados */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+}

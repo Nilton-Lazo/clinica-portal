@@ -4,6 +4,6 @@ export const authMeta: Record<string, RouteMeta> = {
   "/login": {
     title: "Iniciar sesión",
     subtitle: "Acceso al sistema",
-    breadcrumb: [{ label: "Login" }],
+    breadcrumb: [{ label: "Login", path: "/login" }],
   },
 };
