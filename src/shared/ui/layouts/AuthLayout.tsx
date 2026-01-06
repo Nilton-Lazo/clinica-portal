@@ -8,7 +8,7 @@ type Props = {
 
 export default function AuthLayout({ children, illustration, logo }: Props) {
   return (
-    <div className="min-h-dvh bg-(--color-app-bg) flex flex-col">
+    <div className="min-h-dvh bg-(--color-background) flex flex-col">
       {/* Centro vertical del card */}
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="relative w-full max-w-[1100px] rounded-2xl bg-(--color-surface) shadow-lg overflow-hidden">

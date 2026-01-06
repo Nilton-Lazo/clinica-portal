@@ -1,29 +1,62 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRouteMeta } from "../../../app/router/useRouteMeta";
 import { authService } from "../services/auth.service";
+import { sessionEvents } from "../../../shared/auth/sessionEvents";
+import { useAuth } from "../../../shared/auth/useAuth";
 
 import AuthLayout from "../../../shared/ui/layouts/AuthLayout";
 import Input from "../../../shared/ui/Input";
 import Button from "../../../shared/ui/Button";
 
 import illustration from "../assets/images/doctor.webp";
-import logo from "../assets/images/logo.webp"
+import logo from "../assets/images/logo.webp";
 
 type FieldErrors = {
   identifier?: string;
   password?: string;
 };
 
+type LocationState = {
+  from?: { pathname?: string; search?: string; hash?: string };
+};
+
+function buildReturnTo(from: LocationState["from"]): string | null {
+  if (!from?.pathname) return null;
+  const search = from.search ?? "";
+  const hash = from.hash ?? "";
+  return `${from.pathname}${search}${hash}`;
+}
+
 export default function LoginPage() {
   const meta = useRouteMeta();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, setUser } = useAuth();
 
   const [identifier, setIdentifier] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
+
+  const state = location.state as LocationState | null;
+  const returnTo = buildReturnTo(state?.from);
+
+  React.useEffect(() => {
+    if (user) {
+      navigate("/inicio", { replace: true });
+      return;
+    }
+
+    const last = sessionEvents.consumeLastUnauthorized();
+    if (
+      last?.code === "SESSION_EXPIRED_IDLE" ||
+      last?.code === "SESSION_EXPIRED_ABSOLUTE"
+    ) {
+      setFormError("Tu sesión expiró. Por favor, vuelve a iniciar sesión.");
+    }
+  }, [user, navigate]);
 
   function validate(): boolean {
     const errors: FieldErrors = {};
@@ -50,12 +83,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await authService.login({
+      const me = await authService.login({
         identifier: identifier.trim(),
         password,
       });
 
-      navigate("/inicio", { replace: true });
+      setUser(me);
+      navigate(returnTo ?? "/inicio", { replace: true });
     } catch (err: unknown) {
       const message =
         typeof err === "object" && err && "message" in err

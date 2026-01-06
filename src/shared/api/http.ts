@@ -1,5 +1,7 @@
 import { tokenStore } from "./tokenStore";
+import { sessionEvents } from "../auth/sessionEvents";
 import type { ApiError, ApiValidationErrors } from "./apiError";
+import { clientContext } from "../telemetry/clientContext";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -57,7 +59,11 @@ export class HttpClient {
       Accept: "application/json",
     };
 
+    Object.assign(headers, clientContext.toHeaders());
+
     const token = tokenStore.get();
+    const hasAuth = Boolean(token);
+
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -100,6 +106,15 @@ export class HttpClient {
     }
 
     if (response.status === 401) {
+      if (hasAuth) {
+        tokenStore.clear();
+        sessionEvents.notifyUnauthorized({
+          status: 401,
+          code: parsed.code,
+          message: parsed.message ?? "No autorizado.",
+        });
+      }
+
       throw {
         kind: "unauthorized",
         status: 401,

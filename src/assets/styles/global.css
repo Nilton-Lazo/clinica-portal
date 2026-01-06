@@ -188,11 +188,13 @@ body,
 
   /* Superficies */
   --color-surface: #ffffff;
-  --color-background: #f1f5f9;
+  --color-background: #e9e9e9;
   --color-border: #e2e8f0;
 
   /* Estados */
   --color-success: #16a34a;
   --color-warning: #f59e0b;
   --color-danger: #dc2626;
+
+  --color-overlay: #00000066;
 }
