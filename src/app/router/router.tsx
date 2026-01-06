@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import RequireAuth from "./RequireAuth";
+import RequireGuest from "./RequireGuest";
 import AppBootstrap from "./AppBootstrap";
 
 import LoginPage from "../../modules/login/pages/LoginPage";
@@ -10,27 +11,20 @@ export const router = createBrowserRouter([
   {
     element: <AppBootstrap />,
     children: [
-      {
-        path: "/",
-        element: <Navigate to="/inicio" replace />,
-      },
+      { path: "/", element: <Navigate to="/inicio" replace /> },
 
       {
-        path: "/login",
-        element: <LoginPage />,
+        element: <RequireGuest />,
+        children: [
+          { path: "/login", element: <LoginPage /> },
+        ],
       },
 
       {
         element: <RequireAuth />,
         children: [
-          {
-            path: "/inicio",
-            element: <HomePage />,
-          },
-          {
-            path: "/facturacion",
-            element: <FacturacionHomePage />,
-          },
+          { path: "/inicio", element: <HomePage /> },
+          { path: "/facturacion", element: <FacturacionHomePage /> },
         ],
       },
     ],
