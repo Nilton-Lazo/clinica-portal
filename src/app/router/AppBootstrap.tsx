@@ -4,7 +4,6 @@ import { useBootstrapAuth } from "../../shared/hooks/useBootstrapAuth";
 import { useAuth } from "../../shared/auth/useAuth";
 import { sessionEvents } from "../../shared/auth/sessionEvents";
 import { useClientContextSync } from "./useClientContextSync";
-import SessionExpiryController from "../../shared/ui/SessionExpiryController";
 
 export default function AppBootstrap() {
   const navigate = useNavigate();
@@ -28,10 +27,5 @@ export default function AppBootstrap() {
     return <div className="min-h-dvh bg-zinc-100" />;
   }
 
-  return (
-    <>
-      <SessionExpiryController />
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }
