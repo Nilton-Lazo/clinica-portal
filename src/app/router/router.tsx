@@ -7,6 +7,8 @@ import AppShell from "../layout/AppShell";
 import LoginPage from "../../modules/login/pages/LoginPage";
 import HomePage from "../../modules/inicio/pages/HomePage";
 import FacturacionHomePage from "../../modules/facturacion/pages/FacturacionHomePage";
+import AdmisionHomePage from "../../modules/admision/pages/AdmisionHomePage";
+
 
 export const router = createBrowserRouter([
   {
@@ -27,6 +29,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "inicio", element: <HomePage /> },
               { path: "facturacion", element: <FacturacionHomePage /> },
+              { path: "admision", element: <AdmisionHomePage /> },
             ],
           },
         ],

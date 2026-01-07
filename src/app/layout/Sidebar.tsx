@@ -49,7 +49,6 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar-surface h-full bg-(--color-sidebar-bg) text-(--color-text-inverse) flex flex-col overflow-hidden">
-      {/* Header / Marca */}
       <div className="h-(--layout-header-height) px-4 flex items-center">
         <NavLink
             to="/inicio"
@@ -75,99 +74,101 @@ export default function Sidebar({
         </NavLink>
       </div>
 
-      {/* Navegación */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden app-scrollbar py-3">
-        <ul className="space-y-2 px-3">
-          {items.map((item) => {
-            const isDisabled = Boolean(item.disabled);
+          <ul className="space-y-2 px-3">
+            {items.map((item) => {
+              const isDisabled = Boolean(item.disabled);
 
-            const Row = ({ isActive }: { isActive: boolean }) => {
-                const active = isActive && !isDisabled;
+              const Row = ({ isActive }: { isActive: boolean }) => {
+                  const active = isActive && !isDisabled;
 
-                const rowBase = [
-                    "group relative",
-                    "flex items-center gap-3",
-                    showLabels ? "px-3" : "px-0 justify-center",
-                    "py-2 rounded-xl",
-                    "transition-all duration-200 ease-out",
-                    "will-change-transform",
-                    !showLabels ? "" : "min-w-0",
-                ].join(" ");
-
-                const rowHover =
-                    isDisabled
-                        ? "opacity-50 cursor-not-allowed"
-                        : active
-                        ? ""
-                        : "cursor-pointer hover:bg-(--color-surface)/15 hover:translate-x-px";
-                
-                const iconHover = isDisabled || active ? "" : "group-hover:scale-[1.03]";
-
-                const rowActive = active ? "bg-(--color-surface) text-(--color-text-primary)" : "";
-
-                const iconWrapBase = [
-                    "h-12 w-12 rounded-full",
-                    "flex items-center justify-center",
-                    "transition-[transform,background-color,box-shadow] duration-200 ease-out",
-                    "will-change-transform",
-                ].join(" ");                                   
-
-                const iconWrapState = active
-                ? "bg-(--color-surface)"
-                : isDisabled
-                    ? "bg-(--color-surface)/10"
-                    : "bg-(--color-surface)/10 group-hover:bg-transparent group-hover:shadow-[inset_0_0_0_1px_var(--color-sidebar-ring)]";
-
-                const iconColor = active ? "text-(--color-text-primary)" : "text-(--color-text-inverse)";
-
-                const labelClass = [
-                    "min-w-0 truncate",
-                    "text-base",
-                    "transition-all duration-200 ease-out",
-                    active ? "font-medium text-(--color-text-primary)" : "font-normal text-(--color-text-inverse)",
-                    isDisabled || active ? "" : "group-hover:font-medium group-hover:translate-x-px",
+                  const rowBase = [
+                      "group relative",
+                      "flex items-center gap-3",
+                      showLabels ? "px-3" : "px-0 justify-center",
+                      "py-2 rounded-lg",
+                      "transition-all duration-200 ease-out",
+                      "will-change-transform",
+                      !showLabels ? "" : "min-w-48",
                   ].join(" ");
 
+                  const rowHover =
+                      isDisabled
+                          ? "opacity-50 cursor-not-allowed"
+                          : active
+                          ? ""
+                          : "cursor-pointer hover:bg-(--color-surface)/15 hover:translate-x-px";
+                  
+                  const iconHover = isDisabled || active ? "" : "group-hover:scale-[1.03]";
+
+                  const rowActive =
+                    active && showLabels
+                      ? "bg-(--color-surface) text-(--color-text-primary)"
+                      : "";
+
+                  const iconWrapBase = [
+                      "h-12 w-12 rounded-full",
+                      "flex items-center justify-center",
+                      "transition-[transform,background-color,box-shadow] duration-200 ease-out",
+                      "will-change-transform",
+                  ].join(" ");                                   
+
+                  const iconWrapState = active
+                  ? "bg-(--color-surface)"
+                  : isDisabled
+                      ? "bg-(--color-surface)/10"
+                      : "bg-(--color-surface)/10 group-hover:bg-transparent group-hover:shadow-[inset_0_0_0_1px_var(--color-sidebar-ring)]";
+
+                  const iconColor = active ? "text-(--color-text-primary)" : "text-(--color-text-inverse)";
+
+                  const labelClass = [
+                      "min-w-0 truncate",
+                      "text-base",
+                      "transition-all duration-200 ease-out",
+                      active ? "font-medium text-(--color-text-primary)" : "font-normal text-(--color-text-inverse)",
+                      isDisabled || active ? "" : "group-hover:font-medium group-hover:translate-x-px",
+                    ].join(" ");
+
+                  return (
+                      <div className={`${rowBase} ${rowHover} ${rowActive}`}>
+                      <div className={`${iconWrapBase} ${iconWrapState} ${iconHover}`}>
+                          <div className={iconColor}>
+                          <RenderNavIcon icon={item.icon} sizeClass="h-6 w-6" />
+                          </div>
+                      </div>
+
+                      {showLabels && <div className={labelClass}>{item.label}</div>}
+                      </div>
+                  );
+                  };
+
+              if (isDisabled) {
                 return (
-                    <div className={`${rowBase} ${rowHover} ${rowActive}`}>
-                    <div className={`${iconWrapBase} ${iconWrapState} ${iconHover}`}>
-                        <div className={iconColor}>
-                        <RenderNavIcon icon={item.icon} sizeClass="h-6 w-6" />
-                        </div>
+                  <li key={item.id}>
+                    <div>
+                      <Row isActive={false} />
                     </div>
-
-                    {showLabels && <div className={labelClass}>{item.label}</div>}
-                    </div>
+                  </li>
                 );
-                };
+              }
 
-            if (isDisabled) {
               return (
                 <li key={item.id}>
-                  <div>
-                    <Row isActive={false} />
-                  </div>
+                  <NavLink
+                    to={item.to}
+                    onClick={onNavigateMobile}
+                    className="block"
+                  >
+                    {({ isActive }) => <Row isActive={isActive} />}
+                  </NavLink>
                 </li>
               );
-            }
-
-            return (
-              <li key={item.id}>
-                <NavLink
-                  to={item.to}
-                  onClick={onNavigateMobile}
-                  className="block"
-                >
-                  {({ isActive }) => <Row isActive={isActive} />}
-                </NavLink>
-              </li>
-            );
-          })}
-        </ul>
+            })}
+          </ul>
       </nav>
 
       {variant === "desktop" && (
-        <div className="p-3">
+        <div className="p-2">
           <button
             type="button"
             onClick={onPinToggle}

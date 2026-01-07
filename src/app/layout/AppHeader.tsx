@@ -38,7 +38,7 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
 
             <div className="min-w-0">
                 <div
-                    className="text-xl sm:text-3xl font-extrabold text-(--color-primary) leading-tight truncate"
+                    className="text-xl sm:text-3xl font-bold text-(--color-primary) leading-tight truncate"
                     title={meta?.title ?? "Sistema"}
                 >
                     {meta?.title ?? "Sistema"}

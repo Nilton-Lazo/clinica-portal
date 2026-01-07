@@ -3,7 +3,7 @@ import type { RouteMeta } from "../../app/router/routeMeta.types";
 export const facturacionMeta: Record<string, RouteMeta> = {
   "/facturacion": {
     title: "Facturación",
-    subtitle: "Gestión de procesos de facturación",
+    subtitle: "Gestión integral de comprobantes, tarifas y reportes de facturación clínica.",
     breadcrumb: [{ label: "Facturación" }],
   },
 
