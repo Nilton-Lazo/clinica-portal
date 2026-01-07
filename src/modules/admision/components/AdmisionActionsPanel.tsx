@@ -22,15 +22,6 @@ function PanelBody({
 }) {
   return (
     <div className="h-full flex flex-col min-h-0">
-      <div className={compact ? "px-4 py-4" : "px-6 py-6"}>
-        <div className="text-base font-bold text-(--color-text-primary)">
-          {item.title}
-        </div>
-        <div className="text-sm text-(--color-text-secondary)">
-          Selecciona una acción
-        </div>
-      </div>
-
       <div className={compact ? "px-4 pb-4" : "px-6 py-4"}>
         <button
           type="button"
@@ -46,6 +37,12 @@ function PanelBody({
         >
           Ingresar a {item.title}
         </button>
+      </div>
+
+      <div className={compact ? "px-4 py-4" : "px-6 py-6"}>
+        <div className="text-base font-semibold text-(--color-base-primary)">
+          Selecciona una acción:
+        </div>
       </div>
 
       <div

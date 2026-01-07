@@ -185,6 +185,7 @@ body,
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-inverse: #ffffff;
+  --color-base-primary: #000000;
 
   /* Superficies */
   --color-surface: #ffffff;
