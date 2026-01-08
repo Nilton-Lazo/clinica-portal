@@ -89,8 +89,14 @@ export class HttpClient {
       } as ApiError;
     }
 
-    const data = await response.json().catch(() => null);
-    const parsed = parseErrorResponse(data);
+    const contentType = response.headers.get("content-type") ?? "";
+    const isJson = contentType.includes("application/json");
+
+    const data: unknown = isJson
+      ? await response.json().catch(() => null)
+      : await response.text().catch(() => null);
+
+    const parsed = isJson ? parseErrorResponse(data) : {};
 
     if (response.ok) {
       return data as T;
@@ -133,8 +139,8 @@ export class HttpClient {
 
     throw {
       kind: "server",
-      status: 500,
-      message: parsed.message ?? "Error interno del servidor.",
+      status: response.status,
+      message: parsed.message ?? `Error HTTP ${response.status}.`,
     } as ApiError;
   }
 

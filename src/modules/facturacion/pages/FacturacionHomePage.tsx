@@ -54,58 +54,59 @@ export default function FacturacionHomePage() {
 
   return (
     <div className="w-full h-full">
-      <div className="mx-auto w-full max-w-[1600px] h-full px-4 py-4">
-        <div className="hidden lg:grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(420px,520px)] h-full">
-          <div className="grid grid-rows-4 gap-6 h-full min-h-0">
-            {FACTURACION_HUB.slice(0, 4).map((item) => (
-              <FacturacionHubCard
-                key={item.id}
-                item={item}
-                active={item.id === selectedId}
-                onSelect={() => setSelectedId(item.id)}
-              />
-            ))}
-          </div>
-
-          <div className="grid grid-rows-4 gap-6 h-full min-h-0">
-            {FACTURACION_HUB.slice(4, 8).map((item) => (
-              <FacturacionHubCard
-                key={item.id}
-                item={item}
-                active={item.id === selectedId}
-                onSelect={() => setSelectedId(item.id)}
-              />
-            ))}
-          </div>
-
-          <FacturacionActionsPanel
-            item={selected}
-            onEnter={() => go(selected.to, `Facturacion:${selected.id}`)}
-            onAction={(to, label) => go(to, `Facturacion:${selected.id}:${label}`)}
-          />
-        </div>
-
-        <div
-          className={[
-            "lg:hidden",
-            "grid grid-cols-1 sm:grid-cols-2 gap-4",
-            sheetOpen ? "pb-[calc(60vh+24px)]" : "pb-4",
-          ].join(" ")}
-        >
-          {FACTURACION_HUB.map((item) => (
+      {/* ================= DESKTOP ================= */}
+      <div className="hidden lg:grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(420px,520px)] h-full">
+        <div className="grid grid-rows-4 gap-6 h-full min-h-0">
+          {FACTURACION_HUB.slice(0, 4).map((item) => (
             <FacturacionHubCard
               key={item.id}
               item={item}
               active={item.id === selectedId}
-              onSelect={() => {
-                setSelectedId(item.id);
-                setSheetOpen(true);
-              }}
+              onSelect={() => setSelectedId(item.id)}
             />
           ))}
         </div>
+
+        <div className="grid grid-rows-4 gap-6 h-full min-h-0">
+          {FACTURACION_HUB.slice(4, 8).map((item) => (
+            <FacturacionHubCard
+              key={item.id}
+              item={item}
+              active={item.id === selectedId}
+              onSelect={() => setSelectedId(item.id)}
+            />
+          ))}
+        </div>
+
+        <FacturacionActionsPanel
+          item={selected}
+          onEnter={() => go(selected.to, `Facturacion:${selected.id}`)}
+          onAction={(to, label) => go(to, `Facturacion:${selected.id}:${label}`)}
+        />
       </div>
 
+      {/* ================= MOBILE / TABLET ================= */}
+      <div
+        className={[
+          "lg:hidden",
+          "grid grid-cols-1 sm:grid-cols-2 gap-4",
+          sheetOpen ? "pb-[calc(60vh+24px)]" : "pb-4",
+        ].join(" ")}
+      >
+        {FACTURACION_HUB.map((item) => (
+          <FacturacionHubCard
+            key={item.id}
+            item={item}
+            active={item.id === selectedId}
+            onSelect={() => {
+              setSelectedId(item.id);
+              setSheetOpen(true);
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Sheet de acciones (mobile) */}
       <FacturacionActionsPanel
         mode="sheet"
         isOpen={sheetOpen && !isLgUp}

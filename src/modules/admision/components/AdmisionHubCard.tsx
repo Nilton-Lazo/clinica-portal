@@ -14,7 +14,7 @@ export default function AdmisionHubCard({ item, active, onSelect }: Props) {
       type="button"
       onClick={onSelect}
       className={[
-        "w-full h-full",
+        "w-full",
         "flex items-center gap-5",
         "px-4 py-4 sm:px-6 sm:py-5",
         "text-left",

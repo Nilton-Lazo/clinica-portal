@@ -176,49 +176,35 @@ body,
    ========================= */
 
 :root {
-  /* Marca */
   --color-primary: #1A388B;
   --color-primary-hover: #142f75;
   --color-primary-active: #10255f;
-
-  /* Texto */
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-inverse: #ffffff;
   --color-base-primary: #000000;
-
-  /* Superficies */
   --color-surface: #ffffff;
   --color-background: #e9e9e9;
   --color-border: #e2e8f0;
-
-  /* Estados */
   --color-success: #16a34a;
   --color-warning: #f59e0b;
-  --color-danger: #dc2626;
-
-  /* Overlays */
+  --color-danger: #FF5252;
   --color-overlay: #00000066;
-
-  /* Layout */
   --color-sidebar-bg: #1A388B;
   --color-header-bg: #e9e9e9;
-
   --layout-sidebar-collapsed: 88px;
   --layout-sidebar-expanded: 220px;
   --layout-header-height: 92px;
-
   --scrollbar-thumb: rgba(15, 23, 42, 0.25);
   --scrollbar-thumb-hover: rgba(15, 23, 42, 0.4);
-
   --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.28);
   --sidebar-scrollbar-thumb-hover: rgba(255, 255, 255, 0.40);
-
   --color-sidebar-ring: rgba(255, 255, 255, 0.12);
-
   --color-panel-context: #C7CCD6;
   --color-panel-bg: #EEF3FB;
   --color-panel-options-bg: #E8F0FE;
+  --color-app-bg: #F5F7FB;
+  --border-color-default: #D9D9D9;
 }
 
 html, body {

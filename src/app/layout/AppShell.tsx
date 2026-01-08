@@ -36,7 +36,9 @@ export default function AppShell() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [hoverExpanded, setHoverExpanded] = React.useState(false);
 
-  const [pinned, setPinned] = React.useState(() => localStorage.getItem(PIN_KEY) === "1");
+  const [pinned, setPinned] = React.useState(
+    () => localStorage.getItem(PIN_KEY) === "1"
+  );
 
   React.useEffect(() => {
     if (!isDesktop) setHoverExpanded(false);
@@ -48,9 +50,10 @@ export default function AppShell() {
 
   const expanded = isDesktop && canHover ? hoverExpanded : false;
 
-  const sidebarW = pinned || expanded
-    ? "var(--layout-sidebar-expanded)"
-    : "var(--layout-sidebar-collapsed)";
+  const sidebarW =
+    pinned || expanded
+      ? "var(--layout-sidebar-expanded)"
+      : "var(--layout-sidebar-collapsed)";
 
   const onLogout = React.useCallback(async () => {
     await authService.logout();
@@ -100,9 +103,14 @@ export default function AppShell() {
         }}
       >
         <AppHeader onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
-        <main className="flex-1 min-w-0 overflow-auto">
-          <Outlet />
+
+        {/* ✅ Frame global para TODAS las páginas */}
+        <main className="flex-1 min-w-0 min-h-0 overflow-auto">
+          <div className="mx-auto w-full max-w-[1600px] px-4 py-4 h-full min-h-0">
+            <Outlet />
+          </div>
         </main>
+
         <SessionExpiryController />
       </div>
 
@@ -111,7 +119,9 @@ export default function AppShell() {
           className={[
             "fixed inset-0 z-50",
             "transition-opacity duration-200",
-            drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+            drawerOpen
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none",
           ].join(" ")}
           aria-hidden={!drawerOpen}
         >
