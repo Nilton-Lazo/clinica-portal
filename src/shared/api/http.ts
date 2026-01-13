@@ -29,20 +29,11 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function parseErrorResponse(data: unknown): ErrorResponseShape {
   if (!isObject(data)) return {};
-
   const result: ErrorResponseShape = {};
 
-  if (typeof data.message === "string") {
-    result.message = data.message;
-  }
-
-  if (isObject(data.errors)) {
-    result.errors = data.errors as ApiValidationErrors;
-  }
-
-  if (typeof data.code === "string") {
-    result.code = data.code;
-  }
+  if (typeof data.message === "string") result.message = data.message;
+  if (isObject(data.errors)) result.errors = data.errors as ApiValidationErrors;
+  if (typeof data.code === "string") result.code = data.code;
 
   return result;
 }
@@ -57,9 +48,8 @@ export class HttpClient {
   async request<T>(opts: RequestOptions): Promise<T> {
     const headers: Record<string, string> = {
       Accept: "application/json",
+      ...clientContext.toHeaders(),
     };
-
-    Object.assign(headers, clientContext.toHeaders());
 
     const token = tokenStore.get();
     const hasAuth = Boolean(token);
@@ -80,6 +70,8 @@ export class HttpClient {
         method: opts.method,
         headers,
         body,
+
+        credentials: "omit",
       });
     } catch {
       throw {
@@ -98,9 +90,7 @@ export class HttpClient {
 
     const parsed = isJson ? parseErrorResponse(data) : {};
 
-    if (response.ok) {
-      return data as T;
-    }
+    if (response.ok) return data as T;
 
     if (response.status === 422) {
       throw {
