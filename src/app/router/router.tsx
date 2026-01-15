@@ -12,6 +12,7 @@ import AdmisionHomePage from "../../modules/admision/pages/AdmisionHomePage";
 import FicherosPage from "../../modules/admision/ficheros/pages/FicherosPage";
 import EspecialidadesPage from "../../modules/admision/ficheros/pages/EspecialidadesPage";
 import ConsultoriosPage from "../../modules/admision/ficheros/pages/ConsultoriosPage";
+import MedicosPage from "../../modules/admision/ficheros/pages/MedicosPage";
 
 export const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
                       { index: true, element: <Navigate to="especialidades" replace /> },
                       { path: "especialidades", element: <EspecialidadesPage /> },
                       { path: "consultorios", element: <ConsultoriosPage /> },
+                      { path: "medicos", element: <MedicosPage /> },
                     ],
                   },
                 ],

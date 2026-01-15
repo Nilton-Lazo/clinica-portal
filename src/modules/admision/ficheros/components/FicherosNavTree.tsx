@@ -11,8 +11,8 @@ const groups: Group[] = [
     items: [
       { label: "Especialidades", to: "/admision/ficheros/especialidades" },
       { label: "Consultorios", to: "/admision/ficheros/consultorios" },
-      { label: "Médicos", to: "/admision/ficheros/medicos", disabled: true },
-      { label: "Turnos", to: "/admision/ficheros/turnos", disabled: true },
+      { label: "Médicos", to: "/admision/ficheros/medicos"},
+      { label: "Turnos", to: "/admision/ficheros/turnos"},
     ],
   },
   {

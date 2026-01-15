@@ -79,8 +79,8 @@ export default function ConsultoriosPage() {
             onDescripcionChange={vm.setDescripcion}
             estado={vm.estado}
             onEstadoChange={vm.setEstado}
-            esTerceros={vm.esTerceros}
-            onEsTercerosChange={vm.setEsTerceros}
+            esTercero={vm.esTercero}
+            onEsTerceroChange={vm.setEsTercero}
             isValid={vm.isValid}
             isDirty={vm.isDirty}
             canDeactivate={vm.canDeactivate}

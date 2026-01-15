@@ -172,8 +172,8 @@ export default function ConsultorioFormCard(props: {
   onDescripcionChange: (v: string) => void;
   estado: RecordStatus;
   onEstadoChange: (v: RecordStatus) => void;
-  esTerceros: boolean;
-  onEsTercerosChange: (v: boolean) => void;
+  esTercero: boolean;
+  onEsTerceroChange: (v: boolean) => void;
   isValid: boolean;
   isDirty: boolean;
   canDeactivate: boolean;
@@ -190,8 +190,8 @@ export default function ConsultorioFormCard(props: {
     onDescripcionChange,
     estado,
     onEstadoChange,
-    esTerceros,
-    onEsTercerosChange,
+    esTercero,
+    onEsTerceroChange,
     isValid,
     isDirty,
     canDeactivate,
@@ -257,8 +257,8 @@ export default function ConsultorioFormCard(props: {
         <label className="flex items-center gap-2 text-sm text-[var(--color-text-primary)] select-none">
           <input
             type="checkbox"
-            checked={esTerceros}
-            onChange={(e) => onEsTercerosChange(e.target.checked)}
+            checked={esTercero}
+            onChange={(e) => onEsTerceroChange(e.target.checked)}
             className="h-4 w-4 rounded border border-[var(--border-color-default)] accent-[var(--color-primary)]"
           />
           Consultorio de terceros

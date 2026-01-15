@@ -1,11 +1,18 @@
-import type { Consultorio, PaginatedResponse } from "../../types/consultorios.types";
+import type { Medico, PaginatedResponse } from "../../types/medicos.types";
 import { StatusBadge } from "../../components/StatusBadge";
 
-export default function ConsultoriosMobileList(props: {
-  data: PaginatedResponse<Consultorio>;
+function fullName(x: Medico): string {
+  const ap = (x.apellido_paterno ?? "").trim();
+  const am = (x.apellido_materno ?? "").trim();
+  const n = (x.nombres ?? "").trim();
+  return `${ap} ${am}, ${n}`.trim();
+}
+
+export default function MedicosMobileList(props: {
+  data: PaginatedResponse<Medico>;
   loading: boolean;
   selectedId: number | null;
-  onSelect: (x: Consultorio) => void;
+  onSelect: (x: Medico) => void;
   page: number;
   onPrev: () => void;
   onNext: () => void;
@@ -40,11 +47,11 @@ export default function ConsultoriosMobileList(props: {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-[var(--color-text-primary)]">
-                      <span className="tabular-nums">{x.abreviatura}</span> · {x.descripcion}
+                      <span className="tabular-nums">{x.cmp ?? "—"}</span> · {fullName(x)}
                     </div>
-                    {x.es_tercero ? (
+                    {x.tipo_profesional_clinica === "EXTERNO" ? (
                       <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                        Consultorio de terceros
+                        Profesional externo
                       </div>
                     ) : null}
                   </div>

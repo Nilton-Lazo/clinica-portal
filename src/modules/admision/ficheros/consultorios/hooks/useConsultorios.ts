@@ -27,6 +27,31 @@ function isApiError(e: unknown): e is ApiError {
   return typeof x.kind === "string" && typeof x.message === "string";
 }
 
+function normalizeAbreviaturaInput(raw: string, prev: string): string {
+  const upper = raw.toUpperCase().replace(/\s+/g, "");
+  if (!upper) return "";
+  if (upper[0] !== "C") return prev ? prev : "";
+
+  const digits = upper
+    .slice(1)
+    .replace(/[^0-9]/g, "")
+    .slice(0, 3);
+
+  return `C${digits}`;
+}
+
+function deriveDescripcionFromAbreviatura(a: string): string {
+  const m = /^C(\d{1,3})$/.exec(a.trim().toUpperCase());
+  if (!m) return "";
+  const digits = m[1] ?? "";
+  if (!digits) return "";
+  return `Consultorio ${digits}`;
+}
+
+function isAbreviaturaComplete(a: string): boolean {
+  return /^C\d{3}$/.test(a.trim().toUpperCase());
+}
+
 export function useConsultorios() {
   const [data, setData] = useState<PaginatedResponse<Consultorio>>({
     data: [],
@@ -37,7 +62,7 @@ export function useConsultorios() {
   const [notice, setNotice] = useState<Notice>(null);
 
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(50);
+  const [perPage, setPerPageState] = useState(50);
 
   const [q, setQ] = useState("");
   const qDebounced = useDebouncedValue(q, 350);
@@ -47,47 +72,81 @@ export function useConsultorios() {
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<Consultorio | null>(null);
 
-  const [abreviatura, setAbreviatura] = useState("");
-  const [descripcion, setDescripcion] = useState("");
+  const [abreviatura, setAbreviaturaState] = useState("");
+  const [descripcion, setDescripcionState] = useState("");
   const [estado, setEstado] = useState<RecordStatus>("ACTIVO");
-  const [esTerceros, setEsTerceros] = useState(false);
+  const [esTercero, setEsTercero] = useState(false);
 
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
+
+  const descripcionAutoRef = useRef<{ locked: boolean; lastAuto: string }>({
+    locked: true,
+    lastAuto: "",
+  });
 
   const originalRef = useRef<{
     abreviatura: string;
     descripcion: string;
     estado: RecordStatus;
-    esTerceros: boolean;
+    esTercero: boolean;
   } | null>(null);
 
+  const setAbreviatura = useCallback(
+    (raw: string) => {
+      const next = normalizeAbreviaturaInput(raw, abreviatura);
+      if (next === abreviatura) return;
+
+      setAbreviaturaState(next);
+
+      if (descripcionAutoRef.current.locked) {
+        const auto = deriveDescripcionFromAbreviatura(next);
+        descripcionAutoRef.current.lastAuto = auto;
+        setDescripcionState(auto);
+      }
+    },
+    [abreviatura]
+  );
+
+  const setDescripcion = useCallback((raw: string) => {
+    descripcionAutoRef.current.locked = false;
+    setDescripcionState(raw);
+  }, []);
+
   const isValid = useMemo(() => {
-    const a = abreviatura.trim();
+    const a = abreviatura.trim().toUpperCase();
     const d = descripcion.trim();
-    if (!a || !d) return false;
-    if (a.length > 10) return false;
+
+    if (!isAbreviaturaComplete(a)) return false;
+    if (!d) return false;
     if (d.length > 255) return false;
+
     return true;
   }, [abreviatura, descripcion]);
 
   const isDirty = useMemo(() => {
     const o = originalRef.current;
     if (!o) return mode === "new" ? isValid : false;
+
     return (
       o.abreviatura !== abreviatura.trim() ||
       o.descripcion !== descripcion.trim() ||
       o.estado !== estado ||
-      o.esTerceros !== esTerceros
+      o.esTercero !== esTercero
     );
-  }, [abreviatura, descripcion, estado, esTerceros, mode, isValid]);
+  }, [abreviatura, descripcion, estado, esTercero, mode, isValid]);
 
   const resetToNew = useCallback(() => {
     setMode("new");
     setSelected(null);
-    setAbreviatura("");
-    setDescripcion("");
+
+    setAbreviaturaState("");
+    setDescripcionState("");
     setEstado("ACTIVO");
-    setEsTerceros(false);
+    setEsTercero(false);
+
+    descripcionAutoRef.current.locked = true;
+    descripcionAutoRef.current.lastAuto = "";
+
     originalRef.current = null;
     setNotice(null);
   }, []);
@@ -95,16 +154,23 @@ export function useConsultorios() {
   const loadForEdit = useCallback((x: Consultorio) => {
     setMode("edit");
     setSelected(x);
-    setAbreviatura(x.abreviatura);
-    setDescripcion(x.descripcion);
+
+    setAbreviaturaState(x.abreviatura);
+    setDescripcionState(x.descripcion);
     setEstado(x.estado);
-    setEsTerceros(Boolean(x.es_terceros));
+    setEsTercero(x.es_tercero);
+
+    const auto = deriveDescripcionFromAbreviatura(x.abreviatura);
+    descripcionAutoRef.current.locked = Boolean(auto) && x.descripcion.trim() === auto;
+    descripcionAutoRef.current.lastAuto = auto;
+
     originalRef.current = {
       abreviatura: x.abreviatura,
       descripcion: x.descripcion,
       estado: x.estado,
-      esTerceros: Boolean(x.es_terceros),
+      esTercero: x.es_tercero,
     };
+
     setNotice(null);
   }, []);
 
@@ -120,10 +186,15 @@ export function useConsultorios() {
       return;
     }
 
-    setAbreviatura(o.abreviatura);
-    setDescripcion(o.descripcion);
+    setAbreviaturaState(o.abreviatura);
+    setDescripcionState(o.descripcion);
     setEstado(o.estado);
-    setEsTerceros(o.esTerceros);
+    setEsTercero(o.esTercero);
+
+    const auto = deriveDescripcionFromAbreviatura(o.abreviatura);
+    descripcionAutoRef.current.locked = Boolean(auto) && o.descripcion.trim() === auto;
+    descripcionAutoRef.current.lastAuto = auto;
+
     setNotice(null);
   }, [mode, resetToNew, selected]);
 
@@ -175,8 +246,16 @@ export function useConsultorios() {
   const onSave = useCallback(async () => {
     setNotice(null);
 
-    if (!isValid) {
-      setNotice({ type: "error", text: "Completa Abreviatura y Descripción correctamente." });
+    const a = abreviatura.trim().toUpperCase();
+    const d = descripcion.trim();
+
+    if (!isAbreviaturaComplete(a)) {
+      setNotice({ type: "error", text: "Abreviatura debe ser C + 3 números (ej. C101), sin espacios." });
+      return;
+    }
+
+    if (!d || d.length > 255) {
+      setNotice({ type: "error", text: "Completa la Descripción correctamente." });
       return;
     }
 
@@ -193,9 +272,9 @@ export function useConsultorios() {
     try {
       if (mode === "new") {
         const res = await createConsultorio({
-          abreviatura: abreviatura.trim(),
-          descripcion: descripcion.trim(),
-          es_terceros: esTerceros,
+          abreviatura: a,
+          descripcion: d,
+          es_tercero: esTercero,
           estado,
         });
 
@@ -209,9 +288,9 @@ export function useConsultorios() {
       }
 
       const res = await updateConsultorio(selected!.id, {
-        abreviatura: abreviatura.trim(),
-        descripcion: descripcion.trim(),
-        es_terceros: esTerceros,
+        abreviatura: a,
+        descripcion: d,
+        es_tercero: esTercero,
         estado,
       });
 
@@ -223,7 +302,7 @@ export function useConsultorios() {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
     }
-  }, [abreviatura, descripcion, esTerceros, estado, isDirty, isValid, loadForEdit, mode, refresh, selected]);
+  }, [abreviatura, descripcion, esTercero, estado, isDirty, loadForEdit, mode, refresh, selected]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
@@ -242,13 +321,12 @@ export function useConsultorios() {
     }
 
     try {
-      await deactivateConsultorio(selected.id);
+      const res = await deactivateConsultorio(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Consultorio desactivado." });
 
-      const updated: Consultorio = { ...selected, estado: "INACTIVO" };
       await refresh();
-      loadForEdit(updated);
+      loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
@@ -266,7 +344,7 @@ export function useConsultorios() {
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPage(clampPerPage(n)),
+    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
     q,
     setQ,
     statusFilter,
@@ -281,8 +359,8 @@ export function useConsultorios() {
     setDescripcion,
     estado,
     setEstado,
-    esTerceros,
-    setEsTerceros,
+    esTercero,
+    setEsTercero,
 
     isValid,
     isDirty,

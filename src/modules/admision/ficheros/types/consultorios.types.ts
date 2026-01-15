@@ -5,7 +5,7 @@ export type Consultorio = {
   abreviatura: string;
   descripcion: string;
   estado: RecordStatus;
-  es_terceros: boolean;
+  es_tercero: boolean;
   created_at?: string;
   updated_at?: string;
 };
