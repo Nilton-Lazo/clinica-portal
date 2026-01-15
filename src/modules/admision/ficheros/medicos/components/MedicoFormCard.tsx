@@ -2,7 +2,7 @@ import * as React from "react";
 import type { EspecialidadLookup, Medico, RecordStatus, TipoProfesionalClinica } from "../../types/medicos.types";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useMedicos";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Calendar } from "lucide-react";
 
 type Opt = { value: string; label: string; disabled?: boolean };
 
@@ -169,6 +169,30 @@ function toEspecialidadLabel(x: EspecialidadLookup): string {
   return c && d ? `${c} · ${d}` : c || d || `#${x.id}`;
 }
 
+function useIsTouchUi(): boolean {
+  const [isTouch, setIsTouch] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  });
+
+  React.useEffect(() => {
+    const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
+    const onChange = () => setIsTouch(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return isTouch;
+}
+
+function formatDateForDisplay(iso: string): string {
+  const t = (iso ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return "";
+  const [y, m, d] = t.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 export default function MedicoFormCard(props: {
   mode: Mode;
   selected: Medico | null;
@@ -307,6 +331,8 @@ export default function MedicoFormCard(props: {
         onDeactivate,
     } = props;
 
+  const isTouchUi = useIsTouchUi();  
+  
   const saveEnabled = isValid && isDirty && !saving;
 
   const estadoOptions: Opt[] = [
@@ -501,13 +527,38 @@ export default function MedicoFormCard(props: {
             </div>    
             
             <div>
-                <label className="text-sm text-[var(--color-text-primary)]">Fecha de nacimiento</label>
+              <label className="text-sm text-[var(--color-text-primary)]">Fecha de nacimiento</label>
+
+              {isTouchUi ? (
+                <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-[var(--color-primary)]">
+                  <div className="h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 pr-10 text-sm flex items-center">
+                    <span
+                      className={
+                        fechaNacimiento ? "text-[var(--color-text-primary)]" : "text-[var(--color-base-primary)]"
+                      }
+                    >
+                      {fechaNacimiento ? formatDateForDisplay(fechaNacimiento) : "dd/mm/aaaa"}
+                    </span>
+                  </div>
+
+                  <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-icon-primary)]" />
+
+                  <input
+                    type="date"
+                    value={fechaNacimiento}
+                    onChange={(e) => onFechaNacimientoChange(e.target.value)}
+                    className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                    aria-label="Fecha de nacimiento"
+                  />
+                </div>
+              ) : (
                 <input
-                type="date"
-                value={fechaNacimiento}
-                onChange={(e) => onFechaNacimientoChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  type="date"
+                  value={fechaNacimiento}
+                  onChange={(e) => onFechaNacimientoChange(e.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                 />
+              )}
             </div>
         </div>
 
