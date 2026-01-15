@@ -167,6 +167,7 @@ export default function ConsultorioFormCard(props: {
   mode: Mode;
   selected: Consultorio | null;
   abreviatura: string;
+  saving: boolean;
   onAbreviaturaChange: (v: string) => void;
   descripcion: string;
   onDescripcionChange: (v: string) => void;
@@ -185,6 +186,7 @@ export default function ConsultorioFormCard(props: {
     mode,
     selected,
     abreviatura,
+    saving,
     onAbreviaturaChange,
     descripcion,
     onDescripcionChange,
@@ -200,7 +202,7 @@ export default function ConsultorioFormCard(props: {
     onDeactivate,
   } = props;
 
-  const saveEnabled = isValid && isDirty;
+  const saveEnabled = isValid && isDirty && !saving;
 
   const estadoOptions: Opt[] = [
     { value: "ACTIVO", label: "Activo" },
@@ -278,7 +280,7 @@ export default function ConsultorioFormCard(props: {
           disabled={!saveEnabled}
           onClick={onSave}
         >
-          {mode === "new" ? "Crear" : "Guardar cambios"}
+          {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
         </button>
 
         <button

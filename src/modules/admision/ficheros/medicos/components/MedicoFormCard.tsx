@@ -347,7 +347,7 @@ export default function MedicoFormCard(props: {
             <input
               value={codigo}
               readOnly
-              placeholder={mode === "new" ? "Se genera automáticamente" : ""}
+              placeholder={mode === "new" ? "Generando" : ""}
               className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
@@ -396,17 +396,17 @@ export default function MedicoFormCard(props: {
           </div>
 
           <div>
-            <label className="text-sm text-[var(--color-text-primary)]">Tipo profesional</label>
-            <SelectMenu
-              value={tipoProfesional}
-              onChange={(v) => onTipoProfesionalChange(v as TipoProfesionalClinica)}
-              options={tipoOptions}
-              ariaLabel="Tipo profesional"
+            <label className="text-sm text-[var(--color-text-primary)]">RUC</label>
+            <input
+              value={ruc}
+              inputMode="numeric"
+              onChange={(e) => onRucChange(e.target.value.replace(/\D/g, ""))}
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-1">
             <label className="text-sm text-[var(--color-text-primary)]">Apellido Paterno</label>
             <input
@@ -424,7 +424,9 @@ export default function MedicoFormCard(props: {
               className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-1">
             <label className="text-sm text-[var(--color-text-primary)]">Nombres</label>
             <input
@@ -433,16 +435,16 @@ export default function MedicoFormCard(props: {
               className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="text-sm text-[var(--color-text-primary)]">Especialidad</label>
-          <SelectMenu
-            value={String(especialidadId)}
-            onChange={(v) => onEspecialidadIdChange(Number(v))}
-            options={espOptions}
-            ariaLabel="Especialidad"
-          />
+          <div>
+            <label className="text-sm text-[var(--color-text-primary)]">Especialidad</label>
+            <SelectMenu
+                value={String(especialidadId)}
+                onChange={(v) => onEspecialidadIdChange(Number(v))}
+                options={espOptions}
+                ariaLabel="Especialidad"
+            />
+            </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -467,68 +469,70 @@ export default function MedicoFormCard(props: {
           </div>
         </div>
 
-        <div>
-          <label className="text-sm text-[var(--color-text-primary)]">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-          />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+            <label className="text-sm text-[var(--color-text-primary)]">Email</label>
+            <input
+                type="email"
+                value={email}
+                onChange={(e) => onEmailChange(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+            </div>
+
+            <div>
+                <label className="text-sm text-[var(--color-text-primary)]">Dirección</label>
+                <input
+                value={direccion}
+                onChange={(e) => onDireccionChange(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                />
+            </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-sm text-[var(--color-text-primary)]">Dirección</label>
-            <input
-              value={direccion}
-              onChange={(e) => onDireccionChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-[var(--color-text-primary)]">Centro de trabajo</label>
-            <input
-              value={centroTrabajo}
-              onChange={(e) => onCentroTrabajoChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
+            <div>
+                <label className="text-sm text-[var(--color-text-primary)]">Centro de trabajo</label>
+                <input
+                value={centroTrabajo}
+                onChange={(e) => onCentroTrabajoChange(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                />
+            </div>    
+            
+            <div>
+                <label className="text-sm text-[var(--color-text-primary)]">Fecha de nacimiento</label>
+                <input
+                type="date"
+                value={fechaNacimiento}
+                onChange={(e) => onFechaNacimientoChange(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                />
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className="text-sm text-[var(--color-text-primary)]">Fecha de nacimiento</label>
-            <input
-              type="date"
-              value={fechaNacimiento}
-              onChange={(e) => onFechaNacimientoChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label className="text-sm text-[var(--color-text-primary)]">Tipo profesional</label>
+                <SelectMenu
+                value={tipoProfesional}
+                onChange={(v) => onTipoProfesionalChange(v as TipoProfesionalClinica)}
+                options={tipoOptions}
+                ariaLabel="Tipo profesional"
+                />
+            </div>
 
-          <div>
-            <label className="text-sm text-[var(--color-text-primary)]">RUC</label>
-            <input
-              value={ruc}
-              inputMode="numeric"
-              onChange={(e) => onRucChange(e.target.value.replace(/\D/g, ""))}
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-[var(--color-text-primary)]">Tiempo promedio (min)</label>
-            <input
-              type="number"
-              min={0}
-              step={5}
-              value={tiempoPromedio}
-              onChange={(e) => onTiempoPromedioChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-          </div>
+            <div>
+                <label className="text-sm text-[var(--color-text-primary)]">Tiempo promedio (min)</label>
+                <input
+                type="number"
+                min={0}
+                step={5}
+                value={tiempoPromedio}
+                onChange={(e) => onTiempoPromedioChange(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                />
+            </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -571,7 +575,7 @@ export default function MedicoFormCard(props: {
           disabled={!saveEnabled}
           onClick={onSave}
         >
-          {mode === "new" ? "Crear" : "Guardar cambios"}
+            {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
         </button>
 
         <button

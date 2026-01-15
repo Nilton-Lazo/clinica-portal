@@ -73,6 +73,7 @@ export default function ConsultoriosPage() {
           <ConsultorioFormCard
             mode={vm.mode}
             selected={vm.selected}
+            saving={vm.saving}
             abreviatura={vm.abreviatura}
             onAbreviaturaChange={vm.setAbreviatura}
             descripcion={vm.descripcion}

@@ -59,6 +59,7 @@ export function useConsultorios() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
   const [page, setPage] = useState(1);
@@ -269,6 +270,9 @@ export function useConsultorios() {
       return;
     }
 
+    if (saving) return;
+    setSaving(true);
+
     try {
       if (mode === "new") {
         const res = await createConsultorio({
@@ -301,8 +305,10 @@ export function useConsultorios() {
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
-    }
-  }, [abreviatura, descripcion, esTercero, estado, isDirty, loadForEdit, mode, refresh, selected]);
+      } finally {
+          setSaving(false);
+        }
+  }, [abreviatura, descripcion, esTercero, estado, isDirty, loadForEdit, mode, refresh, selected, saving]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
@@ -339,6 +345,7 @@ export function useConsultorios() {
   return {
     data,
     loading,
+    saving,
     notice,
 
     page,

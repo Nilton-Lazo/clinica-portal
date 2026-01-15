@@ -63,7 +63,7 @@ export default function EspecialidadesPage() {
             mode={vm.mode}
             selected={vm.selected}
             codigo={vm.codigo}
-            onCodigoChange={vm.setCodigo}
+            saving={vm.saving}
             descripcion={vm.descripcion}
             onDescripcionChange={vm.setDescripcion}
             estado={vm.estado}

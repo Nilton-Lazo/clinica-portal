@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  Especialidad,
-  PaginatedResponse,
-  RecordStatus,
-} from "../../types/especialidades.types";
+import type { Especialidad, PaginatedResponse, RecordStatus } from "../../types/especialidades.types";
 
 import {
   createEspecialidad,
   deactivateEspecialidad,
+  getNextEspecialidadCodigo,
   listEspecialidades,
   updateEspecialidad,
 } from "../../services/especialidades.service";
@@ -17,7 +14,6 @@ import type { ApiError } from "../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
-
 export type Notice = { type: "success" | "error"; text: string } | null;
 
 function clampPerPage(n: number) {
@@ -39,10 +35,11 @@ export function useEspecialidades() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(50);
+  const [perPage, setPerPageState] = useState(50);
 
   const [q, setQ] = useState("");
   const qDebounced = useDebouncedValue(q, 350);
@@ -64,31 +61,64 @@ export function useEspecialidades() {
     estado: RecordStatus;
   } | null>(null);
 
+  useEffect(() => {
+    if (mode !== "new") return;
+    if (codigo.trim()) return;
+
+    let alive = true;
+
+    (async () => {
+      try {
+        const res = await getNextEspecialidadCodigo();
+        if (!alive) return;
+        setCodigo(res.codigo);
+      } catch {
+        // si falla preview, no se bloquea aquí; igual backend genera al crear
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [mode, codigo]);
+
   const isValid = useMemo(() => {
     const c = codigo.trim();
     const d = descripcion.trim();
-    if (!c || !d) return false;
-    if (c.length > 10) return false;
+
+    if (!d) return false;
     if (d.length > 255) return false;
+
+    if (mode === "new") {
+      if (!c) return false;
+      if (c.length > 10) return false;
+      if (!/^\d{3,10}$/.test(c)) return false;
+    }
+
+    if (mode === "edit") {
+      if (!c) return false;
+      if (c.length > 10) return false;
+    }
+
     return true;
-  }, [codigo, descripcion]);
+  }, [codigo, descripcion, mode]);
 
   const isDirty = useMemo(() => {
     const o = originalRef.current;
+
     if (!o) return mode === "new" ? isValid : false;
-    return (
-      o.codigo !== codigo.trim() ||
-      o.descripcion !== descripcion.trim() ||
-      o.estado !== estado
-    );
-  }, [codigo, descripcion, estado, mode, isValid]);
+
+    return o.descripcion !== descripcion.trim() || o.estado !== estado;
+  }, [descripcion, estado, mode, isValid]);
 
   const resetToNew = useCallback(() => {
     setMode("new");
     setSelected(null);
+
     setCodigo("");
     setDescripcion("");
     setEstado("ACTIVO");
+
     originalRef.current = null;
     setNotice(null);
   }, []);
@@ -96,14 +126,17 @@ export function useEspecialidades() {
   const loadForEdit = useCallback((x: Especialidad) => {
     setMode("edit");
     setSelected(x);
+
     setCodigo(x.codigo);
     setDescripcion(x.descripcion);
     setEstado(x.estado);
+
     originalRef.current = {
       codigo: x.codigo,
       descripcion: x.descripcion,
       estado: x.estado,
     };
+
     setNotice(null);
   }, []);
 
@@ -122,6 +155,7 @@ export function useEspecialidades() {
     setCodigo(o.codigo);
     setDescripcion(o.descripcion);
     setEstado(o.estado);
+
     setNotice(null);
   }, [mode, resetToNew, selected]);
 
@@ -151,21 +185,14 @@ export function useEspecialidades() {
     [page, perPage, qDebounced, statusFilter]
   );
 
-  const prevFiltersRef = useRef<{
-    q: string;
-    status: StatusFilter;
-    perPage: number;
-  } | null>(null);
+  const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
 
   useEffect(() => {
     const prev = prevFiltersRef.current;
     const next = { q: qDebounced, status: statusFilter, perPage };
 
     const filtersChanged =
-      !prev ||
-      prev.q !== next.q ||
-      prev.status !== next.status ||
-      prev.perPage !== next.perPage;
+      !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
 
     prevFiltersRef.current = next;
 
@@ -180,11 +207,10 @@ export function useEspecialidades() {
   const onSave = useCallback(async () => {
     setNotice(null);
 
+    const d = descripcion.trim();
+
     if (!isValid) {
-      setNotice({
-        type: "error",
-        text: "Completa Código y Descripción correctamente.",
-      });
+      setNotice({ type: "error", text: "Completa la Descripción correctamente." });
       return;
     }
 
@@ -198,11 +224,13 @@ export function useEspecialidades() {
       return;
     }
 
+    if (saving) return;
+
+    setSaving(true);
     try {
       if (mode === "new") {
         const res = await createEspecialidad({
-          codigo: codigo.trim(),
-          descripcion: descripcion.trim(),
+          descripcion: d,
           estado,
         });
 
@@ -216,8 +244,7 @@ export function useEspecialidades() {
       }
 
       const res = await updateEspecialidad(selected!.id, {
-        codigo: codigo.trim(),
-        descripcion: descripcion.trim(),
+        descripcion: d,
         estado,
       });
 
@@ -228,18 +255,10 @@ export function useEspecialidades() {
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
     }
-  }, [
-    codigo,
-    descripcion,
-    estado,
-    isDirty,
-    isValid,
-    loadForEdit,
-    mode,
-    refresh,
-    selected,
-  ]);
+  }, [descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, saving, selected]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
@@ -257,45 +276,46 @@ export function useEspecialidades() {
       return;
     }
 
+    if (saving) return;
+
+    setSaving(true);
     try {
-      await deactivateEspecialidad(selected.id);
+      const res = await deactivateEspecialidad(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Especialidad desactivada." });
 
-      const updated: Especialidad = { ...selected, estado: "INACTIVO" };
       await refresh();
-      loadForEdit(updated);
+      loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
     }
-  }, [loadForEdit, refresh, selected]);
+  }, [loadForEdit, refresh, saving, selected]);
 
   const canDeactivate = Boolean(selected) && selected?.estado !== "INACTIVO";
 
   return {
-    // data
     data,
     loading,
+    saving,
     notice,
-    setNotice,
 
-    // filters
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPage(clampPerPage(n)),
+    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
     q,
     setQ,
     statusFilter,
     setStatusFilter,
 
-    // form
     mode,
     selected,
+
     codigo,
-    setCodigo,
     descripcion,
     setDescripcion,
     estado,
@@ -305,15 +325,12 @@ export function useEspecialidades() {
     isDirty,
     canDeactivate,
 
-    // actions
-    refresh,
     resetToNew,
     loadForEdit,
     cancel,
     onSave,
     requestDeactivate,
 
-    // confirm
     confirmDeactivateOpen,
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,

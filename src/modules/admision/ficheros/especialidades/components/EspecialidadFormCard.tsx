@@ -146,7 +146,9 @@ function SelectMenu(props: {
                   "w-full rounded-lg px-3 py-2 text-left text-sm",
                   "transition-colors",
                   o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-                  isSelected ? "bg-[var(--color-primary)] text-[var(--color-text-inverse)]" : "text-[var(--color-text-primary)]",
+                  isSelected
+                    ? "bg-[var(--color-primary)] text-[var(--color-text-inverse)]"
+                    : "text-[var(--color-text-primary)]",
                   !isSelected && isActive ? "bg-[var(--color-surface-hover)]" : "",
                 ].join(" ")}
                 role="option"
@@ -165,15 +167,20 @@ function SelectMenu(props: {
 export default function EspecialidadFormCard(props: {
   mode: Mode;
   selected: Especialidad | null;
+
   codigo: string;
-  onCodigoChange: (v: string) => void;
+  saving: boolean;
+
   descripcion: string;
   onDescripcionChange: (v: string) => void;
+
   estado: RecordStatus;
   onEstadoChange: (v: RecordStatus) => void;
+
   isValid: boolean;
   isDirty: boolean;
   canDeactivate: boolean;
+
   onSave: () => void;
   onCancel: () => void;
   onDeactivate: () => void;
@@ -181,27 +188,34 @@ export default function EspecialidadFormCard(props: {
   const {
     mode,
     selected,
+
     codigo,
-    onCodigoChange,
+    saving,
+
     descripcion,
     onDescripcionChange,
+
     estado,
     onEstadoChange,
+
     isValid,
     isDirty,
     canDeactivate,
+
     onSave,
     onCancel,
     onDeactivate,
   } = props;
 
-  const saveEnabled = isValid && isDirty;
+  const saveEnabled = isValid && isDirty && !saving;
 
   const btnPrimary = (enabled: boolean) =>
     [
       "h-10 rounded-xl px-4 text-sm font-medium text-[var(--color-text-inverse)]",
       "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-      enabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-panel-context)] text-[var(--color-text-secondary)] cursor-not-allowed hover:scale-100",
+      enabled
+        ? "bg-[var(--color-primary)]"
+        : "bg-[var(--color-panel-context)] text-[var(--color-text-secondary)] cursor-not-allowed hover:scale-100",
     ].join(" ");
 
   const btnCancel =
@@ -211,7 +225,9 @@ export default function EspecialidadFormCard(props: {
     [
       "h-10 rounded-xl px-4 text-sm font-medium text-[var(--color-text-inverse)]",
       "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-      enabled ? "bg-[var(--color-danger)]" : "bg-[var(--color-panel-context)] text-[var(--color-text-secondary)] cursor-not-allowed hover:scale-100",
+      enabled
+        ? "bg-[var(--color-danger)]"
+        : "bg-[var(--color-panel-context)] text-[var(--color-text-secondary)] cursor-not-allowed hover:scale-100",
     ].join(" ");
 
   const estadoOptions: Opt[] = [
@@ -235,13 +251,26 @@ export default function EspecialidadFormCard(props: {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4">
-        <div>
-          <label className="text-sm text-[var(--color-text-primary)]">Código</label>
-          <input
-            value={codigo}
-            onChange={(e) => onCodigoChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-          />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-sm text-[var(--color-text-primary)]">Código</label>
+            <input
+              value={codigo}
+              readOnly
+              placeholder={mode === "new" ? "Generando" : ""}
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-[var(--color-text-primary)]">Estado</label>
+            <SelectMenu
+              value={estado}
+              onChange={(v) => onEstadoChange(v as RecordStatus)}
+              options={estadoOptions}
+              ariaLabel="Estado"
+            />
+          </div>
         </div>
 
         <div>
@@ -252,33 +281,18 @@ export default function EspecialidadFormCard(props: {
             className="mt-1 h-10 w-full rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           />
         </div>
-
-        <div>
-          <label className="text-sm text-[var(--color-text-primary)]">Estado</label>
-          <SelectMenu
-            value={estado}
-            onChange={(v) => onEstadoChange(v as RecordStatus)}
-            options={estadoOptions}
-            ariaLabel="Estado"
-          />
-        </div>
       </div>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
         <button type="button" className={btnPrimary(saveEnabled)} disabled={!saveEnabled} onClick={onSave}>
-          {mode === "new" ? "Crear" : "Guardar cambios"}
+          {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar cambios"}
         </button>
 
-        <button type="button" className={btnCancel} onClick={onCancel}>
+        <button type="button" className={btnCancel} onClick={onCancel} disabled={saving}>
           Cancelar
         </button>
 
-        <button
-          type="button"
-          className={btnDanger(canDeactivate)}
-          disabled={!canDeactivate}
-          onClick={onDeactivate}
-        >
+        <button type="button" className={btnDanger(canDeactivate && !saving)} disabled={!canDeactivate || saving} onClick={onDeactivate}>
           Desactivar
         </button>
       </div>
