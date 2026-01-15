@@ -574,7 +574,7 @@ export default function MedicoFormCard(props: {
             </div>
 
             <div>
-                <label className="text-sm text-(--color-text-primary)">Tiempo promedio (min)</label>
+                <label className="text-sm text-(--color-text-primary)">Tiempo promedio (minutos)</label>
                 <input
                 type="number"
                 min={0}
