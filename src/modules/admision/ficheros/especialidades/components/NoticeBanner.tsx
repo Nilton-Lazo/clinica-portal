@@ -9,8 +9,8 @@ export default function NoticeBanner({ notice }: { notice: Notice }) {
       className={[
         "rounded-2xl border px-4 py-3 text-sm",
         notice.type === "success"
-          ? "border-[var(--color-success)] text-[var(--color-success)]"
-          : "border-[var(--color-danger)] text-[var(--color-danger)]",
+          ? "border-(--color-success) text-(--color-success)"
+          : "border-(--color-danger) text-(--color-danger)",
       ].join(" ")}
     >
       {notice.text}

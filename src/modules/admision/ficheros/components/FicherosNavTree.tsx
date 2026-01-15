@@ -61,16 +61,16 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
               }
               className={[
                 "flex w-full items-center justify-between rounded-xl px-2 py-2 text-left",
-                "text-sm font-semibold text-[var(--color-text-primary)]",
-                "hover:bg-[var(--color-surface-hover)] transition-colors",
+                "text-sm font-semibold text-(--color-text-primary)",
+                "hover:bg-(--color-surface-hover) transition-colors",
               ].join(" ")}
               aria-expanded={open}
             >
               <span className="min-w-0 truncate">{g.label}</span>
               {open ? (
-                <ChevronDown className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+                <ChevronDown className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
               ) : (
-                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
               )}
             </button>
 
@@ -86,7 +86,7 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
                     it.disabled ? (
                       <div
                         key={it.to}
-                        className="cursor-not-allowed rounded-xl px-3 py-2 text-sm text-[var(--color-text-secondary)] opacity-50"
+                        className="cursor-not-allowed rounded-xl px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
                       >
                         {it.label}
                       </div>
@@ -99,8 +99,8 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
                           [
                             "block rounded-xl px-3 py-2 text-sm transition-colors",
                             isActive
-                              ? "bg-[var(--color-primary)] text-[var(--color-text-inverse)]"
-                              : "text-[var(--color-text-primary)] hover:bg-[var(--color-surface-hover)]",
+                              ? "bg-(--color-primary) text-(--color-text-inverse)"
+                              : "text-(--color-text-primary) hover:bg-(--color-surface-hover)",
                           ].join(" ")
                         }
                       >

@@ -49,7 +49,7 @@ export function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className="absolute inset-0 bg-[var(--color-overlay)]"
+        className="absolute inset-0 bg-(--color-overlay)"
         onClick={onCancel}
         aria-hidden="true"
       />
@@ -58,20 +58,20 @@ export function ConfirmDialog({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className="w-full max-w-md rounded-2xl border border-[var(--border-color-default)] bg-[var(--color-surface)] shadow-lg"
+          className="w-full max-w-md rounded-2xl border border-(--border-color-default) bg-(--color-surface) shadow-lg"
         >
           <div className="p-5">
-            <div className="text-base font-semibold text-[var(--color-text-primary)]">
+            <div className="text-base font-semibold text-(--color-text-primary)">
               {title}
             </div>
             {description ? (
-              <div className="mt-2 text-sm text-[var(--color-text-secondary)]">
+              <div className="mt-2 text-sm text-(--color-text-secondary)">
                 {description}
               </div>
             ) : null}
           </div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-[var(--border-color-default)] p-4">
+          <div className="flex items-center justify-end gap-2 border-t border-(--border-color-default) p-4">
             <button type="button" className={cancelBtn} onClick={onCancel}>
               {cancelText}
             </button>

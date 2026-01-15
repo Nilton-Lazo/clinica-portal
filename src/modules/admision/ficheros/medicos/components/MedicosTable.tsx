@@ -21,18 +21,18 @@ export default function MedicosTable(props: {
 
   return (
     <div className="hidden h-full min-h-0 flex-col lg:flex">
-      <div className="rounded-2xl border border-[var(--border-color-default)] overflow-hidden bg-[var(--color-surface)]">
+      <div className="rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
         <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-[var(--color-primary)] text-[var(--color-text-inverse)]">
+            <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
               <tr>
-                <th className="px-3 py-2 text-center font-semibold w-25 bg-[var(--color-primary)]">
+                <th className="px-3 py-2 text-center font-semibold w-25 bg-(--color-primary)">
                   CMP
                 </th>
-                <th className="px-3 py-2 text-left font-semibold bg-[var(--color-primary)]">
+                <th className="px-3 py-2 text-left font-semibold bg-(--color-primary)">
                   Apellidos y nombres
                 </th>
-                <th className="px-3 py-2 text-center font-semibold w-44 bg-[var(--color-primary)]">
+                <th className="px-3 py-2 text-center font-semibold w-44 bg-(--color-primary)">
                   Estado
                 </th>
               </tr>
@@ -41,13 +41,13 @@ export default function MedicosTable(props: {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-3 py-3 text-[var(--color-text-secondary)]" colSpan={3}>
+                  <td className="px-3 py-3 text-(--color-text-secondary)" colSpan={3}>
                     Cargando…
                   </td>
                 </tr>
               ) : data.data.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-3 text-[var(--color-text-secondary)]" colSpan={3}>
+                  <td className="px-3 py-3 text-(--color-text-secondary)" colSpan={3}>
                     No hay registros.
                   </td>
                 </tr>
@@ -59,9 +59,9 @@ export default function MedicosTable(props: {
                       key={x.id}
                       onClick={() => onSelect(x)}
                       className={[
-                        "cursor-pointer border-t border-[var(--border-color-default)] transition-colors",
-                        active ? "bg-[var(--color-surface-hover)]" : "bg-[var(--color-surface)]",
-                        "hover:bg-[var(--color-surface-hover)]",
+                        "cursor-pointer border-t border-(--border-color-default) transition-colors",
+                        active ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
+                        "hover:bg-(--color-surface-hover)",
                       ].join(" ")}
                     >
                       <td className="px-3 py-2 text-center tabular-nums">{x.cmp ?? "—"}</td>
@@ -80,7 +80,7 @@ export default function MedicosTable(props: {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+      <div className="mt-3 flex items-center justify-between text-sm text-(--color-text-secondary)">
         <div>
           Mostrando{" "}
           {data.meta.total === 0 ? 0 : (data.meta.current_page - 1) * data.meta.per_page + 1} –{" "}
@@ -90,7 +90,7 @@ export default function MedicosTable(props: {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="h-9 rounded-xl px-3 bg-[var(--color-panel-context)] text-[var(--color-base-primary)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+            className="h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
             disabled={page <= 1}
             onClick={onPrev}
           >
@@ -101,7 +101,7 @@ export default function MedicosTable(props: {
           </div>
           <button
             type="button"
-            className="h-9 rounded-xl px-3 bg-[var(--color-panel-context)] text-[var(--color-base-primary)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+            className="h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
             disabled={page >= data.meta.last_page}
             onClick={onNext}
           >

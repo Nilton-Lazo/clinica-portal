@@ -131,7 +131,7 @@ export default function FacturacionActionsPanel({
         aria-modal="true"
         aria-label="Acciones de facturación"
       >
-        <div className="mx-auto w-full max-w-[720px] px-3 pb-[env(safe-area-inset-bottom)]">
+        <div className="mx-auto w-full max-w-180 px-3 pb-[env(safe-area-inset-bottom)]">
           <div
             className={[
               "rounded-xl",

@@ -106,7 +106,7 @@ export default function AppShell() {
 
         {/* ✅ Frame global para TODAS las páginas */}
         <main className="flex-1 min-w-0 min-h-0 overflow-auto">
-          <div className="mx-auto w-full max-w-[1600px] px-4 py-4 h-full min-h-0">
+          <div className="mx-auto w-full max-w-400 px-4 py-4 h-full min-h-0">
             <Outlet />
           </div>
         </main>
@@ -132,7 +132,7 @@ export default function AppShell() {
 
           <div
             className={[
-              "absolute inset-y-0 left-0 w-[86vw] max-w-[230px] shadow-xl",
+              "absolute inset-y-0 left-0 w-[86vw] max-w-57.5 shadow-xl",
               "transition-transform duration-200 ease-out",
               drawerOpen ? "translate-x-0" : "-translate-x-full",
             ].join(" ")}

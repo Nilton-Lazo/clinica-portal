@@ -13,13 +13,13 @@ export default function MedicosPage() {
     <div className="flex w-full flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <div className="text-base font-semibold text-[var(--color-text-primary)]">{title}</div>
-          <div className="text-sm text-[var(--color-text-secondary)]">
+          <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
+          <div className="text-sm text-(--color-text-secondary)">
             Tablas maestras de Admisión · CRUD con paginación y estados
           </div>
         </div>
 
-        <div className="w-full lg:max-w-[760px]">
+        <div className="w-full lg:max-w-190">
           <MedicosToolbar
             q={vm.q}
             onQChange={vm.setQ}
@@ -38,8 +38,8 @@ export default function MedicosPage() {
           className={[
             "rounded-2xl border px-4 py-3 text-sm",
             vm.notice.type === "success"
-              ? "border-[var(--color-success)] text-[var(--color-success)]"
-              : "border-[var(--color-danger)] text-[var(--color-danger)]",
+              ? "border-(--color-success) text-(--color-success)"
+              : "border-(--color-danger) text-(--color-danger)",
           ].join(" ")}
         >
           {vm.notice.text}

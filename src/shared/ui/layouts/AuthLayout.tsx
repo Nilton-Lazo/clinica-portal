@@ -11,7 +11,7 @@ export default function AuthLayout({ children, illustration, logo }: Props) {
     <div className="min-h-dvh bg-(--color-background) flex flex-col">
       {/* Centro vertical del card */}
       <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="relative w-full max-w-[1100px] rounded-2xl bg-(--color-surface) shadow-lg overflow-hidden">
+        <div className="relative w-full max-w-275 rounded-2xl bg-(--color-surface) shadow-lg overflow-hidden">
           {/* Logo centrado global */}
           <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
             <img
@@ -33,7 +33,7 @@ export default function AuthLayout({ children, illustration, logo }: Props) {
               <img
                 src={illustration}
                 alt="Ilustración médica"
-                className="w-full max-w-[440px]"
+                className="w-full max-w-110"
               />
 
               <h2 className="mt-6 text-2xl font-bold text-(--color-primary)">
@@ -49,7 +49,7 @@ export default function AuthLayout({ children, illustration, logo }: Props) {
 
             {/* Columna derecha */}
             <div className="flex items-center justify-center px-10 pb-12">
-              <div className="w-full max-w-[440px]">{children}</div>
+              <div className="w-full max-w-110">{children}</div>
             </div>
           </div>
         </div>

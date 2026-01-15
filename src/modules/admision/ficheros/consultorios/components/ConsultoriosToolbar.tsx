@@ -93,22 +93,22 @@ function SelectMenu(props: {
           }
         }}
         className={[
-          "h-10 rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)]",
-          "px-3 text-sm text-[var(--color-text-primary)]",
-          "outline-none focus:ring-2 focus:ring-[var(--color-primary)]",
+          "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface)",
+          "px-3 text-sm text-(--color-text-primary)",
+          "outline-none focus:ring-2 focus:ring-(--color-primary)",
           "flex items-center justify-between gap-2",
           "transition-transform duration-150 hover:scale-[1.01] active:scale-[0.99]",
           buttonClassName ?? "",
         ].join(" ")}
       >
         <span className="min-w-0 truncate">{selected?.label}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-[var(--color-text-secondary)]" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
       </button>
 
       <div
         className={[
           "absolute left-0 mt-2 z-50",
-          "rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] shadow-lg",
+          "rounded-xl border border-(--border-color-default) bg-(--color-surface) shadow-lg",
           "origin-top transition-all duration-150",
           open ? "opacity-100 translate-y-0 scale-100" : "pointer-events-none opacity-0 -translate-y-1 scale-[0.98]",
           menuClassName ?? "min-w-full w-max",
@@ -147,12 +147,12 @@ function SelectMenu(props: {
                 onClick={() => !o.disabled && pick(o.value)}
                 className={[
                   "w-full rounded-lg px-3 py-2 text-left text-sm",
-                  "transition-colors whitespace-normal break-words leading-5",
+                  "transition-colors whitespace-normal wrap-break-words leading-5",
                   o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
                   isSelected
-                    ? "bg-[var(--color-primary)] text-[var(--color-text-inverse)]"
-                    : "text-[var(--color-text-primary)]",
-                  !isSelected && isActive ? "bg-[var(--color-surface-hover)]" : "",
+                    ? "bg-(--color-primary) text-(--color-text-inverse)"
+                    : "text-(--color-text-primary)",
+                  !isSelected && isActive ? "bg-(--color-surface-hover)" : "",
                 ].join(" ")}
                 role="option"
                 aria-selected={isSelected}
@@ -199,9 +199,9 @@ export default function ConsultoriosToolbar(props: {
           onChange={(e) => onQChange(e.target.value)}
           placeholder="Buscar por abreviatura o descripción"
           className={[
-            "h-10 rounded-xl border border-[var(--border-color-default)] bg-[var(--color-surface)] px-3",
-            "text-sm text-[var(--color-text-primary)] outline-none focus:ring-2 focus:ring-[var(--color-primary)]",
-            "basis-full lg:basis-auto lg:flex-1 min-w-[260px]",
+            "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
+            "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+            "basis-full lg:basis-auto lg:flex-1 min-w-65",
           ].join(" ")}
         />
 
@@ -225,7 +225,7 @@ export default function ConsultoriosToolbar(props: {
 
         <button
           type="button"
-          className="h-10 rounded-xl px-4 text-sm font-medium bg-[var(--color-primary)] text-[var(--color-text-inverse)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
+          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
           onClick={onNew}
         >
           Nuevo
