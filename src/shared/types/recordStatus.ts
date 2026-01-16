@@ -1,0 +1,1 @@
+export type RecordStatus = "ACTIVO" | "INACTIVO" | "SUSPENDIDO";

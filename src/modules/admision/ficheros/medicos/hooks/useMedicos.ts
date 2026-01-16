@@ -16,7 +16,7 @@ import {
   getNextMedicoCodigo,
 } from "../../services/medicos.service";
 
-import { useDebouncedValue } from "../../especialidades/hooks/useDebouncedValue";
+import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";

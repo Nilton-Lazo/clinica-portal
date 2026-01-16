@@ -23,8 +23,9 @@ export default function TurnosTable(props: {
 
   return (
     <div className="hidden h-full min-h-0 flex-col lg:flex">
-      <div className="rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
-        <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
+      {/* hace que la “card” ocupe el alto disponible */}
+      <div className="flex-1 min-h-0 rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
+        <div className="h-full min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
               <tr>

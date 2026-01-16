@@ -1,5 +1,7 @@
 import type { Consultorio, PaginatedResponse } from "../../types/consultorios.types";
 import { StatusBadge } from "../../components/StatusBadge";
+import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
+import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
 
 export default function ConsultoriosMobileList(props: {
   data: PaginatedResponse<Consultorio>;
@@ -10,73 +12,30 @@ export default function ConsultoriosMobileList(props: {
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const { data, loading, selectedId, onSelect, page, onPrev, onNext } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext } = props;
 
   return (
     <div className="lg:hidden">
-      <div className="space-y-2">
-        {loading ? (
-          <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
-            Cargando…
+      <MobileEntityList
+        rows={data.data}
+        loading={loading}
+        selectedId={selectedId}
+        getRowId={(x) => x.id}
+        onSelect={onSelect}
+        renderMain={(x) => (
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-(--color-text-primary)">
+              <span className="tabular-nums">{x.abreviatura}</span> · {x.descripcion}
+            </div>
+            {x.es_tercero ? (
+              <div className="mt-1 text-xs text-(--color-text-secondary)">Consultorio de terceros</div>
+            ) : null}
           </div>
-        ) : data.data.length === 0 ? (
-          <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
-            No hay registros.
-          </div>
-        ) : (
-          data.data.map((x) => {
-            const active = selectedId === x.id;
-            return (
-              <button
-                key={x.id}
-                type="button"
-                onClick={() => onSelect(x)}
-                className={[
-                  "w-full rounded-2xl border border-(--border-color-default) p-4 text-left",
-                  "transition-transform duration-150 active:scale-[0.99]",
-                  active ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
-                ].join(" ")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-(--color-text-primary)">
-                      <span className="tabular-nums">{x.abreviatura}</span> · {x.descripcion}
-                    </div>
-                    {x.es_tercero ? (
-                      <div className="mt-1 text-xs text-(--color-text-secondary)">
-                        Consultorio de terceros
-                      </div>
-                    ) : null}
-                  </div>
-                  <StatusBadge status={x.estado} />
-                </div>
-              </button>
-            );
-          })
         )}
-      </div>
+        renderRight={(x) => <StatusBadge status={x.estado} />}
+      />
 
-      <div className="mt-3 flex items-center justify-between gap-2 text-sm text-(--color-text-secondary)">
-        <button
-          type="button"
-          className="h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-          disabled={page <= 1}
-          onClick={onPrev}
-        >
-          Anterior
-        </button>
-        <div>
-          {data.meta.current_page} / {data.meta.last_page}
-        </div>
-        <button
-          type="button"
-          className="h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-          disabled={page >= data.meta.last_page}
-          onClick={onNext}
-        >
-          Siguiente
-        </button>
-      </div>
+      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} />
     </div>
   );
 }

@@ -1,4 +1,7 @@
-export type RecordStatus = "ACTIVO" | "INACTIVO" | "SUSPENDIDO";
+import type { RecordStatus } from "../../../../shared/types/recordStatus";
+import type { PaginatedResponse, PaginationMeta } from "../../../../shared/types/pagination";
+
+export type { RecordStatus, PaginatedResponse, PaginationMeta };
 
 export type Consultorio = {
   id: number;
@@ -8,18 +11,6 @@ export type Consultorio = {
   es_tercero: boolean;
   created_at?: string;
   updated_at?: string;
-};
-
-export type PaginationMeta = {
-  current_page: number;
-  per_page: number;
-  total: number;
-  last_page: number;
-};
-
-export type PaginatedResponse<T> = {
-  data: T[];
-  meta: PaginationMeta;
 };
 
 export type ConsultoriosQuery = {

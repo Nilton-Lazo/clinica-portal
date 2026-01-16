@@ -1,167 +1,16 @@
 import * as React from "react";
-import type { EspecialidadLookup, Medico, RecordStatus, TipoProfesionalClinica } from "../../types/medicos.types";
+import type {
+  EspecialidadLookup,
+  Medico,
+  RecordStatus,
+  TipoProfesionalClinica,
+} from "../../types/medicos.types";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useMedicos";
-import { ChevronDown, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 
-type Opt = { value: string; label: string; disabled?: boolean };
-
-function SelectMenu(props: {
-  value: string;
-  onChange: (v: string) => void;
-  options: Opt[];
-  ariaLabel: string;
-}) {
-  const { value, onChange, options, ariaLabel } = props;
-  const [open, setOpen] = React.useState(false);
-  const [activeIndex, setActiveIndex] = React.useState<number>(() => {
-    const i = options.findIndex((o) => o.value === value);
-    return i >= 0 ? i : 0;
-  });
-
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
-  const btnRef = React.useRef<HTMLButtonElement | null>(null);
-  const selected = options.find((o) => o.value === value) ?? options[0];
-
-  React.useEffect(() => {
-    const onDown = (e: PointerEvent) => {
-      if (!open) return;
-      const t = e.target as Node | null;
-      if (!t) return;
-      if (rootRef.current && !rootRef.current.contains(t)) setOpen(false);
-    };
-    window.addEventListener("pointerdown", onDown);
-    return () => window.removeEventListener("pointerdown", onDown);
-  }, [open]);
-
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!open) return;
-      if (e.key === "Escape") {
-        e.preventDefault();
-        setOpen(false);
-        btnRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  const move = (dir: 1 | -1) => {
-    let i = activeIndex;
-    for (let k = 0; k < options.length; k++) {
-      i = (i + dir + options.length) % options.length;
-      if (!options[i].disabled) {
-        setActiveIndex(i);
-        return;
-      }
-    }
-  };
-
-  const pick = (v: string) => {
-    onChange(v);
-    setOpen(false);
-    btnRef.current?.focus();
-  };
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={btnRef}
-        type="button"
-        aria-label={ariaLabel}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => {
-          setOpen((o) => !o);
-          const i = options.findIndex((o) => o.value === value);
-          setActiveIndex(i >= 0 ? i : 0);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            setOpen(true);
-          } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setOpen(true);
-            move(1);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setOpen(true);
-            move(-1);
-          }
-        }}
-        className={[
-          "mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface)",
-          "px-3 text-sm text-(--color-text-primary)",
-          "outline-none focus:ring-2 focus:ring-(--color-primary)",
-          "flex items-center justify-between gap-2",
-          "transition-transform duration-150 hover:scale-[1.01] active:scale-[0.99]",
-        ].join(" ")}
-      >
-        <span className="min-w-0 truncate">{selected?.label}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
-      </button>
-
-      <div
-        className={[
-          "absolute left-0 right-0 mt-2 z-50",
-          "rounded-xl border border-(--border-color-default) bg-(--color-surface) shadow-lg",
-          "origin-top transition-all duration-150",
-          open ? "opacity-100 translate-y-0 scale-100" : "pointer-events-none opacity-0 -translate-y-1 scale-[0.98]",
-        ].join(" ")}
-        role="listbox"
-        aria-label={ariaLabel}
-        tabIndex={-1}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            move(1);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            move(-1);
-          } else if (e.key === "Enter") {
-            e.preventDefault();
-            const opt = options[activeIndex];
-            if (opt && !opt.disabled) pick(opt.value);
-          } else if (e.key === "Tab") {
-            setOpen(false);
-          }
-        }}
-      >
-        <div className="max-h-60 overflow-auto p-1 app-scrollbar app-scrollbar-no-gutter">
-          {options.map((o, idx) => {
-            const isSelected = o.value === value;
-            const isActive = idx === activeIndex;
-
-            return (
-              <button
-                key={o.value}
-                type="button"
-                disabled={o.disabled}
-                onMouseEnter={() => setActiveIndex(idx)}
-                onClick={() => !o.disabled && pick(o.value)}
-                className={[
-                  "w-full rounded-lg px-3 py-2 text-left text-sm",
-                  "transition-colors whitespace-normal wrap-break-words leading-5",
-                  o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-                  isSelected
-                    ? "bg-(--color-primary) text-(--color-text-inverse)"
-                    : "text-(--color-text-primary)",
-                  !isSelected && isActive ? "bg-(--color-surface-hover)" : "",
-                ].join(" ")}
-                role="option"
-                aria-selected={isSelected}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
+import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
+import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 
 function toEspecialidadLabel(x: EspecialidadLookup): string {
   const c = (x.codigo ?? "").trim();
@@ -267,87 +116,90 @@ export default function MedicoFormCard(props: {
   onCancel: () => void;
   onDeactivate: () => void;
 }) {
-    const {
-        mode,
-        selected,
+  const {
+    mode,
+    selected,
 
-        codigo,
-        saving,
+    codigo,
+    saving,
 
-        cmp,
-        onCmpChange,
-        rne,
-        onRneChange,
-        dni,
-        onDniChange,
+    cmp,
+    onCmpChange,
+    rne,
+    onRneChange,
+    dni,
+    onDniChange,
 
-        tipoProfesional,
-        onTipoProfesionalChange,
+    tipoProfesional,
+    onTipoProfesionalChange,
 
-        nombres,
-        onNombresChange,
-        apellidoPaterno,
-        onApellidoPaternoChange,
-        apellidoMaterno,
-        onApellidoMaternoChange,
+    nombres,
+    onNombresChange,
+    apellidoPaterno,
+    onApellidoPaternoChange,
+    apellidoMaterno,
+    onApellidoMaternoChange,
 
-        especialidadId,
-        onEspecialidadIdChange,
-        especialidades,
-        especialidadesLoading,
+    especialidadId,
+    onEspecialidadIdChange,
+    especialidades,
+    especialidadesLoading,
 
-        telefono,
-        onTelefonoChange,
-        telefono2,
-        onTelefono2Change,
-        email,
-        onEmailChange,
+    telefono,
+    onTelefonoChange,
+    telefono2,
+    onTelefono2Change,
+    email,
+    onEmailChange,
 
-        direccion,
-        onDireccionChange,
-        centroTrabajo,
-        onCentroTrabajoChange,
-        fechaNacimiento,
-        onFechaNacimientoChange,
+    direccion,
+    onDireccionChange,
+    centroTrabajo,
+    onCentroTrabajoChange,
+    fechaNacimiento,
+    onFechaNacimientoChange,
 
-        ruc,
-        onRucChange,
+    ruc,
+    onRucChange,
 
-        adicionales,
-        onAdicionalesChange,
-        extras,
-        onExtrasChange,
-        tiempoPromedio,
-        onTiempoPromedioChange,
+    adicionales,
+    onAdicionalesChange,
+    extras,
+    onExtrasChange,
+    tiempoPromedio,
+    onTiempoPromedioChange,
 
-        estado,
-        onEstadoChange,
+    estado,
+    onEstadoChange,
 
-        isValid,
-        isDirty,
-        canDeactivate,
-        onSave,
-        onCancel,
-        onDeactivate,
-    } = props;
+    isValid,
+    isDirty,
+    canDeactivate,
+    onSave,
+    onCancel,
+    onDeactivate,
+  } = props;
 
-  const isTouchUi = useIsTouchUi();  
-  
+  const isTouchUi = useIsTouchUi();
   const saveEnabled = isValid && isDirty && !saving;
 
-  const estadoOptions: Opt[] = [
+  const estadoOptions: SelectOption[] = [
     { value: "ACTIVO", label: "Activo" },
     { value: "INACTIVO", label: "Inactivo" },
     { value: "SUSPENDIDO", label: "Suspendido" },
   ];
 
-  const tipoOptions: Opt[] = [
+  const tipoOptions: SelectOption[] = [
     { value: "STAFF", label: "Staff" },
     { value: "EXTERNO", label: "Externo" },
   ];
 
-  const espOptions: Opt[] = [
-    { value: "0", label: especialidadesLoading ? "Cargando especialidades…" : "Selecciona especialidad", disabled: true },
+  const espOptions: SelectOption[] = [
+    {
+      value: "0",
+      label: especialidadesLoading ? "Cargando especialidades…" : "Selecciona especialidad",
+      disabled: true,
+    },
     ...especialidades.map((x) => ({ value: String(x.id), label: toEspecialidadLabel(x) })),
   ];
 
@@ -380,13 +232,17 @@ export default function MedicoFormCard(props: {
 
           <div>
             <label className="text-sm text-(--color-text-primary)">Estado</label>
-            <SelectMenu
-              value={estado}
-              onChange={(v) => onEstadoChange(v as RecordStatus)}
-              options={estadoOptions}
-              ariaLabel="Estado"
-            />
-          </div>         
+            <div className="mt-1">
+              <SelectMenu
+                value={estado}
+                onChange={(v) => onEstadoChange(v as RecordStatus)}
+                options={estadoOptions}
+                ariaLabel="Estado"
+                buttonClassName="w-full"
+                menuClassName="min-w-full"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -433,8 +289,8 @@ export default function MedicoFormCard(props: {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-1">
-            <label className="text-sm text-(--color-text-primary)]">Apellido Paterno</label>
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Apellido Paterno</label>
             <input
               value={apellidoPaterno}
               onChange={(e) => onApellidoPaternoChange(e.target.value)}
@@ -442,7 +298,7 @@ export default function MedicoFormCard(props: {
             />
           </div>
 
-          <div className="sm:col-span-1">
+          <div>
             <label className="text-sm text-(--color-text-primary)">Apellido Materno</label>
             <input
               value={apellidoMaterno}
@@ -453,7 +309,7 @@ export default function MedicoFormCard(props: {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-1">
+          <div>
             <label className="text-sm text-(--color-text-primary)">Nombres</label>
             <input
               value={nombres}
@@ -464,13 +320,17 @@ export default function MedicoFormCard(props: {
 
           <div>
             <label className="text-sm text-(--color-text-primary)">Especialidad</label>
-            <SelectMenu
+            <div className="mt-1">
+              <SelectMenu
                 value={String(especialidadId)}
                 onChange={(v) => onEspecialidadIdChange(Number(v))}
                 options={espOptions}
                 ariaLabel="Especialidad"
-            />
+                buttonClassName="w-full"
+                menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              />
             </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -496,94 +356,94 @@ export default function MedicoFormCard(props: {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
+          <div>
             <label className="text-sm text-(--color-text-primary)">Email</label>
             <input
-                type="email"
-                value={email}
-                onChange={(e) => onEmailChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              type="email"
+              value={email}
+              onChange={(e) => onEmailChange(e.target.value)}
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
             />
-            </div>
+          </div>
 
-            <div>
-                <label className="text-sm text-(--color-text-primary)">Dirección</label>
-                <input
-                value={direccion}
-                onChange={(e) => onDireccionChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-            </div>
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Dirección</label>
+            <input
+              value={direccion}
+              onChange={(e) => onDireccionChange(e.target.value)}
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-                <label className="text-sm text-(--color-text-primary)">Centro de trabajo</label>
-                <input
-                value={centroTrabajo}
-                onChange={(e) => onCentroTrabajoChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-            </div>    
-            
-            <div>
-              <label className="text-sm text-(--color-text-primary)">Fecha de nacimiento</label>
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Centro de trabajo</label>
+            <input
+              value={centroTrabajo}
+              onChange={(e) => onCentroTrabajoChange(e.target.value)}
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            />
+          </div>
 
-              {isTouchUi ? (
-                <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-                  <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
-                    <span
-                      className={
-                        fechaNacimiento ? "text-(--color-text-primary)" : "text-(--color-base-primary)"
-                      }
-                    >
-                      {fechaNacimiento ? formatDateForDisplay(fechaNacimiento) : "dd/mm/aaaa"}
-                    </span>
-                  </div>
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Fecha de nacimiento</label>
 
-                  <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
-
-                  <input
-                    type="date"
-                    value={fechaNacimiento}
-                    onChange={(e) => onFechaNacimientoChange(e.target.value)}
-                    className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
-                    aria-label="Fecha de nacimiento"
-                  />
+            {isTouchUi ? (
+              <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
+                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+                  <span className={fechaNacimiento ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
+                    {fechaNacimiento ? formatDateForDisplay(fechaNacimiento) : "dd/mm/aaaa"}
+                  </span>
                 </div>
-              ) : (
+
+                <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
+
                 <input
                   type="date"
                   value={fechaNacimiento}
                   onChange={(e) => onFechaNacimientoChange(e.target.value)}
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                  aria-label="Fecha de nacimiento"
                 />
-              )}
-            </div>
+              </div>
+            ) : (
+              <input
+                type="date"
+                value={fechaNacimiento}
+                onChange={(e) => onFechaNacimientoChange(e.target.value)}
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              />
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-                <label className="text-sm text-(--color-text-primary)">Tipo profesional</label>
-                <SelectMenu
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Tipo profesional</label>
+            <div className="mt-1">
+              <SelectMenu
                 value={tipoProfesional}
                 onChange={(v) => onTipoProfesionalChange(v as TipoProfesionalClinica)}
                 options={tipoOptions}
                 ariaLabel="Tipo profesional"
-                />
+                buttonClassName="w-full"
+                menuClassName="min-w-full"
+              />
             </div>
+          </div>
 
-            <div>
-                <label className="text-sm text-(--color-text-primary)">Tiempo promedio (minutos)</label>
-                <input
-                type="number"
-                min={0}
-                step={5}
-                value={tiempoPromedio}
-                onChange={(e) => onTiempoPromedioChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-            </div>
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Tiempo promedio (minutos)</label>
+            <input
+              type="number"
+              min={0}
+              step={5}
+              value={tiempoPromedio}
+              onChange={(e) => onTiempoPromedioChange(e.target.value)}
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -614,43 +474,17 @@ export default function MedicoFormCard(props: {
       </div>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          className={[
-            "h-10 rounded-xl px-4 text-sm font-medium text-(--color-text-inverse)",
-            "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-            saveEnabled
-              ? "bg-(--color-primary)"
-              : "bg-(--color-panel-context) text-(--color-text-secondary) cursor-not-allowed hover:scale-100",
-          ].join(" ")}
-          disabled={!saveEnabled}
-          onClick={onSave}
-        >
-            {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
-        </button>
+        <PrimaryButton disabled={!saveEnabled} onClick={onSave}>
+          {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
+        </PrimaryButton>
 
-        <button
-          type="button"
-          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-          onClick={onCancel}
-        >
+        <SecondaryButton disabled={saving} onClick={onCancel}>
           Cancelar
-        </button>
+        </SecondaryButton>
 
-        <button
-          type="button"
-          className={[
-            "h-10 rounded-xl px-4 text-sm font-medium text-(--color-text-inverse)",
-            "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-            canDeactivate
-              ? "bg-(--color-danger)"
-              : "bg-(--color-panel-context) text-(--color-text-secondary) cursor-not-allowed hover:scale-100",
-          ].join(" ")}
-          disabled={!canDeactivate}
-          onClick={onDeactivate}
-        >
+        <DangerButton disabled={!canDeactivate || saving} onClick={onDeactivate}>
           Desactivar
-        </button>
+        </DangerButton>
       </div>
     </div>
   );

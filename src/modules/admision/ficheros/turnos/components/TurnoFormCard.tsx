@@ -6,12 +6,7 @@ import { ChevronDown, Clock } from "lucide-react";
 
 type Opt = { value: string; label: string; disabled?: boolean };
 
-function SelectMenu(props: {
-  value: string;
-  onChange: (v: string) => void;
-  options: Opt[];
-  ariaLabel: string;
-}) {
+function SelectMenu(props: { value: string; onChange: (v: string) => void; options: Opt[]; ariaLabel: string }) {
   const { value, onChange, options, ariaLabel } = props;
   const [open, setOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState<number>(() => {
@@ -218,7 +213,6 @@ function normalizeTimeOnBlur(input: string): string {
   if (!t) return "";
 
   const hasColon = t.includes(":");
-
   let hRaw = "";
   let mRaw = "";
 
@@ -304,7 +298,7 @@ function TimeMaskedInput(props: {
             onChange("");
             return;
           }
-          onChange(`${h}${raw0.includes(":") ? ":" : ""}${m}`);
+          onChange(`${h}:${m}`);
           return;
         }
 
@@ -389,31 +383,22 @@ export default function TurnoFormCard(props: {
   const {
     mode,
     selected,
-
     codigo,
     saving,
-
     horaInicio,
     onHoraInicioChange,
-
     horaFin,
     onHoraFinChange,
-
     duracionPreview,
     descripcionPreview,
-
     descripcion,
     onDescripcionChange,
-
     tipoTurno,
     onTipoTurnoChange,
-
     jornada,
     onJornadaChange,
-
     estado,
     onEstadoChange,
-
     isValid,
     isDirty,
     canDeactivate,
@@ -443,8 +428,13 @@ export default function TurnoFormCard(props: {
     { value: "NOCHE", label: "Noche" },
   ];
 
+  // FIX: en edit debe reflejar el cambio live (duracionPreview) antes que lo guardado.
   const duracionReadonly =
-    mode === "new" ? duracionPreview : selected?.duracion_hhmm ?? duracionPreview ?? "";
+    (duracionPreview ?? "").trim() !== ""
+      ? duracionPreview
+      : (selected?.duracion_hhmm ?? "").trim() !== ""
+        ? (selected?.duracion_hhmm ?? "")
+        : "";
 
   const descripcionValue =
     descripcion.trim() !== ""
@@ -481,22 +471,22 @@ export default function TurnoFormCard(props: {
           </div>
 
           <div>
-            <label className="text-sm text-(--color-text-primary)">Estado</label>
-            <SelectMenu
-              value={estado}
-              onChange={(v) => onEstadoChange(v as RecordStatus)}
-              options={estadoOptions}
-              ariaLabel="Estado"
-            />
-          </div>
-
-          <div>
             <label className="text-sm text-(--color-text-primary)">Tipo de turno</label>
             <SelectMenu
               value={tipoTurno}
               onChange={(v) => onTipoTurnoChange(v as TipoTurno)}
               options={tipoOptions}
               ariaLabel="Tipo de turno"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Estado</label>
+            <SelectMenu
+              value={estado}
+              onChange={(v) => onEstadoChange(v as RecordStatus)}
+              options={estadoOptions}
+              ariaLabel="Estado"
             />
           </div>
         </div>
@@ -557,34 +547,31 @@ export default function TurnoFormCard(props: {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">   
-            <div>
-                <label className="text-sm text-(--color-text-primary)">Duración (HH:MM)</label>
-                <input
-                value={duracionReadonly}
-                readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-            </div>    
-            <div>
-                <label className="text-sm text-(--color-text-primary)">Jornada</label>
-                <SelectMenu
-                value={jornada}
-                onChange={(v) => onJornadaChange(v as JornadaTurno)}
-                options={jornadaOptions}
-                ariaLabel="Jornada"
-                />
-            </div>
-        </div>
-       
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-sm text-(--color-text-primary)">Descripción</label>
+            <label className="text-sm text-(--color-text-primary)">Duración (HH:MM)</label>
             <input
-              value={descripcionValue}
-              onChange={(e) => onDescripcionChange(e.target.value)}
+              value={duracionReadonly}
+              readOnly
+              placeholder="—"
               className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
             />
           </div>
+
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Jornada</label>
+            <SelectMenu value={jornada} onChange={(v) => onJornadaChange(v as JornadaTurno)} options={jornadaOptions} ariaLabel="Jornada" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm text-(--color-text-primary)">Descripción</label>
+          <input
+            value={descripcionValue}
+            onChange={(e) => onDescripcionChange(e.target.value)}
+            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+          />
+        </div>
       </div>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">

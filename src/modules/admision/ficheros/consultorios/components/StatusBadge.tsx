@@ -1,6 +1,5 @@
 import { ShieldCheck, ShieldX, ShieldAlert } from "lucide-react";
-
-export type RecordStatus = "ACTIVO" | "INACTIVO" | "SUSPENDIDO";
+import type { RecordStatus } from "../../../../../shared/types/recordStatus";
 
 export function StatusBadge({ status }: { status: RecordStatus }) {
   const cfg =
