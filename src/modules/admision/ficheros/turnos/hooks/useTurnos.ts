@@ -3,7 +3,7 @@ import type { JornadaTurno, PaginatedResponse, RecordStatus, TipoTurno, Turno } 
 
 import { createTurno, deactivateTurno, getNextTurnoCodigo, listTurnos, updateTurno } from "../../services/turnos.service";
 
-import { useDebouncedValue } from "../../especialidades/hooks/useDebouncedValue";
+import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
