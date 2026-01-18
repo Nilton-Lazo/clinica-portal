@@ -25,6 +25,16 @@ export const admisionMeta: Record<string, RouteMeta> = {
             { label: "Especialidades" },
         ],
     },
+
+    "/admision/citas/programacion": {
+        title: "Programación medica",
+        subtitle: "Planificación y control de la atención médica según disponibilidad y especialidad",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Programacion" },
+        ],
+    },
 };
 
   

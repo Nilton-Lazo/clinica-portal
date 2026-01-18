@@ -15,7 +15,7 @@ import ConsultoriosPage from "../../modules/admision/ficheros/pages/Consultorios
 import MedicosPage from "../../modules/admision/ficheros/pages/MedicosPage";
 import TurnosPage from "../../modules/admision/ficheros/pages/TurnosPage";
 
-// import ProgramacionMedicaPage from "../../modules/admision/citas/programacion/pages/ProgramacionMedicaPage";
+import ProgramacionMedicaPage from "../../modules/admision/citas/programacion/pages/ProgramacionMedicaPage";
 
 export const router = createBrowserRouter([
   {
@@ -53,13 +53,13 @@ export const router = createBrowserRouter([
                     ],
                   },
 
-                  // {
-                  //   path: "citas",
-                  //   children: [
-                  //     { index: true, element: <Navigate to="programacion" replace /> },
-                  //     { path: "programacion", element: <ProgramacionMedicaPage /> },
-                  //   ],
-                  // },
+                  {
+                    path: "citas",
+                    children: [
+                      { index: true, element: <Navigate to="programacion" replace /> },
+                      { path: "programacion", element: <ProgramacionMedicaPage /> },
+                    ],
+                  },
                 ],
               },
             ],
