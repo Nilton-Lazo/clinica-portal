@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { ModalidadFechasProgramacion } from "../types/programacionMedica.types";
+import type { ModalidadFechasProgramacion } from "../../types/programacionMedica.types";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 

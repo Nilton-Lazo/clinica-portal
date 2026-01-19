@@ -10,8 +10,8 @@ import type {
   ProgramacionMedicaStorePayload,
   TipoProgramacionMedica,
   TurnoLookup,
-} from "../types/programacionMedica.types";
-import { programacionMedicaService, isApiError } from "../services/programacionMedica.service";
+} from "../../types/programacionMedica.types";
+import { programacionMedicaService, isApiError } from "../../services/programacionMedica.service";
 
 import {
   dmyFromYmdString,
@@ -21,7 +21,7 @@ import {
   ymdFromDate,
   sortDates,
   sameDay,
-} from "../utils/programacionMedica.utils";
+} from "../../utils/programacionMedica.utils";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;

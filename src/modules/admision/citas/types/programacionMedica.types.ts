@@ -1,5 +1,5 @@
-import type { PaginatedResponse } from "../../../../../shared/types/pagination";
-import type { RecordStatus } from "../../../../../shared/types/recordStatus";
+import type { PaginatedResponse } from "../../../../shared/types/pagination";
+import type { RecordStatus } from "../../../../shared/types/recordStatus";
 
 export type TipoProgramacionMedica = "NORMAL" | "EXTRAORDINARIA";
 export type ModalidadFechasProgramacion = "DIARIA" | "ALEATORIA" | "RANGO";

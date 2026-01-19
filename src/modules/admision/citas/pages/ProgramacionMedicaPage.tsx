@@ -1,12 +1,12 @@
 import * as React from "react";
-import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
-import NoticeBanner from "../components/NoticeBanner";
-import ProgramacionCalendarCard from "../components/ProgramacionCalendarCard";
-import ProgramacionMedicaFormCard from "../components/ProgramacionMedicaFormCard";
-import ProgramacionMedicaListBar from "../components/ProgramacionMedicaListBar";
-import ProgramacionMedicaTable from "../components/ProgramacionMedicaTable";
-import ProgramacionMedicaMobileList from "../components/ProgramacionMedicaMobileList";
-import { useProgramacionMedica } from "../hooks/useProgramacionMedica";
+import { ConfirmDialog } from "../../ficheros/components/ConfirmDialog";
+import NoticeBanner from "../programacion/components/NoticeBanner";
+import ProgramacionCalendarCard from "../programacion/components/ProgramacionCalendarCard";
+import ProgramacionMedicaFormCard from "../programacion/components/ProgramacionMedicaFormCard";
+import ProgramacionMedicaListBar from "../programacion/components/ProgramacionMedicaListBar";
+import ProgramacionMedicaTable from "../programacion/components/ProgramacionMedicaTable";
+import ProgramacionMedicaMobileList from "../programacion/components/ProgramacionMedicaMobileList";
+import { useProgramacionMedica } from "../programacion/hooks/useProgramacionMedica";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {

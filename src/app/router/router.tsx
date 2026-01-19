@@ -15,7 +15,7 @@ import ConsultoriosPage from "../../modules/admision/ficheros/pages/Consultorios
 import MedicosPage from "../../modules/admision/ficheros/pages/MedicosPage";
 import TurnosPage from "../../modules/admision/ficheros/pages/TurnosPage";
 
-import ProgramacionMedicaPage from "../../modules/admision/citas/programacion/pages/ProgramacionMedicaPage";
+import ProgramacionMedicaPage from "../../modules/admision/citas/pages/ProgramacionMedicaPage";
 
 import TiposIafasPage from "../../modules/admision/ficheros/pages/TiposIafasPage";
 import IafasPage from "../../modules/admision/ficheros/pages/IafasPage";

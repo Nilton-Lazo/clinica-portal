@@ -1,7 +1,7 @@
-import type { ApiError } from "../../../../../shared/api/apiError";
-import type { PaginatedResponse } from "../../../../../shared/types/pagination";
-import type { RecordStatus } from "../../../../../shared/types/recordStatus";
-import { api } from "../../../../../shared/api";
+import type { ApiError } from "../../../../shared/api/apiError";
+import type { PaginatedResponse } from "../../../../shared/types/pagination";
+import type { RecordStatus } from "../../../../shared/types/recordStatus";
+import { api } from "../../../../shared/api";
 
 import type {
   ConsultorioLookup,

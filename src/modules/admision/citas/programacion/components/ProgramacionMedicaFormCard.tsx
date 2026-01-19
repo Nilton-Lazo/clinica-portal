@@ -1,6 +1,6 @@
 import type { RecordStatus } from "../../../../../shared/types/recordStatus";
 import type { Mode } from "../hooks/useProgramacionMedica";
-import type { TipoProgramacionMedica } from "../types/programacionMedica.types";
+import type { TipoProgramacionMedica } from "../../types/programacionMedica.types";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";

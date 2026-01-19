@@ -1,8 +1,8 @@
-import type { ProgramacionMedica, ProgramacionMedicaPaginated } from "../types/programacionMedica.types";
+import type { ProgramacionMedica, ProgramacionMedicaPaginated } from "../../types/programacionMedica.types";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
-import { dmyFromYmdString } from "../utils/programacionMedica.utils";
+import { dmyFromYmdString } from "../../utils/programacionMedica.utils";
 
 function mainText(x: ProgramacionMedica) {
   const m = x.medico;
