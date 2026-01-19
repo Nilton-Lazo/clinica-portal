@@ -249,19 +249,12 @@ import type {
   }
   
   export async function updateMedico(id: number, payload: MedicoUpdatePayload): Promise<{ data: Medico }> {
-    const res = await api.request<{ data: MedicoApi }>({
-      method: "PUT",
-      path: `/admision/ficheros/medicos/${id}`,
-      body: payload,
-    });
+    const res = await api.put<{ data: MedicoApi }>(`/admision/ficheros/medicos/${id}`, payload);
     return { data: normalizeMedico(res.data) };
-  }
+  }  
   
   export async function deactivateMedico(id: number): Promise<{ data: Medico }> {
-    const res = await api.request<{ data: MedicoApi }>({
-      method: "PATCH",
-      path: `/admision/ficheros/medicos/${id}/desactivar`,
-    });
+    const res = await api.patch<{ data: MedicoApi }>(`/admision/ficheros/medicos/${id}/desactivar`);
     return { data: normalizeMedico(res.data) };
   }
   

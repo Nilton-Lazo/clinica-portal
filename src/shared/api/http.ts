@@ -70,7 +70,6 @@ export class HttpClient {
         method: opts.method,
         headers,
         body,
-
         credentials: "omit",
       });
     } catch {
@@ -140,5 +139,17 @@ export class HttpClient {
 
   post<T>(path: string, body?: unknown): Promise<T> {
     return this.request<T>({ method: "POST", path, body });
+  }
+
+  put<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>({ method: "PUT", path, body });
+  }
+
+  patch<T>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>({ method: "PATCH", path, body });
+  }
+
+  delete<T>(path: string): Promise<T> {
+    return this.request<T>({ method: "DELETE", path });
   }
 }

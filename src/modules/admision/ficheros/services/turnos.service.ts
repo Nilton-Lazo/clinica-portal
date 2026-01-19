@@ -162,19 +162,12 @@ import type {
   }
   
   export async function updateTurno(id: number, payload: TurnoUpdatePayload): Promise<{ data: Turno }> {
-    const res = await api.request<{ data: TurnoApi }>({
-      method: "PUT",
-      path: `/admision/ficheros/turnos/${id}`,
-      body: payload,
-    });
+    const res = await api.put<{ data: TurnoApi }>(`/admision/ficheros/turnos/${id}`, payload);
     return { data: normalizeTurno(res.data) };
   }
   
   export async function deactivateTurno(id: number): Promise<{ data: Turno }> {
-    const res = await api.request<{ data: TurnoApi }>({
-      method: "PATCH",
-      path: `/admision/ficheros/turnos/${id}/desactivar`,
-    });
+    const res = await api.patch<{ data: TurnoApi }>(`/admision/ficheros/turnos/${id}/desactivar`);
     return { data: normalizeTurno(res.data) };
   }
   

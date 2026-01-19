@@ -16,17 +16,13 @@ const groups: Group[] = [
     ],
   },
   {
-    label: "Pacientes",
+    label: "Aseguradoras y planes",
     items: [
-      { label: "Estados civiles", to: "/admision/ficheros/estados-civiles", disabled: true },
-      { label: "Parentescos", to: "/admision/ficheros/parentescos", disabled: true },
-    ],
-  },
-  {
-    label: "Medicamentos",
-    items: [
-      { label: "Presentaciones", to: "/admision/ficheros/presentaciones", disabled: true },
-      { label: "Vías de administración", to: "/admision/ficheros/vias", disabled: true },
+      { label: "Tipos de IAFAS", to: "/admision/ficheros/tipos-iafas"},
+      { label: "IAFAS", to: "/admision/ficheros/iafas"},
+      { label: "Contratantes", to: "/admision/ficheros/contratantes"},
+      { label: "Tarifas", to: "/admision/ficheros/tarifas"},
+      { label: "Tipos de clientes", to: "/admision/ficheros/tipos-clientes"},
     ],
   },
 ];

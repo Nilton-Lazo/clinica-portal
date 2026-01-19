@@ -17,6 +17,12 @@ import TurnosPage from "../../modules/admision/ficheros/pages/TurnosPage";
 
 import ProgramacionMedicaPage from "../../modules/admision/citas/programacion/pages/ProgramacionMedicaPage";
 
+import TiposIafasPage from "../../modules/admision/ficheros/pages/TiposIafasPage";
+import IafasPage from "../../modules/admision/ficheros/pages/IafasPage";
+import ContratantesPage from "../../modules/admision/ficheros/pages/ContratantesPage";
+import TarifasPage from "../../modules/admision/ficheros/pages/TarifasPage";
+import TiposClientesPage from "../../modules/admision/ficheros/pages/TiposClientesPage";
+
 export const router = createBrowserRouter([
   {
     element: <AppBootstrap />,
@@ -50,6 +56,11 @@ export const router = createBrowserRouter([
                       { path: "consultorios", element: <ConsultoriosPage /> },
                       { path: "medicos", element: <MedicosPage /> },
                       { path: "turnos", element: <TurnosPage /> },
+                      { path: "tipos-iafas", element: <TiposIafasPage /> },
+                      { path: "iafas", element: <IafasPage /> },
+                      { path: "contratantes", element: <ContratantesPage /> },
+                      { path: "tarifas", element: <TarifasPage /> },
+                      { path: "tipos-clientes", element: <TiposClientesPage /> },
                     ],
                   },
 

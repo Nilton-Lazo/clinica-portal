@@ -1,3 +1,4 @@
+import * as React from "react";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import NoticeBanner from "../components/NoticeBanner";
 import ProgramacionCalendarCard from "../components/ProgramacionCalendarCard";
@@ -7,14 +8,46 @@ import ProgramacionMedicaTable from "../components/ProgramacionMedicaTable";
 import ProgramacionMedicaMobileList from "../components/ProgramacionMedicaMobileList";
 import { useProgramacionMedica } from "../hooks/useProgramacionMedica";
 
+function useIsLgUp(): boolean {
+  const [isLgUp, setIsLgUp] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLgUp(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isLgUp;
+}
+
 export default function ProgramacionMedicaPage() {
   const vm = useProgramacionMedica();
+
+  const isLgUp = useIsLgUp();
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+  
+  const handleNew = React.useCallback(() => {
+    vm.resetToNew();
+  
+    if (isLgUp) return;
+  
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [vm, isLgUp]);
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-4 pb-4">
       <NoticeBanner notice={vm.notice} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
         <div className="min-w-0 h-full">
           <ProgramacionCalendarCard
             modalidad={vm.modalidad}
@@ -30,7 +63,7 @@ export default function ProgramacionMedicaPage() {
           />
         </div>
 
-        <div className="min-w-0 h-full">
+        <div ref={formRef} className="min-w-0">
           <ProgramacionMedicaFormCard
             mode={vm.mode}
             codigo={vm.codigoDisplay}
@@ -85,7 +118,7 @@ export default function ProgramacionMedicaPage() {
                 onStatusChange={vm.setStatusFilter}
                 perPage={vm.perPage}
                 onPerPageChange={(n) => vm.setPerPage(n)}
-                onNew={vm.resetToNew}
+                onNew={handleNew}
               />
             </div>
           </div>

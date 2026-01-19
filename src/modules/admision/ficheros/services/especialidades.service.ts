@@ -66,19 +66,12 @@ export function updateEspecialidad(
   id: number,
   payload: EspecialidadUpdatePayload
 ): Promise<{ data: Especialidad }> {
-  return api.request<{ data: Especialidad }>({
-    method: "PUT",
-    path: `/admision/ficheros/especialidades/${id}`,
-    body: {
-      descripcion: payload.descripcion,
-      estado: payload.estado,
-    },
+  return api.put<{ data: Especialidad }>(`/admision/ficheros/especialidades/${id}`, {
+    descripcion: payload.descripcion,
+    estado: payload.estado,
   });
 }
 
 export function deactivateEspecialidad(id: number): Promise<{ data: Especialidad }> {
-  return api.request<{ data: Especialidad }>({
-    method: "PATCH",
-    path: `/admision/ficheros/especialidades/${id}/desactivar`,
-  });
+  return api.patch<{ data: Especialidad }>(`/admision/ficheros/especialidades/${id}/desactivar`);
 }

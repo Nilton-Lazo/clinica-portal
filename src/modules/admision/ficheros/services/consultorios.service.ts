@@ -108,25 +108,20 @@ export async function updateConsultorio(
   id: number,
   payload: ConsultorioUpdatePayload
 ): Promise<{ data: Consultorio }> {
-  const res = await api.request<{ data: ConsultorioApi }>({
-    method: "PUT",
-    path: `/admision/ficheros/consultorios/${id}`,
-    body: {
-      abreviatura: payload.abreviatura,
-      descripcion: payload.descripcion,
-      es_tercero: payload.es_tercero,
-      estado: payload.estado,
-    },
+  const res = await api.put<{ data: ConsultorioApi }>(`/admision/ficheros/consultorios/${id}`, {
+    abreviatura: payload.abreviatura,
+    descripcion: payload.descripcion,
+    es_tercero: payload.es_tercero,
+    estado: payload.estado,
   });
 
   return { data: normalizeConsultorio(res.data) };
 }
 
 export async function deactivateConsultorio(id: number): Promise<{ data: Consultorio }> {
-  const res = await api.request<{ data: ConsultorioApi }>({
-    method: "PATCH",
-    path: `/admision/ficheros/consultorios/${id}/desactivar`,
-  });
+  const res = await api.patch<{ data: ConsultorioApi }>(
+    `/admision/ficheros/consultorios/${id}/desactivar`
+  );
 
   return { data: normalizeConsultorio(res.data) };
 }

@@ -1,3 +1,4 @@
+import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { useTurnos } from "../turnos/hooks/useTurnos";
 import TurnosToolbar from "../turnos/components/TurnosToolbar";
@@ -5,9 +6,41 @@ import TurnosTable from "../turnos/components/TurnosTable";
 import TurnosMobileList from "../turnos/components/TurnosMobileList";
 import TurnoFormCard from "../turnos/components/TurnoFormCard";
 
+function useIsLgUp(): boolean {
+  const [isLgUp, setIsLgUp] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLgUp(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isLgUp;
+}
+
 export default function TurnosPage() {
   const title = "Turnos";
   const vm = useTurnos();
+
+  const isLgUp = useIsLgUp();
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  const handleNew = React.useCallback(() => {
+    vm.resetToNew();
+
+    if (isLgUp) return;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [vm, isLgUp]);
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -15,7 +48,7 @@ export default function TurnosPage() {
         <div className="min-w-0">
           <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
           <div className="text-sm text-(--color-text-secondary)">
-            Tablas maestras de Admisión · CRUD con paginación y estados
+            CRUD con paginación y estados
           </div>
         </div>
 
@@ -27,7 +60,7 @@ export default function TurnosPage() {
             onStatusChange={vm.setStatusFilter}
             perPage={vm.perPage}
             onPerPageChange={(n) => vm.setPerPage(n)}
-            onNew={vm.resetToNew}
+            onNew={handleNew}
           />
         </div>
       </div>
@@ -46,7 +79,7 @@ export default function TurnosPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
         <div className="min-w-0">
           <TurnosTable
             data={vm.data}
@@ -69,7 +102,7 @@ export default function TurnosPage() {
           />
         </div>
 
-        <div className="min-w-0">
+        <div ref={formRef} className="min-w-0">
           <TurnoFormCard
             mode={vm.mode}
             selected={vm.selected}

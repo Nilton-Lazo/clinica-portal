@@ -1,11 +1,10 @@
 import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { useEspecialidades } from "../especialidades/hooks/useEspecialidades";
-import NoticeBanner from "../especialidades/components/NoticeBanner";
-import EspecialidadesToolbar from "../especialidades/components/EspecialidadesToolbar";
-import EspecialidadesTable from "../especialidades/components/EspecialidadesTable";
-import EspecialidadesMobileList from "../especialidades/components/EspecialidadesMobileList";
-import EspecialidadFormCard from "../especialidades/components/EspecialidadFormCard";
+import { useTiposIafas } from "../tipos-iafas/hooks/useTiposIafas";
+import TiposIafasToolbar from "../tipos-iafas/components/TiposIafasToolbar";
+import TiposIafasTable from "../tipos-iafas/components/TiposIafasTable";
+import TiposIafasMobileList from "../tipos-iafas/components/TiposIafasMobileList";
+import TipoIafaFormCard from "../tipos-iafas/components/TipoIafaFormCard";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -24,9 +23,9 @@ function useIsLgUp(): boolean {
   return isLgUp;
 }
 
-export default function EspecialidadesPage() {
-  const title = "Especialidades";
-  const vm = useEspecialidades();
+export default function TiposIafasPage() {
+  const title = "Tipos de IAFAS";
+  const vm = useTiposIafas();
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
@@ -54,7 +53,7 @@ export default function EspecialidadesPage() {
         </div>
 
         <div className="w-full lg:max-w-190">
-          <EspecialidadesToolbar
+          <TiposIafasToolbar
             q={vm.q}
             onQChange={vm.setQ}
             statusFilter={vm.statusFilter}
@@ -66,11 +65,23 @@ export default function EspecialidadesPage() {
         </div>
       </div>
 
-      <NoticeBanner notice={vm.notice} />
+      {vm.notice ? (
+        <div
+          role="status"
+          className={[
+            "rounded-2xl border px-4 py-3 text-sm",
+            vm.notice.type === "success"
+              ? "border-(--color-success) text-(--color-success)"
+              : "border-(--color-danger) text-(--color-danger)",
+          ].join(" ")}
+        >
+          {vm.notice.text}
+        </div>
+      ) : null}
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-start">
         <div className="min-w-0">
-          <EspecialidadesTable
+          <TiposIafasTable
             data={vm.data}
             loading={vm.loading}
             selectedId={vm.selected?.id ?? null}
@@ -80,7 +91,7 @@ export default function EspecialidadesPage() {
             onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
           />
 
-          <EspecialidadesMobileList
+          <TiposIafasMobileList
             data={vm.data}
             loading={vm.loading}
             selectedId={vm.selected?.id ?? null}
@@ -92,7 +103,7 @@ export default function EspecialidadesPage() {
         </div>
 
         <div ref={formRef} className="min-w-0">
-          <EspecialidadFormCard
+          <TipoIafaFormCard
             mode={vm.mode}
             selected={vm.selected}
             codigo={vm.codigo}
@@ -113,10 +124,10 @@ export default function EspecialidadesPage() {
 
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
-        title="Desactivar especialidad"
+        title="Desactivar tipo de IAFAS"
         description={
           vm.selected
-            ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?`
+            ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?`
             : "Selecciona un registro."
         }
         confirmText="Desactivar"
