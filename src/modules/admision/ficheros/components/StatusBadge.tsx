@@ -1,4 +1,4 @@
-import type { RecordStatus } from "../types/especialidades.types";
+import type { RecordStatus } from "../../../../shared/types/recordStatus";
 import { ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
 
 const labelMap: Record<RecordStatus, string> = {

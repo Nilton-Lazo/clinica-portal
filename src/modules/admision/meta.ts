@@ -7,6 +7,22 @@ export const admisionMeta: Record<string, RouteMeta> = {
         breadcrumb: [{ label: "Admisión" }],
     },
 
+    "/admision/historia-clinica": {
+        title: "Historia clínica",
+        subtitle: "Registro y consulta de información clínica del paciente.",
+        breadcrumb: [{ label: "Admisión", path: "/admision" }, { label: "Historia clínica" }],
+    },
+
+    "/admision/historia-clinica/nuevo": {
+        title: "Historia clínica",
+        subtitle: "Registro inicial del paciente e historia clínica.",
+        breadcrumb: [
+        { label: "Admisión", path: "/admision" },
+        { label: "Historia clínica", path: "/admision/historia-clinica" },
+        { label: "Nuevo" },
+        ],
+    },
+
     "/admision/ficheros": {
         title: "Ficheros",
         subtitle: "Gestión de tablas maestras y registros configurables del sistema.",

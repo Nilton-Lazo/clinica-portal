@@ -23,6 +23,12 @@ import ContratantesPage from "../../modules/admision/ficheros/pages/Contratantes
 import TarifasPage from "../../modules/admision/ficheros/pages/TarifasPage";
 import TiposClientesPage from "../../modules/admision/ficheros/pages/TiposClientesPage";
 
+import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
+import HistoriaClinicaWizardLayout from "../../modules/admision/historia-clinica/pages/HistoriaClinicaWizardLayout";
+import HistoriaClinicaDatosGeneralesPage from "../../modules/admision/historia-clinica/pages/HistoriaClinicaDatosGeneralesPage";
+import HistoriaClinicaDatosAdicionalesPage from "../../modules/admision/historia-clinica/pages/HistoriaClinicaDatosAdicionalesPage";
+import HistoriaClinicaAcreditacionPage from "../../modules/admision/historia-clinica/pages/HistoriaClinicaAcreditacionPage";
+
 export const router = createBrowserRouter([
   {
     element: <AppBootstrap />,
@@ -46,6 +52,35 @@ export const router = createBrowserRouter([
                 path: "admision",
                 children: [
                   { index: true, element: <AdmisionHomePage /> },
+
+                  {
+                    path: "historia-clinica",
+                    children: [
+                      { index: true, element: <HistoriaPage /> },
+                  
+                      {
+                        path: "nuevo",
+                        element: <HistoriaClinicaWizardLayout />,
+                        children: [
+                          { index: true, element: <Navigate to="datos-generales" replace /> },
+                          { path: "datos-generales", element: <HistoriaClinicaDatosGeneralesPage /> },
+                          { path: "datos-adicionales", element: <HistoriaClinicaDatosAdicionalesPage /> },
+                          { path: "acreditacion", element: <HistoriaClinicaAcreditacionPage /> },
+                        ],
+                      },
+                  
+                      {
+                        path: ":pacienteId/editar",
+                        element: <HistoriaClinicaWizardLayout />,
+                        children: [
+                          { index: true, element: <Navigate to="datos-generales" replace /> },
+                          { path: "datos-generales", element: <HistoriaClinicaDatosGeneralesPage /> },
+                          { path: "datos-adicionales", element: <HistoriaClinicaDatosAdicionalesPage /> },
+                          { path: "acreditacion", element: <HistoriaClinicaAcreditacionPage /> },
+                        ],
+                      },
+                    ],
+                  },                                   
               
                   {
                     path: "ficheros",
