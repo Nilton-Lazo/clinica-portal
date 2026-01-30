@@ -41,7 +41,6 @@ export function AcreditacionStep() {
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();
-
     if (isLgUp) return;
 
     requestAnimationFrame(() => {
@@ -52,6 +51,16 @@ export function AcreditacionStep() {
   }, [vm, isLgUp]);
 
   const emptyText = pacienteId ? "No hay planes afiliados." : "Guarda el paciente para habilitar acreditación.";
+
+  const lastPage = vm.data.meta.last_page;
+
+  const handlePrev = React.useCallback(() => {
+    vm.setPage((p) => Math.max(1, p - 1));
+  }, [vm]);
+
+  const handleNext = React.useCallback(() => {
+    vm.setPage((p) => Math.min(lastPage, p + 1));
+  }, [vm, lastPage]);
 
   return (
     <FormCard title="Acreditación">
@@ -92,27 +101,31 @@ export function AcreditacionStep() {
 
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_571px] lg:items-start">
           <div className="min-w-0">
-            <AcreditacionPlanesTable
-              data={vm.data}
-              loading={vm.loading}
-              selectedId={vm.selected?.id ?? null}
-              onSelect={vm.loadForEdit}
-              page={vm.page}
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              emptyText={emptyText}
-            />
+            <div className="hidden lg:block">
+              <AcreditacionPlanesTable
+                data={vm.data}
+                loading={vm.loading}
+                selectedId={vm.selected?.id ?? null}
+                onSelect={vm.loadForEdit}
+                page={vm.page}
+                onPrev={handlePrev}
+                onNext={handleNext}
+                emptyText={emptyText}
+              />
+            </div>
 
-            <AcreditacionPlanesMobileList
-              data={vm.data}
-              loading={vm.loading}
-              selectedId={vm.selected?.id ?? null}
-              onSelect={vm.loadForEdit}
-              page={vm.page}
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              emptyText={emptyText}
-            />
+            <div className="lg:hidden">
+              <AcreditacionPlanesMobileList
+                data={vm.data}
+                loading={vm.loading}
+                selectedId={vm.selected?.id ?? null}
+                onSelect={vm.loadForEdit}
+                page={vm.page}
+                onPrev={handlePrev}
+                onNext={handleNext}
+                emptyText={emptyText}
+              />
+            </div>
           </div>
 
           <div ref={formRef} className="min-w-0">
