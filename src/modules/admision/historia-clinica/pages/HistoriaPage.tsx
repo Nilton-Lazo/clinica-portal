@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useHistoriaClinica } from "../hooks/useHistoriaClinica";
-import NoticeBanner from "../components/NoticeBanner";
+import NoticeBanner, { type Notice } from "../components/NoticeBanner";
 import HistoriaClinicaToolbar from "../components/HistoriaClinicaToolbar";
 import HistoriaClinicaTable from "../components/HistoriaClinicaTable";
 import HistoriaClinicaMobileList from "../components/HistoriaClinicaMobileList";
@@ -24,6 +24,11 @@ function useIsLgUp(): boolean {
   return isLgUp;
 }
 
+type NoticeController = {
+  setNotice?: (n: Notice) => void;
+  clearNotice?: () => void;
+};
+
 export default function HistoriaClinicaPage() {
   const vm = useHistoriaClinica();
   const navigate = useNavigate();
@@ -38,7 +43,7 @@ export default function HistoriaClinicaPage() {
 
   const handleEdit = React.useCallback(() => {
     if (!vm.selected) return;
-    navigate(`/admision/historia-clinica/${vm.selected.id}/editar/datos-generales`);
+    navigate(`/admision/historia-clinica/${vm.selected.id}/datos-generales`);
   }, [navigate, vm.selected]);
 
   const handleSelect = React.useCallback(
@@ -55,6 +60,19 @@ export default function HistoriaClinicaPage() {
     },
     [isLgUp, vm]
   );
+
+  const handleCloseNotice = React.useCallback(() => {
+    const ctl = vm as unknown as NoticeController;
+
+    if (typeof ctl.clearNotice === "function") {
+      ctl.clearNotice();
+      return;
+    }
+
+    if (typeof ctl.setNotice === "function") {
+      ctl.setNotice(null);
+    }
+  }, [vm]);
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -76,7 +94,7 @@ export default function HistoriaClinicaPage() {
         />
       </div>
 
-      <NoticeBanner notice={vm.notice} />
+      <NoticeBanner notice={vm.notice} onClose={handleCloseNotice} />
 
       <div className="min-w-0">
         <HistoriaClinicaTable

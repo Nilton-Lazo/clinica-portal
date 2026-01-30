@@ -105,7 +105,9 @@ export default function HistoriaClinicaToolbar(props: {
             Actualizar registro
           </SecondaryButton>
 
-          <PrimaryButton onClick={onCreate}>Registrar paciente</PrimaryButton>
+          <PrimaryButton onClick={onCreate}>
+            Registrar paciente
+          </PrimaryButton>
         </div>
       </div>
     </div>
