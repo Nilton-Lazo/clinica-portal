@@ -7,8 +7,10 @@ type CatalogRecord = Record<string, unknown>;
 
 type MedicoItem = {
   id: number;
-  nombres?: string;
-  apellidos?: string;
+  nombre_completo?: string | null;
+  nombres?: string | null;
+  apellido_paterno?: string | null;
+  apellido_materno?: string | null;
   nombre?: string;
   full_name?: string;
 };
@@ -68,8 +70,8 @@ function toPaisOptions(arr: unknown[]): SelectOption[] {
   return out;
 }
 
-function toUbigeoMap(arr: unknown[]): Map<string, string> {
-  const m = new Map<string, string>();
+function toUbigeoOptions(arr: unknown[]): SelectOption[] {
+  const out: SelectOption[] = [];
   for (const it of arr) {
     if (typeof it !== "object" || it === null) continue;
     const r = it as Record<string, unknown>;
@@ -79,19 +81,25 @@ function toUbigeoMap(arr: unknown[]): Map<string, string> {
     const dist = typeof r.distrito === "string" ? r.distrito.trim() : "";
     if (!codigo) continue;
     const label = [dpto, prov, dist].filter(Boolean).join(" / ").trim();
-    m.set(codigo, label || codigo);
+    out.push({ value: codigo, label: label || codigo });
   }
-  return m;
+  return out;
 }
 
 function medicoLabel(m: MedicoItem): string {
+  const nc = typeof m.nombre_completo === "string" ? m.nombre_completo.trim() : "";
+  if (nc) return nc;
+
   const full = typeof m.full_name === "string" ? m.full_name.trim() : "";
   if (full) return full;
+
   const nom = typeof m.nombre === "string" ? m.nombre.trim() : "";
   if (nom) return nom;
+
   const n = typeof m.nombres === "string" ? m.nombres.trim() : "";
-  const a = typeof m.apellidos === "string" ? m.apellidos.trim() : "";
-  const mix = `${n} ${a}`.trim();
+  const ap = typeof m.apellido_paterno === "string" ? m.apellido_paterno.trim() : "";
+  const am = typeof m.apellido_materno === "string" ? m.apellido_materno.trim() : "";
+  const mix = [ap, am, n].filter(Boolean).join(" ").trim();
   return mix || `Médico #${m.id}`;
 }
 
@@ -104,8 +112,10 @@ function toMedicoOptions(arr: unknown[]): SelectOption[] {
     if (!id) continue;
     const m: MedicoItem = {
       id,
-      nombres: typeof r.nombres === "string" ? r.nombres : undefined,
-      apellidos: typeof r.apellidos === "string" ? r.apellidos : undefined,
+      nombre_completo: typeof r.nombre_completo === "string" ? r.nombre_completo : null,
+      nombres: typeof r.nombres === "string" ? r.nombres : null,
+      apellido_paterno: typeof r.apellido_paterno === "string" ? r.apellido_paterno : null,
+      apellido_materno: typeof r.apellido_materno === "string" ? r.apellido_materno : null,
       nombre: typeof r.nombre === "string" ? r.nombre : undefined,
       full_name: typeof r.full_name === "string" ? r.full_name : undefined,
     };
@@ -124,56 +134,32 @@ export function DatosGeneralesStep({
   const { state, actions } = usePacienteWizard();
   const d = state.draft;
 
-  const tipoDocOptions = withPlaceholder(
-    optionsFrom(catalog?.tipo_documento),
-    catalog ? "Selecciona tipo" : "Cargando tipos…"
-  );
+  const tipoDocOptions = withPlaceholder(optionsFrom(catalog?.tipo_documento), catalog ? "Selecciona tipo" : "Cargando tipos…");
 
-  const estadoCivilOptions = withPlaceholder(
-    optionsFrom(catalog?.estado_civil),
-    catalog ? "Selecciona estado civil" : "Cargando estados…"
-  );
+  const estadoCivilOptions = withPlaceholder(optionsFrom(catalog?.estado_civil), catalog ? "Selecciona estado civil" : "Cargando estados…");
 
-  const sexoOptions = withPlaceholder(
-    optionsFrom(catalog?.sexo),
-    catalog ? "Selecciona sexo" : "Cargando sexos…"
-  );
+  const sexoOptions = withPlaceholder(optionsFrom(catalog?.sexo), catalog ? "Selecciona sexo" : "Cargando sexos…");
 
-  const parentescoSeguroOptions = withPlaceholder(
-    optionsFrom(catalog?.parentesco_seguro),
-    catalog ? "Selecciona parentesco" : "Cargando parentescos…"
-  );
+  const parentescoSeguroOptions = withPlaceholder(optionsFrom(catalog?.parentesco_seguro), catalog ? "Selecciona parentesco" : "Cargando parentescos…");
 
   const catalogRecord: CatalogRecord = (catalog ?? {}) as unknown as CatalogRecord;
 
-  const paisesArr = readArray(catalogRecord, ["paises", "Paises", "nacionalidades"]);
-  const ubigeosArr = readArray(catalogRecord, ["ubigeos", "Ubigeos"]);
-  const medicosArr = readArray(catalogRecord, ["medicos", "medicos_tratantes", "medicosTratantes"]);
+  const paisesArr = readArray(catalogRecord, ["paises"]);
+  const ubigeosArr = readArray(catalogRecord, ["ubigeos"]);
+  const medicosArr = readArray(catalogRecord, ["medicos"]);
 
   const tipoSangreArr = readArray(catalogRecord, ["tipo_sangre", "tipos_sangre", "tiposSangre"]);
   const tipoPacienteArr = readArray(catalogRecord, ["tipo_paciente", "tipos_paciente", "tiposPaciente"]);
 
-  const paisOptions = withPlaceholder(
-    toPaisOptions(paisesArr),
-    catalog ? "Selecciona nacionalidad" : "Cargando nacionalidades…"
-  );
+  const paisOptions = withPlaceholder(toPaisOptions(paisesArr), catalog ? "Selecciona nacionalidad" : "Cargando nacionalidades…");
 
-  const ubigeoMap = toUbigeoMap(ubigeosArr);
+  const ubigeoOptions = withPlaceholder(toUbigeoOptions(ubigeosArr), catalog ? "Selecciona distrito" : "Cargando distritos…");
 
-  const medicoOptions = withPlaceholder(
-    toMedicoOptions(medicosArr),
-    catalog ? "Selecciona médico" : "Cargando médicos…"
-  );
+  const medicoOptions = withPlaceholder(toMedicoOptions(medicosArr), catalog ? "Selecciona médico" : "Cargando médicos…");
 
-  const tipoSangreOptions = withPlaceholder(
-    toStringEnumOptions(tipoSangreArr),
-    catalog ? "Selecciona tipo" : "Cargando…"
-  );
+  const tipoSangreOptions = withPlaceholder(toStringEnumOptions(tipoSangreArr), catalog ? "Selecciona tipo" : "Cargando…");
 
-  const tipoPacienteOptions = withPlaceholder(
-    toStringEnumOptions(tipoPacienteArr),
-    catalog ? "Selecciona tipo" : "Cargando…"
-  );
+  const tipoPacienteOptions = withPlaceholder(toStringEnumOptions(tipoPacienteArr), catalog ? "Selecciona tipo" : "Cargando…");
 
   const tipo = d.tipo_documento.trim().toUpperCase();
   const requiereDoc = tipo !== "" && tipo !== "SIN_DOCUMENTO";
@@ -187,9 +173,6 @@ export function DatosGeneralesStep({
   const ubDom = String((d as unknown as { ubigeo_domicilio?: unknown }).ubigeo_domicilio ?? "").trim();
 
   const medicoIdStr = String((d as unknown as { medico_tratante_id?: unknown }).medico_tratante_id ?? "");
-
-  const detalleBoxCls =
-    "h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 flex items-center text-sm text-(--color-text-secondary)";
 
   return (
     <div className="space-y-4">
@@ -206,29 +189,13 @@ export function DatosGeneralesStep({
             disabled={!catalog}
           />
 
-          <TextField
-            label={requiereDoc ? "N° de documento *" : "N° de documento"}
-            value={d.numero_documento}
-            onChange={(v) => actions.set({ numero_documento: v })}
-          />
+          <TextField label={requiereDoc ? "N° de documento *" : "N° de documento"} value={d.numero_documento} onChange={(v) => actions.set({ numero_documento: v })} />
 
-          <TextField
-            label={requiereDoc ? "Nombre(s) *" : "Nombre(s)"}
-            value={d.nombres}
-            onChange={(v) => actions.set({ nombres: v })}
-          />
+          <TextField label={requiereDoc ? "Nombre(s) *" : "Nombre(s)"} value={d.nombres} onChange={(v) => actions.set({ nombres: v })} />
 
-          <TextField
-            label={requiereDoc ? "Apellido paterno *" : "Apellido paterno"}
-            value={d.apellido_paterno}
-            onChange={(v) => actions.set({ apellido_paterno: v })}
-          />
+          <TextField label={requiereDoc ? "Apellido paterno *" : "Apellido paterno"} value={d.apellido_paterno} onChange={(v) => actions.set({ apellido_paterno: v })} />
 
-          <TextField
-            label={requiereDoc ? "Apellido materno *" : "Apellido materno"}
-            value={d.apellido_materno}
-            onChange={(v) => actions.set({ apellido_materno: v })}
-          />
+          <TextField label={requiereDoc ? "Apellido materno *" : "Apellido materno"} value={d.apellido_materno} onChange={(v) => actions.set({ apellido_materno: v })} />
 
           <SelectField
             label="Estado civil"
@@ -252,12 +219,7 @@ export function DatosGeneralesStep({
             disabled={!catalog}
           />
 
-          <DateField
-            label="Fecha de nacimiento"
-            value={d.fecha_nacimiento}
-            onChange={(v) => actions.set({ fecha_nacimiento: v })}
-            ariaLabel="Fecha de nacimiento"
-          />
+          <DateField label="Fecha de nacimiento" value={d.fecha_nacimiento} onChange={(v) => actions.set({ fecha_nacimiento: v })} ariaLabel="Fecha de nacimiento" />
         </div>
       </FormCard>
 
@@ -274,18 +236,16 @@ export function DatosGeneralesStep({
             disabled={!catalog}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField
-              label="Distrito de nacimiento"
-              value={ubNac}
-              onChange={(v) => actions.set({ ubigeo_nacimiento: v })}
-              inputMode="numeric"
-            />
-            <div>
-              <div className="mb-1 text-sm font-medium text-(--color-text-primary)">&nbsp;</div>
-              <div className={detalleBoxCls}>{ubNac ? ubigeoMap.get(ubNac) ?? "—" : "—"}</div>
-            </div>
-          </div>
+          <SelectField
+            label="Distrito de nacimiento"
+            value={ubNac}
+            onChange={(v) => actions.set({ ubigeo_nacimiento: v })}
+            options={ubigeoOptions}
+            ariaLabel="Distrito de nacimiento"
+            buttonClassName="w-full"
+            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+            disabled={!catalog}
+          />
 
           <div className="md:col-span-2">
             <TextField
@@ -295,18 +255,16 @@ export function DatosGeneralesStep({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField
-              label="Distrito de domicilio"
-              value={ubDom}
-              onChange={(v) => actions.set({ ubigeo_domicilio: v })}
-              inputMode="numeric"
-            />
-            <div>
-              <div className="mb-1 text-sm font-medium text-(--color-text-primary)">&nbsp;</div>
-              <div className={detalleBoxCls}>{ubDom ? ubigeoMap.get(ubDom) ?? "—" : "—"}</div>
-            </div>
-          </div>
+          <SelectField
+            label="Distrito de domicilio"
+            value={ubDom}
+            onChange={(v) => actions.set({ ubigeo_domicilio: v })}
+            options={ubigeoOptions}
+            ariaLabel="Distrito de domicilio"
+            buttonClassName="w-full"
+            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+            disabled={!catalog}
+          />
         </div>
       </FormCard>
 
@@ -323,28 +281,14 @@ export function DatosGeneralesStep({
             disabled={!catalog}
           />
 
-          <TextField
-            label="Titular *"
-            value={d.titular_nombre}
-            onChange={(v) => actions.set({ titular_nombre: v })}
-          />
+          <TextField label="Titular *" value={d.titular_nombre} onChange={(v) => actions.set({ titular_nombre: v })} />
         </div>
       </FormCard>
 
       <FormCard title="Contacto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TextField
-            label="Número de celular"
-            value={d.celular}
-            onChange={(v) => actions.set({ celular: v })}
-            inputMode="numeric"
-          />
-          <TextField
-            label="Número de teléfono"
-            value={d.telefono}
-            onChange={(v) => actions.set({ telefono: v })}
-            inputMode="numeric"
-          />
+          <TextField label="Número de celular" value={d.celular} onChange={(v) => actions.set({ celular: v })} inputMode="numeric" />
+          <TextField label="Número de teléfono" value={d.telefono} onChange={(v) => actions.set({ telefono: v })} inputMode="numeric" />
         </div>
       </FormCard>
 

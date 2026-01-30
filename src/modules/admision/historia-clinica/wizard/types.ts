@@ -132,6 +132,27 @@ export type PacienteFull = {
 
 export type ItemResponse<T> = { data: T };
 
+export type PaisItem = {
+  iso2: string;
+  nombre: string;
+};
+
+export type UbigeoItem = {
+  codigo: string;
+  departamento: string;
+  provincia: string;
+  distrito: string;
+};
+
+export type MedicoLookupItem = {
+  id: number;
+  nombre_completo?: string | null;
+  nombres?: string | null;
+  apellido_paterno?: string | null;
+  apellido_materno?: string | null;
+  estado?: RecordStatus | string | null;
+};
+
 export type PacienteFormCatalogos = {
   tipo_documento: string[];
   estado_civil: string[];
@@ -142,6 +163,10 @@ export type PacienteFormCatalogos = {
   ocupacion: string[];
   medio_informacion: string[];
   tipo_sangre: string[];
+
+  paises?: PaisItem[];
+  ubigeos?: UbigeoItem[];
+  medicos?: MedicoLookupItem[];
 };
 
 export const emptyDraft = (): PacienteDraft => ({

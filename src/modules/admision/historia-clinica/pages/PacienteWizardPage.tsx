@@ -32,11 +32,10 @@ function errorText(e: unknown): string {
     const maybeErrors = (e as unknown as { errors?: unknown }).errors;
 
     if (e.status === 422 && maybeErrors && typeof maybeErrors === "object") {
-      const entries = Object.entries(maybeErrors as Record<string, unknown>)
-        .map(([k, v]) => {
-          if (Array.isArray(v)) return `${k}: ${v.map(String).join(", ")}`;
-          return `${k}: ${String(v)}`;
-        });
+      const entries = Object.entries(maybeErrors as Record<string, unknown>).map(([k, v]) => {
+        if (Array.isArray(v)) return `${k}: ${v.map(String).join(", ")}`;
+        return `${k}: ${String(v)}`;
+      });
 
       if (entries.length) return `${e.message}\n${entries.join("\n")}`;
     }
@@ -44,12 +43,7 @@ function errorText(e: unknown): string {
     return e.message;
   }
 
-  if (
-    typeof e === "object" &&
-    e !== null &&
-    "message" in e &&
-    typeof (e as { message: unknown }).message === "string"
-  ) {
+  if (typeof e === "object" && e !== null && "message" in e && typeof (e as { message: unknown }).message === "string") {
     return (e as { message: string }).message;
   }
 
@@ -96,8 +90,21 @@ export default function PacienteWizardPage() {
     const load = async () => {
       setCatalogLoading(true);
       try {
-        const res = await catalogoPacienteService.pacienteForm();
-        setCatalog(res.data);
+        const [formRes, paisesRes, ubigeosRes, medicosRes] = await Promise.all([
+          catalogoPacienteService.pacienteForm(),
+          catalogoPacienteService.paises(),
+          catalogoPacienteService.ubigeos(),
+          catalogoPacienteService.medicosActivos(),
+        ]);
+
+        const merged: PacienteFormCatalogos = {
+          ...formRes.data,
+          paises: paisesRes.data,
+          ubigeos: ubigeosRes.data,
+          medicos: medicosRes.data,
+        };
+
+        setCatalog(merged);
       } finally {
         setCatalogLoading(false);
       }
@@ -178,9 +185,7 @@ function WizardInner({
 
   const requiredOk = useMemo(() => {
     const d = state.draft;
-    const tipo = String((d as unknown as { tipo_documento?: unknown })?.tipo_documento ?? "")
-      .trim()
-      .toUpperCase();
+    const tipo = String((d as unknown as { tipo_documento?: unknown })?.tipo_documento ?? "").trim().toUpperCase();
     if (!tipo) return false;
     if (tipo === "SIN_DOCUMENTO") return true;
 
@@ -206,20 +211,20 @@ function WizardInner({
     actions.markSaving(true);
     try {
       const payload = buildPacientePayload(state.draft);
-  
+
       let res: { data: PacienteFull };
       if ((state.draft as unknown as { id?: unknown })?.id) {
         res = await pacienteService.update((state.draft as unknown as { id: number }).id, payload);
       } else {
         res = await pacienteService.create(payload);
       }
-  
+
       const saved = res.data;
       const nextDraft = mapPacienteToDraft(saved);
       actions.markSaved(nextDraft);
-  
+
       setNotice({ type: "success", text: "Guardado correctamente." });
-  
+
       if (!((state.draft as unknown as { id?: unknown })?.id)) {
         navigate(`/admision/historia-clinica/${saved.id}/datos-generales`, { replace: true });
       }
@@ -228,14 +233,13 @@ function WizardInner({
     } finally {
       actions.markSaving(false);
     }
-  };  
+  };
 
   const idx = STEP_ORDER.indexOf(step);
   const prevStep = idx > 0 ? STEP_ORDER[idx - 1] : null;
   const nextStep = idx >= 0 && idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : null;
 
-  const canNext =
-    nextStep === null ? false : nextStep === "acreditacion" ? canGoAcreditacion : true;
+  const canNext = nextStep === null ? false : nextStep === "acreditacion" ? canGoAcreditacion : true;
 
   const goPrev = () => {
     if (!prevStep) return;
@@ -259,31 +263,23 @@ function WizardInner({
             <TabButton active={step === "datos-adicionales"} onClick={() => onTab("datos-adicionales")}>
               Datos adicionales
             </TabButton>
-            <TabButton
-              active={step === "acreditacion"}
-              disabled={!canGoAcreditacion}
-              onClick={() => onTab("acreditacion")}
-            >
+            <TabButton active={step === "acreditacion"} disabled={!canGoAcreditacion} onClick={() => onTab("acreditacion")}>
               Acreditación
             </TabButton>
           </div>
 
           <div className="flex justify-end">
-            <PrimaryButton
-              onClick={save}
-              disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading}
-              className="w-full sm:w-auto"
-            >
+            <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
               Guardar
             </PrimaryButton>
           </div>
 
           {notice ? (
             <div className="rounded-xl border border-(--border-color-default) bg-(--color-surface) px-4 py-3 text-sm text-(--color-text-primary) whitespace-pre-line">
-                <span className="font-semibold">{notice.type === "success" ? "✅ " : "⚠️ "}</span>
-                {notice.text}
+              <span className="font-semibold">{notice.type === "success" ? "✅ " : "⚠️ "}</span>
+              {notice.text}
             </div>
-            ) : null}
+          ) : null}
         </div>
 
         <PacienteSummaryBar />
@@ -354,9 +350,7 @@ function TabButton({
   children: React.ReactNode;
 }) {
   const base = "h-10 px-4 rounded-xl text-sm font-semibold transition border border-(--border-color-default)";
-  const cls = active
-    ? `${base} bg-(--color-primary) text-(--color-text-inverse)`
-    : `${base} bg-(--color-surface) text-(--color-text-primary) hover:bg-(--color-background)`;
+  const cls = active ? `${base} bg-(--color-primary) text-(--color-text-inverse)` : `${base} bg-(--color-surface) text-(--color-text-primary) hover:bg-(--color-background)`;
   const dis = disabled ? "opacity-50 cursor-not-allowed hover:bg-(--color-surface)" : "";
   return (
     <button type="button" onClick={disabled ? undefined : onClick} className={`${cls} ${dis}`}>
