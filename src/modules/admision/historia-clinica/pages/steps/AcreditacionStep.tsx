@@ -1,11 +1,156 @@
+import * as React from "react";
 import { FormCard } from "../../wizard/ui/formFields";
+import { usePacienteWizard } from "../../wizard/usePacienteWizard";
+import { useAcreditacionPlanes } from "../../wizard/useAcreditacionPlanes";
+
+import AcreditacionPlanesToolbar from "../../wizard/ui/AcreditacionPlanesToolbar";
+import AcreditacionPlanesTable from "../../wizard/ui/AcreditacionPlanesTable";
+import AcreditacionPlanesMobileList from "../../wizard/ui/AcreditacionPlanesMobileList";
+import AcreditacionPlanFormCard from "../../wizard/ui/AcreditacionPlanFormCard";
+import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+
+function useIsLgUp(): boolean {
+  const [isLgUp, setIsLgUp] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLgUp(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isLgUp;
+}
 
 export function AcreditacionStep() {
+  const { state } = usePacienteWizard();
+
+  const pacienteId = React.useMemo(() => {
+    const id = Number((state.draft as unknown as { id?: unknown })?.id ?? 0);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  }, [state.draft]);
+
+  const vm = useAcreditacionPlanes(pacienteId);
+
+  const isLgUp = useIsLgUp();
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  const handleNew = React.useCallback(() => {
+    vm.resetToNew();
+
+    if (isLgUp) return;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [vm, isLgUp]);
+
+  const emptyText = pacienteId ? "No hay planes afiliados." : "Guarda el paciente para habilitar acreditación.";
+
   return (
     <FormCard title="Acreditación">
-      <div className="text-sm text-(--color-text-secondary)">
-        Fase 1: bloqueada hasta Guardar (paciente creado/guardado y sin cambios pendientes). En la siguiente fase
-        implementamos tabla de planes + CRUD de afiliación/desactivación.
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="text-sm text-(--color-text-secondary)">Afiliación de planes del paciente</div>
+          </div>
+
+          <div className="w-full lg:max-w-190">
+            <AcreditacionPlanesToolbar
+              q={vm.q}
+              onQChange={vm.setQ}
+              statusFilter={vm.statusFilter}
+              onStatusChange={vm.setStatusFilter}
+              perPage={vm.perPage}
+              onPerPageChange={(n) => vm.setPerPage(n)}
+              onNew={handleNew}
+              onRefresh={() => void vm.reloadPlanes()}
+              refreshDisabled={vm.loading || !pacienteId}
+            />
+          </div>
+        </div>
+
+        {vm.notice ? (
+          <div
+            role="status"
+            className={[
+              "rounded-2xl border px-4 py-3 text-sm",
+              vm.notice.type === "success"
+                ? "border-(--color-success) text-(--color-success)"
+                : "border-(--color-danger) text-(--color-danger)",
+            ].join(" ")}
+          >
+            {vm.notice.text}
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_571px] lg:items-start">
+          <div className="min-w-0">
+            <AcreditacionPlanesTable
+              data={vm.data}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              onSelect={vm.loadForEdit}
+              page={vm.page}
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+              emptyText={emptyText}
+            />
+
+            <AcreditacionPlanesMobileList
+              data={vm.data}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              onSelect={vm.loadForEdit}
+              page={vm.page}
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+              emptyText={emptyText}
+            />
+          </div>
+
+          <div ref={formRef} className="min-w-0">
+            <AcreditacionPlanFormCard
+              mode={vm.mode}
+              selected={vm.selected}
+              saving={vm.saving}
+              tiposClientes={vm.tiposClientes}
+              tiposClientesLoading={vm.tiposClientesLoading}
+              tipoClienteId={vm.tipoClienteId}
+              onTipoClienteIdChange={vm.setTipoClienteId}
+              parentesco={vm.parentesco}
+              onParentescoChange={vm.setParentesco}
+              fechaAfiliacion={vm.fechaAfiliacion}
+              onFechaAfiliacionChange={vm.setFechaAfiliacion}
+              estado={vm.estado}
+              onEstadoChange={vm.setEstado}
+              isValid={vm.isValid}
+              isDirty={vm.isDirty}
+              canDeactivate={vm.canDeactivate}
+              onSave={vm.onSave}
+              onCancel={vm.cancel}
+              onDeactivate={vm.requestDeactivate}
+              disabled={!pacienteId}
+            />
+          </div>
+        </div>
+
+        <ConfirmDialog
+          open={vm.confirmDeactivateOpen}
+          title="Desactivar plan afiliado"
+          description={vm.selected ? `¿Deseas desactivar "${vm.selectedLabel}"?` : "Selecciona un registro."}
+          confirmText="Desactivar"
+          cancelText="Cancelar"
+          destructive
+          onCancel={() => vm.setConfirmDeactivateOpen(false)}
+          onConfirm={vm.onDeactivateConfirmed}
+        />
       </div>
     </FormCard>
   );
