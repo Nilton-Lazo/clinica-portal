@@ -7,6 +7,9 @@ import AppShell from "../layout/AppShell";
 import LoginPage from "../../modules/login/pages/LoginPage";
 import HomePage from "../../modules/inicio/pages/HomePage";
 import FacturacionHomePage from "../../modules/facturacion/pages/FacturacionHomePage";
+import TarifarioPage from "../../modules/facturacion/tarifario/pages/TarifarioPage";
+import TarifarioCrudPage from "../../modules/facturacion/tarifario/pages/TarifarioCrudPage";
+import TarifarioCrudLayoutPage from "../../modules/facturacion/tarifario/pages/TarifarioCrudLayoutPage";
 import AdmisionHomePage from "../../modules/admision/pages/AdmisionHomePage";
 
 import FicherosPage from "../../modules/admision/ficheros/pages/FicherosPage";
@@ -44,7 +47,18 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: "inicio", element: <HomePage /> },
-              { path: "facturacion", element: <FacturacionHomePage /> },
+              {
+                path: "facturacion",
+                children: [
+                  { index: true, element: <FacturacionHomePage /> },
+                  { path: "tarifario", element: <TarifarioPage /> },
+                  {
+                    path: "tarifario/gestion",
+                    element: <TarifarioCrudLayoutPage />,
+                    children: [{ path: ":tipo", element: <TarifarioCrudPage /> }],
+                  },
+                ],
+              },
               {
                 path: "admision",
                 children: [

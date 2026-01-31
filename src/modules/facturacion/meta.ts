@@ -6,6 +6,38 @@ export const facturacionMeta: Record<string, RouteMeta> = {
     subtitle: "Gestión integral de comprobantes, tarifas y reportes de facturación clínica.",
     breadcrumb: [{ label: "Facturación" }],
   },
+  "/facturacion/tarifario": {
+    title: "Tarifario",
+    subtitle: "Gestión de tarifas, categorías, subcategorías y servicios.",
+    breadcrumb: [{ label: "Facturación", path: "/facturacion" }, { label: "Tarifario" }],
+  },
+  "/facturacion/tarifario/gestion/categorias": {
+    title: "Tarifario",
+    subtitle: "Gestión de categorías del tarifario.",
+    breadcrumb: [
+      { label: "Facturación", path: "/facturacion" },
+      { label: "Tarifario", path: "/facturacion/tarifario" },
+      { label: "Categorías" },
+    ],
+  },
+  "/facturacion/tarifario/gestion/subcategorias": {
+    title: "Tarifario",
+    subtitle: "Gestión de subcategorías del tarifario.",
+    breadcrumb: [
+      { label: "Facturación", path: "/facturacion" },
+      { label: "Tarifario", path: "/facturacion/tarifario" },
+      { label: "Subcategorías" },
+    ],
+  },
+  "/facturacion/tarifario/gestion/servicios": {
+    title: "Tarifario",
+    subtitle: "Gestión de servicios del tarifario.",
+    breadcrumb: [
+      { label: "Facturación", path: "/facturacion" },
+      { label: "Tarifario", path: "/facturacion/tarifario" },
+      { label: "Servicios" },
+    ],
+  },
 
 //   "/facturacion/entidades-contratos/tarifarios/crear": {
 //     title: "Crear Tarifario",

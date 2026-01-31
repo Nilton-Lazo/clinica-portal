@@ -1,0 +1,2055 @@
+import * as React from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
+import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
+import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
+import { ConfirmDialog } from "../../../admision/ficheros/components/ConfirmDialog";
+import { StatusBadge } from "../../../admision/ficheros/components/StatusBadge";
+import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
+import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import type { ApiError } from "../../../../shared/api/apiError";
+import type {
+  Notice,
+  PaginatedResponse,
+  RecordStatus,
+  TarifaCategoria,
+  TarifaCategoriaLookup,
+  TarifaServicioCrud,
+  TarifaSubcategoria,
+  TarifaSubcategoriaLookup,
+} from "../types/tarifario.types";
+import {
+  createCategoria,
+  createServicio,
+  createSubcategoria,
+  deactivateCategoria,
+  deactivateServicio,
+  deactivateSubcategoria,
+  getNextCategoriaCodigo,
+  getNextServicioCodigo,
+  getNextSubcategoriaCodigo,
+  listCategorias,
+  listServiciosCrud,
+  listSubcategorias,
+  lookupCategorias,
+  lookupSubcategorias,
+  updateCategoria,
+  updateServicio,
+  updateSubcategoria,
+} from "../services/tarifario.service";
+
+type Mode = "new" | "edit";
+type StatusFilter = "ALL" | RecordStatus;
+
+function isApiError(e: unknown): e is ApiError {
+  if (!e || typeof e !== "object") return false;
+  const x = e as Record<string, unknown>;
+  return typeof x.kind === "string" && typeof x.message === "string";
+}
+
+function normalizeCodigoQuery(raw: string): string {
+  const compact = raw.replace(/\./g, "").trim();
+  if (!compact) return "";
+  if (!/^\d+$/.test(compact)) return raw.trim();
+  if (compact.length === 6) {
+    return compact.replace(/(\d{2})(\d{2})(\d{2})/, "$1.$2.$3");
+  }
+  if (compact.length === 4) {
+    return compact.replace(/(\d{2})(\d{2})/, "$1.$2");
+  }
+  return compact;
+}
+
+function useIsLgUp(): boolean {
+  const [isLgUp, setIsLgUp] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLgUp(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isLgUp;
+}
+
+function clampPerPage(n: number) {
+  if (n <= 25) return 25;
+  if (n <= 50) return 50;
+  return 100;
+}
+
+function NoticeBanner({ notice }: { notice: Notice }) {
+  if (!notice) return null;
+  return (
+    <div
+      role="status"
+      className={[
+        "rounded-2xl border px-4 py-3 text-sm",
+        notice.type === "success"
+          ? "border-(--color-success) text-(--color-success)"
+          : "border-(--color-danger) text-(--color-danger)",
+      ].join(" ")}
+    >
+      {notice.text}
+    </div>
+  );
+}
+
+const statusOptions: SelectOption[] = [
+  { value: "ALL", label: "Todos" },
+  { value: "ACTIVO", label: "Activos" },
+  { value: "INACTIVO", label: "Inactivos" },
+  { value: "SUSPENDIDO", label: "Suspendidos" },
+];
+
+const perPageOptions: SelectOption[] = [
+  { value: "25", label: "25" },
+  { value: "50", label: "50" },
+  { value: "100", label: "100" },
+];
+
+function useCategoriasCrud(tarifaId: number | null) {
+  const [data, setData] = React.useState<PaginatedResponse<TarifaCategoria>>({
+    data: [],
+    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  });
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [notice, setNotice] = React.useState<Notice>(null);
+
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPageState] = React.useState(50);
+  const [q, setQ] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
+  const qDebounced = useDebouncedValue(q, 350);
+  const qNormalized = React.useMemo(
+    () => normalizeCodigoQuery(qDebounced),
+    [qDebounced]
+  );
+
+  const [mode, setMode] = React.useState<Mode>("new");
+  const [selected, setSelected] = React.useState<TarifaCategoria | null>(null);
+
+  const [codigo, setCodigo] = React.useState("");
+  const [descripcion, setDescripcion] = React.useState("");
+  const [estado, setEstado] = React.useState<RecordStatus>("ACTIVO");
+
+  const [confirmDeactivateOpen, setConfirmDeactivateOpen] = React.useState(false);
+  const originalRef = React.useRef<{
+    codigo: string;
+    descripcion: string;
+    estado: RecordStatus;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!tarifaId) return;
+    if (mode !== "new") return;
+    if (codigo.trim()) return;
+    let alive = true;
+    getNextCategoriaCodigo(tarifaId)
+      .then((res) => {
+        if (!alive) return;
+        setCodigo(res.codigo);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [tarifaId, mode, codigo]);
+
+  const isValid = React.useMemo(() => {
+    const d = descripcion.trim();
+    if (!d) return false;
+    if (d.length > 255) return false;
+    if (mode === "new" && !codigo.trim()) return false;
+    return true;
+  }, [descripcion, codigo, mode]);
+
+  const isDirty = React.useMemo(() => {
+    const o = originalRef.current;
+    if (!o) return mode === "new" ? isValid : false;
+    return o.descripcion !== descripcion.trim() || o.estado !== estado;
+  }, [descripcion, estado, mode, isValid]);
+
+  const refresh = React.useCallback(
+    async (next?: { page?: number; perPage?: number }) => {
+      if (!tarifaId) return;
+      setLoading(true);
+      setNotice(null);
+      try {
+        const res = await listCategorias(tarifaId, {
+          page: next?.page ?? page,
+          per_page: next?.perPage ?? perPage,
+          q: qNormalized.trim() ? qNormalized.trim() : undefined,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+        });
+        setData(res);
+        return res;
+      } catch (e) {
+        const msg = isApiError(e) ? e.message : "No se pudo cargar categorías.";
+        setNotice({ type: "error", text: msg });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [tarifaId, page, perPage, qNormalized, statusFilter]
+  );
+
+  const prevFiltersRef = React.useRef<{ q: string; status: StatusFilter; perPage: number } | null>(
+    null
+  );
+  React.useEffect(() => {
+    const prev = prevFiltersRef.current;
+    const next = { q: qNormalized, status: statusFilter, perPage };
+    const changed =
+      !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
+    prevFiltersRef.current = next;
+    if (changed && page !== 1) {
+      setPage(1);
+      return;
+    }
+    void refresh();
+  }, [page, perPage, qNormalized, statusFilter, refresh]);
+
+  const resetToNew = React.useCallback(() => {
+    setMode("new");
+    setSelected(null);
+    setCodigo("");
+    setDescripcion("");
+    setEstado("ACTIVO");
+    originalRef.current = null;
+    setNotice(null);
+  }, []);
+
+  const loadForEdit = React.useCallback((x: TarifaCategoria) => {
+    setMode("edit");
+    setSelected(x);
+    setCodigo(x.codigo);
+    setDescripcion(x.descripcion);
+    setEstado(x.estado);
+    originalRef.current = {
+      codigo: x.codigo,
+      descripcion: x.descripcion,
+      estado: x.estado,
+    };
+    setNotice(null);
+  }, []);
+
+  const cancel = React.useCallback(() => {
+    if (mode === "new") {
+      resetToNew();
+      return;
+    }
+    const o = originalRef.current;
+    if (!o || !selected) {
+      resetToNew();
+      return;
+    }
+    setCodigo(o.codigo);
+    setDescripcion(o.descripcion);
+    setEstado(o.estado);
+    setNotice(null);
+  }, [mode, resetToNew, selected]);
+
+  const onSave = React.useCallback(async () => {
+    if (!tarifaId) return;
+    setNotice(null);
+    if (!isValid) {
+      setNotice({ type: "error", text: "Completa la descripción correctamente." });
+      return;
+    }
+    if (mode === "edit" && !selected) {
+      setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      return;
+    }
+    if (!isDirty) {
+      setNotice({ type: "error", text: "No hay cambios para guardar." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (mode === "new") {
+        await createCategoria(tarifaId, { descripcion: descripcion.trim(), estado });
+        setNotice({ type: "success", text: "Categoría creada." });
+        setPage(1);
+        await refresh({ page: 1 });
+        resetToNew();
+      } else if (selected) {
+        const res = await updateCategoria(tarifaId, selected.id, {
+          descripcion: descripcion.trim(),
+          estado,
+        });
+        if (statusFilter === "ACTIVO" && res.estado !== "ACTIVO") {
+          setStatusFilter("ALL");
+        }
+        setNotice({ type: "success", text: "Categoría actualizada." });
+        const refreshed = await refresh();
+        const updated = refreshed?.data.find((x) => x.id === res.id);
+        if (updated) {
+          if (updated.estado !== estado) {
+            setNotice({ type: "error", text: "El servidor no confirmó el cambio de estado." });
+            return;
+          }
+          loadForEdit(updated);
+        }
+      }
+    } catch (e) {
+      const msg = isApiError(e) ? e.message : "No se pudo guardar la categoría.";
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    tarifaId,
+    descripcion,
+    estado,
+    mode,
+    selected,
+    refresh,
+    resetToNew,
+    saving,
+    isValid,
+    isDirty,
+    loadForEdit,
+    statusFilter,
+  ]);
+
+  const requestDeactivate = React.useCallback(() => {
+    if (!selected) {
+      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      return;
+    }
+    if (selected.estado === "INACTIVO") return;
+    setConfirmDeactivateOpen(true);
+  }, [selected]);
+
+  const onDeactivateConfirmed = React.useCallback(async () => {
+    if (!tarifaId || !selected) {
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await deactivateCategoria(tarifaId, selected.id);
+      if (statusFilter === "ACTIVO") {
+        setStatusFilter("ALL");
+      }
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "success", text: "Categoría desactivada." });
+      const refreshed = await refresh();
+      const updated = refreshed?.data.find((x) => x.id === res.id);
+      if (updated) {
+        if (updated.estado !== "INACTIVO") {
+          setNotice({ type: "error", text: "El servidor no confirmó la desactivación." });
+          return;
+        }
+        loadForEdit(updated);
+      }
+    } catch (e) {
+      const msg = isApiError(e) ? e.message : "No se pudo desactivar la categoría.";
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [tarifaId, selected, refresh, saving, loadForEdit, statusFilter]);
+
+  const canDeactivate = Boolean(selected) && selected?.estado !== "INACTIVO";
+
+  return {
+    data,
+    loading,
+    saving,
+    notice,
+    page,
+    setPage,
+    perPage,
+    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    mode,
+    selected,
+    codigo,
+    descripcion,
+    setDescripcion,
+    estado,
+    setEstado,
+    isValid,
+    isDirty,
+    canDeactivate,
+    resetToNew,
+    loadForEdit,
+    cancel,
+    onSave,
+    requestDeactivate,
+    confirmDeactivateOpen,
+    setConfirmDeactivateOpen,
+    onDeactivateConfirmed,
+  };
+}
+
+function useSubcategoriasCrud(tarifaId: number | null) {
+  const [data, setData] = React.useState<PaginatedResponse<TarifaSubcategoria>>({
+    data: [],
+    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  });
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [notice, setNotice] = React.useState<Notice>(null);
+
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPageState] = React.useState(50);
+  const [q, setQ] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
+  const [filterCategoriaId, setFilterCategoriaId] = React.useState<number | null>(null);
+  const qDebounced = useDebouncedValue(q, 350);
+  const qNormalized = React.useMemo(
+    () => normalizeCodigoQuery(qDebounced),
+    [qDebounced]
+  );
+
+  const [mode, setMode] = React.useState<Mode>("new");
+  const [selected, setSelected] = React.useState<TarifaSubcategoria | null>(null);
+
+  const [codigo, setCodigo] = React.useState("");
+  const [descripcion, setDescripcion] = React.useState("");
+  const [estado, setEstado] = React.useState<RecordStatus>("ACTIVO");
+  const [categoriaId, setCategoriaId] = React.useState<number | null>(null);
+
+  const [categorias, setCategorias] = React.useState<TarifaCategoriaLookup[]>([]);
+  const categoriasByCodigo = React.useMemo(() => {
+    const map = new Map<string, number>();
+    categorias.forEach((c) => map.set(c.codigo, c.id));
+    return map;
+  }, [categorias]);
+
+  const [confirmDeactivateOpen, setConfirmDeactivateOpen] = React.useState(false);
+  const originalRef = React.useRef<{
+    codigo: string;
+    descripcion: string;
+    estado: RecordStatus;
+    categoriaId: number | null;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!tarifaId) return;
+    lookupCategorias(tarifaId, true)
+      .then(setCategorias)
+      .catch(() => {});
+  }, [tarifaId]);
+
+  React.useEffect(() => {
+    if (!tarifaId || mode !== "new" || !categoriaId || codigo.trim()) return;
+    let alive = true;
+    getNextSubcategoriaCodigo(tarifaId, categoriaId)
+      .then((res) => {
+        if (!alive) return;
+        setCodigo(res.codigo);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [tarifaId, categoriaId, mode, codigo]);
+
+  React.useEffect(() => {
+    if (mode !== "new") return;
+    setCodigo("");
+  }, [categoriaId, mode]);
+
+  const isValid = React.useMemo(() => {
+    const d = descripcion.trim();
+    if (!categoriaId) return false;
+    if (!d) return false;
+    if (d.length > 255) return false;
+    if (mode === "new" && !codigo.trim()) return false;
+    return true;
+  }, [descripcion, codigo, categoriaId, mode]);
+
+  const isDirty = React.useMemo(() => {
+    const o = originalRef.current;
+    if (!o) return mode === "new" ? isValid : false;
+    return (
+      o.descripcion !== descripcion.trim() ||
+      o.estado !== estado ||
+      o.categoriaId !== categoriaId
+    );
+  }, [descripcion, estado, categoriaId, mode, isValid]);
+
+  const { qFinal, categoriaIdFinal } = React.useMemo(() => {
+    if (filterCategoriaId) {
+      return { qFinal: qNormalized.trim() ? qNormalized.trim() : undefined, categoriaIdFinal: filterCategoriaId };
+    }
+    if (/^\d{2}\.\d{2}$/.test(qNormalized)) {
+      const [subCode, catCode] = qNormalized.split(".");
+      const catId = categoriasByCodigo.get(catCode ?? "");
+      return {
+        qFinal: subCode,
+        categoriaIdFinal: catId ?? undefined,
+      };
+    }
+    return { qFinal: qNormalized.trim() ? qNormalized.trim() : undefined, categoriaIdFinal: undefined };
+  }, [filterCategoriaId, qNormalized, categoriasByCodigo]);
+
+  const refresh = React.useCallback(
+    async (next?: { page?: number; perPage?: number }) => {
+      if (!tarifaId) return;
+      setLoading(true);
+      setNotice(null);
+      try {
+        const res = await listSubcategorias(tarifaId, {
+          page: next?.page ?? page,
+          per_page: next?.perPage ?? perPage,
+          q: qFinal,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+          categoria_id: categoriaIdFinal,
+        });
+        setData(res);
+        return res;
+      } catch (e) {
+        const msg = isApiError(e) ? e.message : "No se pudo cargar subcategorías.";
+        setNotice({ type: "error", text: msg });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [tarifaId, page, perPage, qFinal, statusFilter, categoriaIdFinal]
+  );
+
+  const prevFiltersRef = React.useRef<
+    { q: string; status: StatusFilter; perPage: number; categoriaId: number | null } | null
+  >(null);
+  React.useEffect(() => {
+    const prev = prevFiltersRef.current;
+    const next = { q: qFinal ?? "", status: statusFilter, perPage, categoriaId: categoriaIdFinal ?? null };
+    const changed =
+      !prev ||
+      prev.q !== next.q ||
+      prev.status !== next.status ||
+      prev.perPage !== next.perPage ||
+      prev.categoriaId !== next.categoriaId;
+    prevFiltersRef.current = next;
+    if (changed && page !== 1) {
+      setPage(1);
+      return;
+    }
+    void refresh();
+  }, [page, perPage, qFinal, statusFilter, categoriaIdFinal, refresh]);
+
+  const resetToNew = React.useCallback(() => {
+    setMode("new");
+    setSelected(null);
+    setCodigo("");
+    setDescripcion("");
+    setEstado("ACTIVO");
+    setCategoriaId(null);
+    originalRef.current = null;
+    setNotice(null);
+  }, []);
+
+  const loadForEdit = React.useCallback((x: TarifaSubcategoria) => {
+    setMode("edit");
+    setSelected(x);
+    setCodigo(x.codigo);
+    setDescripcion(x.descripcion);
+    setEstado(x.estado);
+    setCategoriaId(x.categoria_id);
+    originalRef.current = {
+      codigo: x.codigo,
+      descripcion: x.descripcion,
+      estado: x.estado,
+      categoriaId: x.categoria_id,
+    };
+    setNotice(null);
+  }, []);
+
+  const cancel = React.useCallback(() => {
+    if (mode === "new") {
+      resetToNew();
+      return;
+    }
+    const o = originalRef.current;
+    if (!o || !selected) {
+      resetToNew();
+      return;
+    }
+    setCodigo(o.codigo);
+    setDescripcion(o.descripcion);
+    setEstado(o.estado);
+    setCategoriaId(o.categoriaId);
+    setNotice(null);
+  }, [mode, resetToNew, selected]);
+
+  const onSave = React.useCallback(async () => {
+    if (!tarifaId) return;
+    setNotice(null);
+    if (!isValid) {
+      setNotice({ type: "error", text: "Completa los campos obligatorios." });
+      return;
+    }
+    if (mode === "edit" && !selected) {
+      setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      return;
+    }
+    if (!isDirty) {
+      setNotice({ type: "error", text: "No hay cambios para guardar." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (mode === "new") {
+        await createSubcategoria(tarifaId, {
+          categoria_id: categoriaId!,
+          descripcion: descripcion.trim(),
+          estado,
+        });
+        setNotice({ type: "success", text: "Subcategoría creada." });
+        setPage(1);
+        await refresh({ page: 1 });
+        resetToNew();
+      } else if (selected) {
+        const res = await updateSubcategoria(tarifaId, selected.id, {
+          descripcion: descripcion.trim(),
+          estado,
+        });
+        if (statusFilter === "ACTIVO" && res.estado !== "ACTIVO") {
+          setStatusFilter("ALL");
+        }
+        setNotice({ type: "success", text: "Subcategoría actualizada." });
+        const refreshed = await refresh();
+        const updated = refreshed?.data.find((x) => x.id === res.id);
+        if (updated) {
+          if (updated.estado !== estado) {
+            setNotice({ type: "error", text: "El servidor no confirmó el cambio de estado." });
+            return;
+          }
+          loadForEdit(updated);
+        }
+      }
+    } catch (e) {
+      const msg = isApiError(e) ? e.message : "No se pudo guardar la subcategoría.";
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    tarifaId,
+    descripcion,
+    estado,
+    mode,
+    selected,
+    refresh,
+    resetToNew,
+    saving,
+    isValid,
+    isDirty,
+    categoriaId,
+    loadForEdit,
+    statusFilter,
+  ]);
+
+  const requestDeactivate = React.useCallback(() => {
+    if (!selected) {
+      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      return;
+    }
+    if (selected.estado === "INACTIVO") return;
+    setConfirmDeactivateOpen(true);
+  }, [selected]);
+
+  const onDeactivateConfirmed = React.useCallback(async () => {
+    if (!tarifaId || !selected) {
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await deactivateSubcategoria(tarifaId, selected.id);
+      if (statusFilter === "ACTIVO") {
+        setStatusFilter("ALL");
+      }
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "success", text: "Subcategoría desactivada." });
+      const refreshed = await refresh();
+      const updated = refreshed?.data.find((x) => x.id === res.id);
+      if (updated) {
+        if (updated.estado !== "INACTIVO") {
+          setNotice({ type: "error", text: "El servidor no confirmó la desactivación." });
+          return;
+        }
+        loadForEdit(updated);
+      }
+    } catch (e) {
+      const msg = isApiError(e) ? e.message : "No se pudo desactivar la subcategoría.";
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [tarifaId, selected, refresh, saving, loadForEdit, statusFilter]);
+
+  const canDeactivate = Boolean(selected) && selected?.estado !== "INACTIVO";
+
+  return {
+    data,
+    loading,
+    saving,
+    notice,
+    page,
+    setPage,
+    perPage,
+    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    mode,
+    selected,
+    codigo,
+    descripcion,
+    setDescripcion,
+    estado,
+    setEstado,
+    categoriaId,
+    setCategoriaId,
+    categorias,
+    filterCategoriaId,
+    setFilterCategoriaId,
+    isValid,
+    isDirty,
+    canDeactivate,
+    resetToNew,
+    loadForEdit,
+    cancel,
+    onSave,
+    requestDeactivate,
+    confirmDeactivateOpen,
+    setConfirmDeactivateOpen,
+    onDeactivateConfirmed,
+  };
+}
+
+function useServiciosCrud(tarifaId: number | null) {
+  const [data, setData] = React.useState<PaginatedResponse<TarifaServicioCrud>>({
+    data: [],
+    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  });
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [notice, setNotice] = React.useState<Notice>(null);
+
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPageState] = React.useState(50);
+  const [q, setQ] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
+  const [filterCategoriaId, setFilterCategoriaId] = React.useState<number | null>(null);
+  const [filterSubcategoriaId, setFilterSubcategoriaId] = React.useState<number | null>(null);
+  const qDebounced = useDebouncedValue(q, 350);
+  const qNormalized = React.useMemo(
+    () => normalizeCodigoQuery(qDebounced),
+    [qDebounced]
+  );
+
+  const [mode, setMode] = React.useState<Mode>("new");
+  const [selected, setSelected] = React.useState<TarifaServicioCrud | null>(null);
+
+  const [codigo, setCodigo] = React.useState("");
+  const [descripcion, setDescripcion] = React.useState("");
+  const [estado, setEstado] = React.useState<RecordStatus>("ACTIVO");
+  const [categoriaId, setCategoriaId] = React.useState<number | null>(null);
+  const [subcategoriaId, setSubcategoriaId] = React.useState<number | null>(null);
+  const [nomenclador, setNomenclador] = React.useState("");
+  const [precio, setPrecio] = React.useState("");
+  const [unidad, setUnidad] = React.useState("");
+
+  const [categorias, setCategorias] = React.useState<TarifaCategoriaLookup[]>([]);
+  const [subcategorias, setSubcategorias] = React.useState<TarifaSubcategoriaLookup[]>([]);
+  const [subcategoriasFilter, setSubcategoriasFilter] = React.useState<TarifaSubcategoriaLookup[]>([]);
+
+  const [confirmDeactivateOpen, setConfirmDeactivateOpen] = React.useState(false);
+  const originalRef = React.useRef<{
+    codigo: string;
+    descripcion: string;
+    estado: RecordStatus;
+    categoriaId: number | null;
+    subcategoriaId: number | null;
+    nomenclador: string;
+    precio: string;
+    unidad: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!tarifaId) return;
+    lookupCategorias(tarifaId, false)
+      .then(setCategorias)
+      .catch(() => {});
+  }, [tarifaId]);
+
+  React.useEffect(() => {
+    if (!tarifaId || !categoriaId) {
+      setSubcategorias([]);
+      return;
+    }
+    lookupSubcategorias(tarifaId, categoriaId, false)
+      .then((items) => {
+        setSubcategorias(items);
+        if (subcategoriaId && !items.some((x) => x.id === subcategoriaId)) {
+          setSubcategoriaId(null);
+        }
+      })
+      .catch(() => {});
+  }, [tarifaId, categoriaId, subcategoriaId]);
+
+  React.useEffect(() => {
+    if (!tarifaId || !filterCategoriaId) {
+      setSubcategoriasFilter([]);
+      return;
+    }
+    lookupSubcategorias(tarifaId, filterCategoriaId, false)
+      .then(setSubcategoriasFilter)
+      .catch(() => {});
+  }, [tarifaId, filterCategoriaId]);
+
+  React.useEffect(() => {
+    if (!tarifaId || mode !== "new" || !categoriaId || !subcategoriaId || codigo.trim()) return;
+    let alive = true;
+    getNextServicioCodigo(tarifaId, categoriaId, subcategoriaId)
+      .then((res) => {
+        if (!alive) return;
+        setCodigo(res.codigo);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [tarifaId, categoriaId, subcategoriaId, mode, codigo]);
+
+  React.useEffect(() => {
+    if (mode !== "new") return;
+    setCodigo("");
+  }, [categoriaId, subcategoriaId, mode]);
+
+  React.useEffect(() => {
+    setFilterSubcategoriaId(null);
+  }, [filterCategoriaId]);
+
+  const isValid = React.useMemo(() => {
+    const d = descripcion.trim();
+    const p = Number(precio);
+    const u = Number(unidad);
+    if (!categoriaId || !subcategoriaId) return false;
+    if (!d) return false;
+    if (!Number.isFinite(p) || p < 0) return false;
+    if (!Number.isFinite(u) || u <= 0) return false;
+    if (mode === "new" && !codigo.trim()) return false;
+    return true;
+  }, [descripcion, precio, unidad, categoriaId, subcategoriaId, codigo, mode]);
+
+  const isDirty = React.useMemo(() => {
+    const o = originalRef.current;
+    if (!o) return mode === "new" ? isValid : false;
+    return (
+      o.descripcion !== descripcion.trim() ||
+      o.estado !== estado ||
+      o.categoriaId !== categoriaId ||
+      o.subcategoriaId !== subcategoriaId ||
+      o.nomenclador !== nomenclador.trim() ||
+      o.precio !== precio.trim() ||
+      o.unidad !== unidad.trim()
+    );
+  }, [descripcion, estado, categoriaId, subcategoriaId, nomenclador, precio, unidad, mode, isValid]);
+
+  const refresh = React.useCallback(
+    async (next?: { page?: number; perPage?: number }) => {
+      if (!tarifaId) return;
+      setLoading(true);
+      setNotice(null);
+      try {
+        const res = await listServiciosCrud(tarifaId, {
+          page: next?.page ?? page,
+          per_page: next?.perPage ?? perPage,
+          q: qNormalized.trim() ? qNormalized.trim() : undefined,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+          categoria_id: filterCategoriaId ?? undefined,
+          subcategoria_id: filterSubcategoriaId ?? undefined,
+        });
+        setData(res);
+        return res;
+      } catch (e) {
+        const msg = isApiError(e) ? e.message : "No se pudo cargar servicios.";
+        setNotice({ type: "error", text: msg });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [tarifaId, page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId]
+  );
+
+  const prevFiltersRef = React.useRef<
+    {
+      q: string;
+      status: StatusFilter;
+      perPage: number;
+      categoriaId: number | null;
+      subcategoriaId: number | null;
+    } | null
+  >(null);
+  React.useEffect(() => {
+    const prev = prevFiltersRef.current;
+    const next = {
+      q: qNormalized,
+      status: statusFilter,
+      perPage,
+      categoriaId: filterCategoriaId,
+      subcategoriaId: filterSubcategoriaId,
+    };
+    const changed =
+      !prev ||
+      prev.q !== next.q ||
+      prev.status !== next.status ||
+      prev.perPage !== next.perPage ||
+      prev.categoriaId !== next.categoriaId ||
+      prev.subcategoriaId !== next.subcategoriaId;
+    prevFiltersRef.current = next;
+    if (changed && page !== 1) {
+      setPage(1);
+      return;
+    }
+    void refresh();
+  }, [page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, refresh]);
+
+  const resetToNew = React.useCallback(() => {
+    setMode("new");
+    setSelected(null);
+    setCodigo("");
+    setDescripcion("");
+    setEstado("ACTIVO");
+    setCategoriaId(null);
+    setSubcategoriaId(null);
+    setNomenclador("");
+    setPrecio("");
+    setUnidad("");
+    originalRef.current = null;
+    setNotice(null);
+  }, []);
+
+  const loadForEdit = React.useCallback((x: TarifaServicioCrud) => {
+    setMode("edit");
+    setSelected(x);
+    setCodigo(x.codigo);
+    setDescripcion(x.descripcion);
+    setEstado(x.estado);
+    setCategoriaId(x.categoria_id);
+    setSubcategoriaId(x.subcategoria_id);
+    setNomenclador(x.nomenclador ?? "");
+    setPrecio(x.precio_sin_igv);
+    setUnidad(x.unidad);
+    originalRef.current = {
+      codigo: x.codigo,
+      descripcion: x.descripcion,
+      estado: x.estado,
+      categoriaId: x.categoria_id,
+      subcategoriaId: x.subcategoria_id,
+      nomenclador: x.nomenclador ?? "",
+      precio: x.precio_sin_igv,
+      unidad: x.unidad,
+    };
+    setNotice(null);
+  }, []);
+
+  const cancel = React.useCallback(() => {
+    if (mode === "new") {
+      resetToNew();
+      return;
+    }
+    const o = originalRef.current;
+    if (!o || !selected) {
+      resetToNew();
+      return;
+    }
+    setCodigo(o.codigo);
+    setDescripcion(o.descripcion);
+    setEstado(o.estado);
+    setCategoriaId(o.categoriaId);
+    setSubcategoriaId(o.subcategoriaId);
+    setNomenclador(o.nomenclador);
+    setPrecio(o.precio);
+    setUnidad(o.unidad);
+    setNotice(null);
+  }, [mode, resetToNew, selected]);
+
+  const onSave = React.useCallback(async () => {
+    if (!tarifaId) return;
+    setNotice(null);
+    if (!isValid) {
+      setNotice({ type: "error", text: "Completa los campos obligatorios." });
+      return;
+    }
+    if (mode === "edit" && !selected) {
+      setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      return;
+    }
+    if (!isDirty) {
+      setNotice({ type: "error", text: "No hay cambios para guardar." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (mode === "new") {
+        await createServicio(tarifaId, {
+          categoria_id: categoriaId!,
+          subcategoria_id: subcategoriaId!,
+          descripcion: descripcion.trim(),
+          nomenclador: nomenclador.trim() ? nomenclador.trim() : null,
+          precio_sin_igv: Number(precio),
+          unidad: Number(unidad),
+          estado,
+        });
+        setNotice({ type: "success", text: "Servicio creado." });
+        setPage(1);
+        await refresh({ page: 1 });
+        resetToNew();
+      } else if (selected) {
+        const res = await updateServicio(tarifaId, selected.id, {
+          descripcion: descripcion.trim(),
+          nomenclador: nomenclador.trim() ? nomenclador.trim() : null,
+          precio_sin_igv: Number(precio),
+          unidad: Number(unidad),
+          estado,
+        });
+        if (statusFilter === "ACTIVO" && res.estado !== "ACTIVO") {
+          setStatusFilter("ALL");
+        }
+        setNotice({ type: "success", text: "Servicio actualizado." });
+        const refreshed = await refresh();
+        const updated = refreshed?.data.find((x) => x.id === res.id);
+        if (updated) {
+          if (updated.estado !== estado) {
+            setNotice({ type: "error", text: "El servidor no confirmó el cambio de estado." });
+            return;
+          }
+          loadForEdit(updated);
+        }
+      }
+    } catch (e) {
+      const msg = isApiError(e) ? e.message : "No se pudo guardar el servicio.";
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    tarifaId,
+    categoriaId,
+    subcategoriaId,
+    descripcion,
+    nomenclador,
+    precio,
+    unidad,
+    estado,
+    mode,
+    selected,
+    refresh,
+    resetToNew,
+    saving,
+    isValid,
+    isDirty,
+    loadForEdit,
+    statusFilter,
+  ]);
+
+  const requestDeactivate = React.useCallback(() => {
+    if (!selected) {
+      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      return;
+    }
+    if (selected.estado === "INACTIVO") return;
+    setConfirmDeactivateOpen(true);
+  }, [selected]);
+
+  const onDeactivateConfirmed = React.useCallback(async () => {
+    if (!tarifaId || !selected) {
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await deactivateServicio(tarifaId, selected.id);
+      if (statusFilter === "ACTIVO") {
+        setStatusFilter("ALL");
+      }
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "success", text: "Servicio desactivado." });
+      const refreshed = await refresh();
+      const updated = refreshed?.data.find((x) => x.id === res.id);
+      if (updated) {
+        if (updated.estado !== "INACTIVO") {
+          setNotice({ type: "error", text: "El servidor no confirmó la desactivación." });
+          return;
+        }
+        loadForEdit(updated);
+      }
+    } catch (e) {
+      const msg = isApiError(e) ? e.message : "No se pudo desactivar el servicio.";
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [tarifaId, selected, refresh, saving, loadForEdit, statusFilter]);
+
+  const canDeactivate = Boolean(selected) && selected?.estado !== "INACTIVO";
+
+  return {
+    data,
+    loading,
+    saving,
+    notice,
+    page,
+    setPage,
+    perPage,
+    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    mode,
+    selected,
+    codigo,
+    descripcion,
+    setDescripcion,
+    estado,
+    setEstado,
+    categoriaId,
+    setCategoriaId,
+    subcategoriaId,
+    setSubcategoriaId,
+    categorias,
+    subcategorias,
+    subcategoriasFilter,
+    filterCategoriaId,
+    setFilterCategoriaId,
+    filterSubcategoriaId,
+    setFilterSubcategoriaId,
+    nomenclador,
+    setNomenclador,
+    precio,
+    setPrecio,
+    unidad,
+    setUnidad,
+    isValid,
+    isDirty,
+    canDeactivate,
+    resetToNew,
+    loadForEdit,
+    cancel,
+    onSave,
+    requestDeactivate,
+    confirmDeactivateOpen,
+    setConfirmDeactivateOpen,
+    onDeactivateConfirmed,
+  };
+}
+
+function CrudHeader({
+  title,
+  onBack,
+  tarifaLabel,
+}: {
+  title: string;
+  onBack: () => void;
+  tarifaLabel: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
+        <div className="text-sm text-(--color-text-secondary)">
+          CRUD con paginación y estados · {tarifaLabel}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onBack}
+        className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+      >
+        Volver a Tarifario
+      </button>
+    </div>
+  );
+}
+
+function CrudToolbar(props: {
+  q: string;
+  onQChange: (v: string) => void;
+  statusFilter: StatusFilter;
+  onStatusChange: (v: StatusFilter) => void;
+  perPage: number;
+  onPerPageChange: (v: number) => void;
+  onNew: () => void;
+}) {
+  const { q, onQChange, statusFilter, onStatusChange, perPage, onPerPageChange, onNew } = props;
+  return (
+    <div className="w-full">
+      <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+        <input
+          value={q}
+          onChange={(e) => onQChange(e.target.value)}
+          placeholder="Buscar por código o descripción"
+          className={[
+            "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
+            "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+            "basis-full lg:basis-auto lg:flex-1 min-w-65",
+          ].join(" ")}
+        />
+
+        <SelectMenu
+          value={String(statusFilter)}
+          onChange={(v) => onStatusChange(v === "ALL" ? "ALL" : (v as RecordStatus))}
+          options={statusOptions}
+          ariaLabel="Filtrar por estado"
+          buttonClassName="w-full sm:w-auto min-w-[160px]"
+          menuClassName="min-w-[120px]"
+        />
+
+        <SelectMenu
+          value={String(perPage)}
+          onChange={(v) => onPerPageChange(Number(v))}
+          options={perPageOptions}
+          ariaLabel="Registros por página"
+          buttonClassName="w-full sm:w-auto min-w-[96px]"
+          menuClassName="min-w-[90px]"
+        />
+
+        <button
+          type="button"
+          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
+          onClick={onNew}
+        >
+          Nuevo
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabel: string }) {
+  const vm = useCategoriasCrud(tarifaId);
+  const isLgUp = useIsLgUp();
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+
+  const handleNew = React.useCallback(() => {
+    vm.resetToNew();
+    if (isLgUp) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [vm, isLgUp]);
+
+  const columns: DataTableColumn<TarifaCategoria>[] = [
+    {
+      key: "codigo",
+      header: "Código",
+      headerClassName: "text-center w-28",
+      cellClassName: "px-3 py-2 text-center tabular-nums",
+      render: (x) => x.codigo,
+    },
+    { key: "descripcion", header: "Descripción", render: (x) => x.descripcion },
+    {
+      key: "estado",
+      header: "Estado",
+      headerClassName: "text-center w-44",
+      cellClassName: "px-3 py-2 text-center",
+      render: (x) => (
+        <div className="flex justify-center">
+          <StatusBadge status={x.estado} />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex w-full flex-col gap-4">
+      <CrudHeader
+        title="Categorías"
+        onBack={() => navigate("/facturacion/tarifario")}
+        tarifaLabel={tarifaLabel}
+      />
+      <CrudToolbar
+        q={vm.q}
+        onQChange={vm.setQ}
+        statusFilter={vm.statusFilter}
+        onStatusChange={vm.setStatusFilter}
+        perPage={vm.perPage}
+        onPerPageChange={vm.setPerPage}
+        onNew={handleNew}
+      />
+      <NoticeBanner notice={vm.notice} />
+
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <div className="min-w-0">
+          <div className="hidden h-full min-h-0 flex-col lg:flex">
+            <DataTable
+              rows={vm.data.data}
+              columns={columns}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              getRowId={(x) => x.id}
+              onSelect={vm.loadForEdit}
+            />
+            <PaginationFooter
+              meta={vm.data.meta}
+              variant="desktop"
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            />
+          </div>
+
+          <div className="lg:hidden">
+            <MobileEntityList
+              rows={vm.data.data}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              getRowId={(x) => x.id}
+              onSelect={vm.loadForEdit}
+              renderMain={(x) => (
+                <div className="text-sm font-semibold text-(--color-text-primary)">
+                  <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
+                </div>
+              )}
+              renderRight={(x) => <StatusBadge status={x.estado} />}
+            />
+            <PaginationFooter
+              meta={vm.data.meta}
+              variant="mobile"
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            />
+          </div>
+        </div>
+
+        <div ref={formRef} className="min-w-0">
+          <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-(--color-text-primary)">
+                  {vm.mode === "new" ? "Nuevo registro" : `Editando: ${vm.selected?.codigo ?? ""}`}
+                </div>
+                <div className="text-xs text-(--color-text-secondary)">
+                  {vm.mode === "new" ? "Crea una categoría." : "Modifica campos y guarda cambios."}
+                </div>
+              </div>
+              {vm.selected ? <StatusBadge status={vm.selected.estado} /> : null}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Código</label>
+                  <input
+                    value={vm.codigo}
+                    readOnly
+                    placeholder={vm.mode === "new" ? "Generando" : ""}
+                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Estado</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.estado}
+                      onChange={(v) => vm.setEstado(v as RecordStatus)}
+                      options={[
+                        { value: "ACTIVO", label: "Activo" },
+                        { value: "INACTIVO", label: "Inactivo" },
+                        { value: "SUSPENDIDO", label: "Suspendido" },
+                      ]}
+                      ariaLabel="Estado"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-(--color-text-primary)">Descripción</label>
+                <input
+                  value={vm.descripcion}
+                  onChange={(e) => vm.setDescripcion(e.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <PrimaryButton disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar cambios"}
+              </PrimaryButton>
+              <SecondaryButton disabled={vm.saving} onClick={vm.cancel}>
+                Cancelar
+              </SecondaryButton>
+              <DangerButton disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+                Desactivar
+              </DangerButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={vm.confirmDeactivateOpen}
+        title="Desactivar categoría"
+        description={
+          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : ""
+        }
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        destructive
+        onCancel={() => vm.setConfirmDeactivateOpen(false)}
+        onConfirm={vm.onDeactivateConfirmed}
+      />
+    </div>
+  );
+}
+
+function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabel: string }) {
+  const vm = useSubcategoriasCrud(tarifaId);
+  const isLgUp = useIsLgUp();
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+  const categoriaCodigoById = React.useMemo(() => {
+    const map = new Map<number, string>();
+    vm.categorias.forEach((c) => map.set(c.id, c.codigo));
+    return map;
+  }, [vm.categorias]);
+
+  const handleNew = React.useCallback(() => {
+    vm.resetToNew();
+    if (isLgUp) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [vm, isLgUp]);
+
+  const columns: DataTableColumn<TarifaSubcategoria>[] = [
+    {
+      key: "codigo",
+      header: "Código",
+      headerClassName: "text-center w-28",
+      cellClassName: "px-3 py-2 text-center tabular-nums",
+      render: (x) => {
+        const catCode = categoriaCodigoById.get(x.categoria_id);
+        return catCode ? `${x.codigo}.${catCode}` : x.codigo;
+      },
+    },
+    { key: "descripcion", header: "Descripción", render: (x) => x.descripcion },
+    {
+      key: "estado",
+      header: "Estado",
+      headerClassName: "text-center w-44",
+      cellClassName: "px-3 py-2 text-center",
+      render: (x) => (
+        <div className="flex justify-center">
+          <StatusBadge status={x.estado} />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex w-full flex-col gap-4">
+      <CrudHeader
+        title="Subcategorías"
+        onBack={() => navigate("/facturacion/tarifario")}
+        tarifaLabel={tarifaLabel}
+      />
+      <div className="w-full">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+          <input
+            value={vm.q}
+            onChange={(e) => vm.setQ(e.target.value)}
+            placeholder="Buscar por código o descripción"
+            className={[
+              "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
+              "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+              "basis-full lg:basis-auto lg:flex-1 min-w-65",
+            ].join(" ")}
+          />
+
+          <SelectMenu
+            value={String(vm.statusFilter)}
+            onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
+            options={statusOptions}
+            ariaLabel="Filtrar por estado"
+            buttonClassName="w-full sm:w-auto min-w-[160px]"
+            menuClassName="min-w-[120px]"
+          />
+
+          <SelectMenu
+            value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
+            onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
+            options={[
+              { value: "", label: "Todas las categorías" },
+              ...vm.categorias.map((c) => ({
+                value: String(c.id),
+                label: `${c.codigo} - ${c.descripcion}`,
+              })),
+            ]}
+            ariaLabel="Categoría filtro"
+            buttonClassName="w-full sm:w-auto min-w-[220px]"
+            menuClassName="min-w-[200px]"
+          />
+
+          <SelectMenu
+            value={String(vm.perPage)}
+            onChange={(v) => vm.setPerPage(Number(v))}
+            options={perPageOptions}
+            ariaLabel="Registros por página"
+            buttonClassName="w-full sm:w-auto min-w-[96px]"
+            menuClassName="min-w-[90px]"
+          />
+
+          <button
+            type="button"
+            className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
+            onClick={handleNew}
+          >
+            Nuevo
+          </button>
+        </div>
+      </div>
+
+      <NoticeBanner notice={vm.notice} />
+
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <div className="min-w-0">
+          <div className="hidden h-full min-h-0 flex-col lg:flex">
+            <DataTable
+              rows={vm.data.data}
+              columns={columns}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              getRowId={(x) => x.id}
+              onSelect={vm.loadForEdit}
+            />
+            <PaginationFooter
+              meta={vm.data.meta}
+              variant="desktop"
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            />
+          </div>
+
+          <div className="lg:hidden">
+            <MobileEntityList
+              rows={vm.data.data}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              getRowId={(x) => x.id}
+              onSelect={vm.loadForEdit}
+              renderMain={(x) => (
+                <div className="text-sm font-semibold text-(--color-text-primary)">
+                  <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
+                </div>
+              )}
+              renderRight={(x) => <StatusBadge status={x.estado} />}
+            />
+            <PaginationFooter
+              meta={vm.data.meta}
+              variant="mobile"
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            />
+          </div>
+        </div>
+
+        <div ref={formRef} className="min-w-0">
+          <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-(--color-text-primary)">
+                  {vm.mode === "new" ? "Nuevo registro" : `Editando: ${vm.selected?.codigo ?? ""}`}
+                </div>
+                <div className="text-xs text-(--color-text-secondary)">
+                  {vm.mode === "new" ? "Crea una subcategoría." : "Modifica campos y guarda cambios."}
+                </div>
+              </div>
+              {vm.selected ? <StatusBadge status={vm.selected.estado} /> : null}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-sm text-(--color-text-primary)">Categoría</label>
+                <div className="mt-1">
+                  <SelectMenu
+                    value={vm.categoriaId ? String(vm.categoriaId) : ""}
+                    onChange={(v) => vm.setCategoriaId(v ? Number(v) : null)}
+                    options={[
+                      { value: "", label: "Elegir categoría" },
+                      ...vm.categorias.map((c) => ({
+                        value: String(c.id),
+                        label: `${c.codigo} - ${c.descripcion}`,
+                      })),
+                    ]}
+                    ariaLabel="Categoría"
+                    buttonClassName="w-full"
+                    menuClassName="min-w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Código</label>
+                  <input
+                    value={
+                      vm.categoriaId
+                        ? `${vm.codigo}.${categoriaCodigoById.get(vm.categoriaId) ?? ""}`.replace(/\.$/, "")
+                        : vm.codigo
+                    }
+                    readOnly
+                    placeholder={vm.mode === "new" ? "Generando" : ""}
+                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Estado</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.estado}
+                      onChange={(v) => vm.setEstado(v as RecordStatus)}
+                      options={[
+                        { value: "ACTIVO", label: "Activo" },
+                        { value: "INACTIVO", label: "Inactivo" },
+                        { value: "SUSPENDIDO", label: "Suspendido" },
+                      ]}
+                      ariaLabel="Estado"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-(--color-text-primary)">Descripción</label>
+                <input
+                  value={vm.descripcion}
+                  onChange={(e) => vm.setDescripcion(e.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <PrimaryButton disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar cambios"}
+              </PrimaryButton>
+              <SecondaryButton disabled={vm.saving} onClick={vm.cancel}>
+                Cancelar
+              </SecondaryButton>
+              <DangerButton disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+                Desactivar
+              </DangerButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={vm.confirmDeactivateOpen}
+        title="Desactivar subcategoría"
+        description={
+          vm.selected
+            ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?`
+            : ""
+        }
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        destructive
+        onCancel={() => vm.setConfirmDeactivateOpen(false)}
+        onConfirm={vm.onDeactivateConfirmed}
+      />
+    </div>
+  );
+}
+
+function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabel: string }) {
+  const vm = useServiciosCrud(tarifaId);
+  const isLgUp = useIsLgUp();
+  const formRef = React.useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate();
+
+  const handleNew = React.useCallback(() => {
+    vm.resetToNew();
+    if (isLgUp) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [vm, isLgUp]);
+
+  const columns: DataTableColumn<TarifaServicioCrud>[] = [
+    {
+      key: "codigo",
+      header: "Código",
+      headerClassName: "text-center w-36",
+      cellClassName: "px-3 py-2 text-center tabular-nums",
+      render: (x) => x.codigo,
+    },
+    { key: "descripcion", header: "Descripción", render: (x) => x.descripcion },
+    {
+      key: "estado",
+      header: "Estado",
+      headerClassName: "text-center w-44",
+      cellClassName: "px-3 py-2 text-center",
+      render: (x) => (
+        <div className="flex justify-center">
+          <StatusBadge status={x.estado} />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex w-full flex-col gap-4">
+      <CrudHeader
+        title="Servicios"
+        onBack={() => navigate("/facturacion/tarifario")}
+        tarifaLabel={tarifaLabel}
+      />
+      <div className="w-full">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+          <input
+            value={vm.q}
+            onChange={(e) => vm.setQ(e.target.value)}
+            placeholder="Buscar por código o descripción"
+            className={[
+              "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
+              "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+              "basis-full lg:basis-auto lg:flex-1 min-w-65",
+            ].join(" ")}
+          />
+
+          <SelectMenu
+            value={String(vm.statusFilter)}
+            onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
+            options={statusOptions}
+            ariaLabel="Filtrar por estado"
+            buttonClassName="w-full sm:w-auto min-w-[160px]"
+            menuClassName="min-w-[120px]"
+          />
+
+          <SelectMenu
+            value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
+            onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
+            options={[
+              { value: "", label: "Todas las categorías" },
+              ...vm.categorias.map((c) => ({
+                value: String(c.id),
+                label: `${c.codigo} - ${c.descripcion}`,
+              })),
+            ]}
+            ariaLabel="Categoría filtro"
+            buttonClassName="w-full sm:w-auto min-w-[220px]"
+            menuClassName="min-w-[200px]"
+          />
+
+          <SelectMenu
+            value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
+            onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
+            options={[
+              { value: "", label: "Todas las subcategorías" },
+              ...vm.subcategoriasFilter.map((s) => ({
+                value: String(s.id),
+                label: `${s.codigo} - ${s.descripcion}`,
+              })),
+            ]}
+            ariaLabel="Subcategoría filtro"
+            buttonClassName="w-full sm:w-auto min-w-[220px]"
+            menuClassName="min-w-[200px]"
+          />
+
+          <SelectMenu
+            value={String(vm.perPage)}
+            onChange={(v) => vm.setPerPage(Number(v))}
+            options={perPageOptions}
+            ariaLabel="Registros por página"
+            buttonClassName="w-full sm:w-auto min-w-[96px]"
+            menuClassName="min-w-[90px]"
+          />
+
+          <button
+            type="button"
+            className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
+            onClick={handleNew}
+          >
+            Nuevo
+          </button>
+        </div>
+      </div>
+
+      <NoticeBanner notice={vm.notice} />
+
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <div className="min-w-0">
+          <div className="hidden h-full min-h-0 flex-col lg:flex">
+            <DataTable
+              rows={vm.data.data}
+              columns={columns}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              getRowId={(x) => x.id}
+              onSelect={vm.loadForEdit}
+            />
+            <PaginationFooter
+              meta={vm.data.meta}
+              variant="desktop"
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            />
+          </div>
+
+          <div className="lg:hidden">
+            <MobileEntityList
+              rows={vm.data.data}
+              loading={vm.loading}
+              selectedId={vm.selected?.id ?? null}
+              getRowId={(x) => x.id}
+              onSelect={vm.loadForEdit}
+              renderMain={(x) => (
+                <div className="text-sm font-semibold text-(--color-text-primary)">
+                  <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
+                </div>
+              )}
+              renderRight={(x) => <StatusBadge status={x.estado} />}
+            />
+            <PaginationFooter
+              meta={vm.data.meta}
+              variant="mobile"
+              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            />
+          </div>
+        </div>
+
+        <div ref={formRef} className="min-w-0">
+          <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-(--color-text-primary)">
+                  {vm.mode === "new" ? "Nuevo registro" : `Editando: ${vm.selected?.codigo ?? ""}`}
+                </div>
+                <div className="text-xs text-(--color-text-secondary)">
+                  {vm.mode === "new" ? "Crea un servicio." : "Modifica campos y guarda cambios."}
+                </div>
+              </div>
+              {vm.selected ? <StatusBadge status={vm.selected.estado} /> : null}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Categoría</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.categoriaId ? String(vm.categoriaId) : ""}
+                      onChange={(v) => vm.setCategoriaId(v ? Number(v) : null)}
+                      options={[
+                        { value: "", label: "Elegir categoría" },
+                        ...vm.categorias.map((c) => ({
+                          value: String(c.id),
+                          label: `${c.codigo} - ${c.descripcion}`,
+                        })),
+                      ]}
+                      ariaLabel="Categoría"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Subcategoría</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.subcategoriaId ? String(vm.subcategoriaId) : ""}
+                      onChange={(v) => vm.setSubcategoriaId(v ? Number(v) : null)}
+                      options={[
+                        { value: "", label: "Elegir subcategoría" },
+                        ...vm.subcategorias.map((s) => ({
+                          value: String(s.id),
+                          label: `${s.codigo} - ${s.descripcion}`,
+                        })),
+                      ]}
+                      ariaLabel="Subcategoría"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Código</label>
+                  <input
+                    value={vm.codigo}
+                    readOnly
+                    placeholder={vm.mode === "new" ? "Generando" : ""}
+                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Estado</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.estado}
+                      onChange={(v) => vm.setEstado(v as RecordStatus)}
+                      options={[
+                        { value: "ACTIVO", label: "Activo" },
+                        { value: "INACTIVO", label: "Inactivo" },
+                        { value: "SUSPENDIDO", label: "Suspendido" },
+                      ]}
+                      ariaLabel="Estado"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-(--color-text-primary)">Descripción</label>
+                <input
+                  value={vm.descripcion}
+                  onChange={(e) => vm.setDescripcion(e.target.value)}
+                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Nomenclador</label>
+                  <input
+                    value={vm.nomenclador}
+                    onChange={(e) => vm.setNomenclador(e.target.value)}
+                    placeholder="Opcional"
+                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm text-(--color-text-primary)">Precio sin I.G.V.</label>
+                    <input
+                      value={vm.precio}
+                      onChange={(e) => vm.setPrecio(e.target.value)}
+                      inputMode="decimal"
+                      className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-(--color-text-primary)">Unidad</label>
+                    <input
+                      value={vm.unidad}
+                      onChange={(e) => vm.setUnidad(e.target.value)}
+                      inputMode="decimal"
+                      className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <PrimaryButton disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar cambios"}
+              </PrimaryButton>
+              <SecondaryButton disabled={vm.saving} onClick={vm.cancel}>
+                Cancelar
+              </SecondaryButton>
+              <DangerButton disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+                Desactivar
+              </DangerButton>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={vm.confirmDeactivateOpen}
+        title="Desactivar servicio"
+        description={
+          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : ""
+        }
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        destructive
+        onCancel={() => vm.setConfirmDeactivateOpen(false)}
+        onConfirm={vm.onDeactivateConfirmed}
+      />
+    </div>
+  );
+}
+
+export default function TarifarioCrudPage() {
+  const { tipo } = useParams<{ tipo?: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const tarifaIdRaw = Number(searchParams.get("tarifaId"));
+  const tarifaId = Number.isFinite(tarifaIdRaw) && tarifaIdRaw > 0 ? tarifaIdRaw : null;
+  const tarifaLabel = searchParams.get("tarifaLabel") || "Tarifario";
+
+  if (!tarifaId) {
+    return (
+      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-6">
+        <div className="text-base font-semibold text-(--color-text-primary)">Tarifario</div>
+        <div className="mt-2 text-sm text-(--color-text-secondary)">
+          Selecciona una tarifa antes de gestionar categorías, subcategorías o servicios.
+        </div>
+        <button
+          type="button"
+          className="mt-4 h-10 rounded-xl px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+          onClick={() => navigate("/facturacion/tarifario")}
+        >
+          Ir a Tarifario
+        </button>
+      </div>
+    );
+  }
+
+  if (tipo === "categorias") return <CategoriasView tarifaId={tarifaId} tarifaLabel={tarifaLabel} />;
+  if (tipo === "subcategorias")
+    return <SubcategoriasView tarifaId={tarifaId} tarifaLabel={tarifaLabel} />;
+  return <ServiciosView tarifaId={tarifaId} tarifaLabel={tarifaLabel} />;
+}
