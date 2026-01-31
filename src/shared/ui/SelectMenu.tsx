@@ -13,13 +13,36 @@ export function SelectMenu(props: {
   disabled?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
+  keepPlaceholder?: boolean;
 }) {
-  const { value, onChange, options, ariaLabel, buttonClassName, menuClassName, disabled, searchable, searchPlaceholder } = props;
+  const {
+    value,
+    onChange,
+    options,
+    ariaLabel,
+    buttonClassName,
+    menuClassName,
+    disabled,
+    searchable = ariaLabel !== "Estado",
+    searchPlaceholder = "Buscar...",
+    keepPlaceholder = ariaLabel === "Estado",
+  } = props;
 
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const optionsNoPlaceholder = React.useMemo(() => {
+    if (keepPlaceholder) return options;
+    return options.filter((opt) => {
+      if (opt.disabled && opt.value === "") return false;
+      const label = (opt.label ?? "").toString().trim().toLowerCase();
+      if (opt.value === "" && label.startsWith("selecciona")) return false;
+      if (label.startsWith("selecciona")) return false;
+      return true;
+    });
+  }, [keepPlaceholder, options]);
+
   const [activeIndex, setActiveIndex] = React.useState<number>(() => {
-    const i = options.findIndex((o) => o.value === value);
+    const i = optionsNoPlaceholder.findIndex((o) => o.value === value);
     return i >= 0 ? i : 0;
   });
 
@@ -27,15 +50,13 @@ export function SelectMenu(props: {
   const btnRef = React.useRef<HTMLButtonElement | null>(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
 
-  const selected = options.find((o) => o.value === value) ?? options[0];
+  const selected = optionsNoPlaceholder.find((o) => o.value === value);
 
   const filteredOptions = React.useMemo(() => {
-    if (!searchable || !query.trim()) return options;
+    if (!searchable || !query.trim()) return optionsNoPlaceholder;
     const q = query.trim().toLowerCase();
-    const head = options[0] && options[0].disabled ? [options[0]] : [];
-    const rest = (options[0] && options[0].disabled ? options.slice(1) : options).filter((o) => o.label.toLowerCase().includes(q));
-    return [...head, ...rest];
-  }, [options, query, searchable]);
+    return optionsNoPlaceholder.filter((o) => o.label.toLowerCase().includes(q));
+  }, [optionsNoPlaceholder, query, searchable]);
 
   React.useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -73,7 +94,7 @@ export function SelectMenu(props: {
 
   React.useEffect(() => {
     if (!open) return;
-    const list = filteredOptions.length ? filteredOptions : options;
+    const list = filteredOptions.length ? filteredOptions : optionsNoPlaceholder;
     const i = list.findIndex((o) => o.value === value);
     const next = i >= 0 ? i : 0;
     setActiveIndex(next);
@@ -137,7 +158,7 @@ export function SelectMenu(props: {
           buttonClassName ?? "",
         ].join(" ")}
       >
-        <span className="min-w-0 truncate">{selected?.label}</span>
+        <span className="min-w-0 truncate">{selected?.label ?? ""}</span>
         <ChevronDown className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
       </button>
 
@@ -163,53 +184,55 @@ export function SelectMenu(props: {
             move(-1);
           } else if (e.key === "Enter") {
             e.preventDefault();
-            const opt = (filteredOptions.length ? filteredOptions : options)[activeIndex];
+            const opt = (filteredOptions.length ? filteredOptions : optionsNoPlaceholder)[activeIndex];
             if (opt && !opt.disabled) pick(opt.value);
           } else if (e.key === "Tab") {
             setOpen(false);
           }
         }}
       >
-        <div className="max-h-60 overflow-auto p-1 app-scrollbar app-scrollbar-no-gutter">
-          {searchable ? (
-            <div className="px-2 pt-2 pb-1">
-              <input
-                ref={searchRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={searchPlaceholder ?? "Buscar..."}
-                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm outline-none focus:ring-2 focus:ring-(--color-primary)"
-                aria-label={searchPlaceholder ?? "Buscar"}
-              />
-            </div>
-          ) : null}
-          {(filteredOptions.length ? filteredOptions : options).map((o, idx) => {
-            const isSelected = o.value === value;
-            const isActive = idx === activeIndex;
+        {open ? (
+          <div className="max-h-60 overflow-auto p-1 app-scrollbar app-scrollbar-no-gutter">
+            {searchable ? (
+              <div className="px-2 pt-2 pb-1">
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  aria-label={searchPlaceholder}
+                />
+              </div>
+            ) : null}
+            {(filteredOptions.length ? filteredOptions : optionsNoPlaceholder).map((o, idx) => {
+              const isSelected = o.value === value;
+              const isActive = idx === activeIndex;
 
-            return (
-              <button
-                key={o.value}
-                type="button"
-                disabled={o.disabled}
-                onMouseEnter={() => setActiveIndex(idx)}
-                onClick={() => !o.disabled && pick(o.value)}
-                className={[
-                  "w-full rounded-lg px-3 py-2 text-left text-sm",
-                  "transition-colors",
-                  "whitespace-normal wrap-break-words leading-5",
-                  o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-                  isSelected ? "bg-(--color-primary) text-(--color-text-inverse)" : "text-(--color-text-primary)",
-                  !isSelected && isActive ? "bg-(--color-surface-hover)" : "",
-                ].join(" ")}
-                role="option"
-                aria-selected={isSelected}
-              >
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  disabled={o.disabled}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                  onClick={() => !o.disabled && pick(o.value)}
+                  className={[
+                    "w-full rounded-lg px-3 py-2 text-left text-sm",
+                    "transition-colors",
+                    "whitespace-normal wrap-break-words leading-5",
+                    o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+                    isSelected ? "bg-(--color-primary) text-(--color-text-inverse)" : "text-(--color-text-primary)",
+                    !isSelected && isActive ? "bg-(--color-surface-hover)" : "",
+                  ].join(" ")}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );

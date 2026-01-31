@@ -1,4 +1,5 @@
 import type { SelectOption } from "../../../../../shared/ui/SelectMenu";
+import { useMemo } from "react";
 import { usePacienteWizard } from "../../wizard/usePacienteWizard";
 import type { PacienteFormCatalogos } from "../../wizard/types";
 import { FormCard, SelectField, TextField } from "../../wizard/ui/formFields";
@@ -30,24 +31,20 @@ export function DatosAdicionalesStep({ catalog }: { catalog: PacienteFormCatalog
   const { state, actions } = usePacienteWizard();
   const d = state.draft;
 
-  let ocupacionOptions = withPlaceholder(
-    optionsFrom(catalog?.ocupacion),
-    catalog ? "Selecciona ocupación" : "Cargando ocupación…"
-  );
+  const ocupacionOptions = useMemo(() => {
+    const base = withPlaceholder(optionsFrom(catalog?.ocupacion), catalog ? "Selecciona ocupación" : "Cargando ocupación…");
+    return ensureSelectedOption(base, d.ocupacion);
+  }, [catalog, d.ocupacion]);
 
-  let parentescoEmergenciaOptions = withPlaceholder(
-    optionsFrom(catalog?.parentesco_emergencia),
-    catalog ? "Selecciona parentesco" : "Cargando parentescos…"
-  );
+  const parentescoEmergenciaOptions = useMemo(() => {
+    const base = withPlaceholder(optionsFrom(catalog?.parentesco_emergencia), catalog ? "Selecciona parentesco" : "Cargando parentescos…");
+    return ensureSelectedOption(base, d.contacto_emergencia.parentesco_emergencia);
+  }, [catalog, d.contacto_emergencia.parentesco_emergencia]);
 
-  let medioInfoOptions = withPlaceholder(
-    optionsFrom(catalog?.medio_informacion),
-    catalog ? "Selecciona medio" : "Cargando medios…"
-  );
-
-  ocupacionOptions = ensureSelectedOption(ocupacionOptions, d.ocupacion);
-  parentescoEmergenciaOptions = ensureSelectedOption(parentescoEmergenciaOptions, d.contacto_emergencia.parentesco_emergencia);
-  medioInfoOptions = ensureSelectedOption(medioInfoOptions, d.medio_informacion);
+  const medioInfoOptions = useMemo(() => {
+    const base = withPlaceholder(optionsFrom(catalog?.medio_informacion), catalog ? "Selecciona medio" : "Cargando medios…");
+    return ensureSelectedOption(base, d.medio_informacion);
+  }, [catalog, d.medio_informacion]);
 
   return (
     <div className="space-y-4">

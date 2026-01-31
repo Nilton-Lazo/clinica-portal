@@ -1,5 +1,5 @@
 import type { SelectOption } from "../../../../../shared/ui/SelectMenu";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { usePacienteWizard } from "../../wizard/usePacienteWizard";
 import type { PacienteFormCatalogos } from "../../wizard/types";
 import { fullNameFromDraft } from "../../wizard/types";
@@ -165,32 +165,53 @@ export function DatosGeneralesStep({
     actions.set({ titular_nombre: name });
   }, [parentesco_seguro, nombres, apellido_paterno, apellido_materno, titular_nombre, actions]);
 
-  const tipoDocOptions = withPlaceholder(optionsFrom(catalog?.tipo_documento), catalog ? "Selecciona tipo" : "Cargando tipos…");
+  const tipoDocOptions = useMemo(
+    () => withPlaceholder(optionsFrom(catalog?.tipo_documento), catalog ? "Selecciona tipo" : "Cargando tipos…"),
+    [catalog]
+  );
 
-  const estadoCivilOptions = withPlaceholder(optionsFrom(catalog?.estado_civil), catalog ? "Selecciona estado civil" : "Cargando estados…");
+  const estadoCivilOptions = useMemo(
+    () => withPlaceholder(optionsFrom(catalog?.estado_civil), catalog ? "Selecciona estado civil" : "Cargando estados…"),
+    [catalog]
+  );
 
-  const sexoOptions = withPlaceholder(optionsFrom(catalog?.sexo), catalog ? "Selecciona sexo" : "Cargando sexos…");
+  const sexoOptions = useMemo(
+    () => withPlaceholder(optionsFrom(catalog?.sexo), catalog ? "Selecciona sexo" : "Cargando sexos…"),
+    [catalog]
+  );
 
-  const parentescoSeguroOptions = withPlaceholder(optionsFrom(catalog?.parentesco_seguro), catalog ? "Selecciona parentesco" : "Cargando parentescos…");
+  const parentescoSeguroOptions = useMemo(
+    () => withPlaceholder(optionsFrom(catalog?.parentesco_seguro), catalog ? "Selecciona parentesco" : "Cargando parentescos…"),
+    [catalog]
+  );
 
-  const catalogRecord: CatalogRecord = (catalog ?? {}) as unknown as CatalogRecord;
+  const catalogRecord: CatalogRecord = useMemo(() => (catalog ?? {}) as unknown as CatalogRecord, [catalog]);
 
-  const paisesArr = readArray(catalogRecord, ["paises"]);
-  const ubigeosArr = readArray(catalogRecord, ["ubigeos"]);
-  const medicosArr = readArray(catalogRecord, ["medicos"]);
+  const paisesArr = useMemo(() => readArray(catalogRecord, ["paises"]), [catalogRecord]);
+  const ubigeosArr = useMemo(() => readArray(catalogRecord, ["ubigeos"]), [catalogRecord]);
+  const medicosArr = useMemo(() => readArray(catalogRecord, ["medicos"]), [catalogRecord]);
 
-  const tipoSangreArr = readArray(catalogRecord, ["tipo_sangre", "tipos_sangre", "tiposSangre"]);
-  const tipoPacienteArr = readArray(catalogRecord, ["tipo_paciente", "tipos_paciente", "tiposPaciente"]);
+  const tipoSangreArr = useMemo(() => readArray(catalogRecord, ["tipo_sangre", "tipos_sangre", "tiposSangre"]), [catalogRecord]);
+  const tipoPacienteArr = useMemo(() => readArray(catalogRecord, ["tipo_paciente", "tipos_paciente", "tiposPaciente"]), [catalogRecord]);
 
-  let paisOptions = catalog ? toPaisOptions(paisesArr) : withPlaceholder([], "Cargando nacionalidades…");
+  const paisOptionsBase = useMemo(() => (catalog ? toPaisOptions(paisesArr) : withPlaceholder([], "Cargando nacionalidades…")), [catalog, paisesArr]);
 
-  let ubigeoOptions = catalog ? toUbigeoOptions(ubigeosArr) : withPlaceholder([], "Cargando distritos…");
+  const ubigeoOptionsBase = useMemo(() => (catalog ? toUbigeoOptions(ubigeosArr) : withPlaceholder([], "Cargando distritos…")), [catalog, ubigeosArr]);
 
-  let medicoOptions = withPlaceholder(toMedicoOptions(medicosArr), catalog ? "Selecciona médico" : "Cargando médicos…");
+  const medicoOptionsBase = useMemo(
+    () => withPlaceholder(toMedicoOptions(medicosArr), catalog ? "Selecciona médico" : "Cargando médicos…"),
+    [catalog, medicosArr]
+  );
 
-  let tipoSangreOptions = withPlaceholder(toStringEnumOptions(tipoSangreArr), catalog ? "Selecciona tipo" : "Cargando…");
+  const tipoSangreOptionsBase = useMemo(
+    () => withPlaceholder(toStringEnumOptions(tipoSangreArr), catalog ? "Selecciona tipo" : "Cargando…"),
+    [catalog, tipoSangreArr]
+  );
 
-  let tipoPacienteOptions = withPlaceholder(toStringEnumOptions(tipoPacienteArr), catalog ? "Selecciona tipo" : "Cargando…");
+  const tipoPacienteOptionsBase = useMemo(
+    () => withPlaceholder(toStringEnumOptions(tipoPacienteArr), catalog ? "Selecciona tipo" : "Cargando…"),
+    [catalog, tipoPacienteArr]
+  );
 
   const tipo = d.tipo_documento.trim().toUpperCase();
   const requiereDoc = tipo !== "" && tipo !== "SIN_DOCUMENTO";
@@ -205,12 +226,27 @@ export function DatosGeneralesStep({
 
   const medicoIdStr = String((d as unknown as { medico_tratante_id?: unknown }).medico_tratante_id ?? "");
 
-  paisOptions = ensureSelectedOption(paisOptions, String(d.nacionalidad_iso2 ?? "").trim());
-  ubigeoOptions = ensureSelectedOption(ubigeoOptions, ubNac);
-  ubigeoOptions = ensureSelectedOption(ubigeoOptions, ubDom);
-  medicoOptions = ensureSelectedOption(medicoOptions, medicoIdStr, medicoIdStr ? `Médico #${medicoIdStr}` : undefined);
-  tipoSangreOptions = ensureSelectedOption(tipoSangreOptions, String(d.tipo_sangre ?? "").trim());
-  tipoPacienteOptions = ensureSelectedOption(tipoPacienteOptions, String(d.tipo_paciente ?? "").trim());
+  const paisOptions = useMemo(
+    () => ensureSelectedOption(paisOptionsBase, String(d.nacionalidad_iso2 ?? "").trim()),
+    [paisOptionsBase, d.nacionalidad_iso2]
+  );
+  const ubigeoOptions = useMemo(() => {
+    let out = ensureSelectedOption(ubigeoOptionsBase, ubNac);
+    out = ensureSelectedOption(out, ubDom);
+    return out;
+  }, [ubigeoOptionsBase, ubNac, ubDom]);
+  const medicoOptions = useMemo(
+    () => ensureSelectedOption(medicoOptionsBase, medicoIdStr, medicoIdStr ? `Médico #${medicoIdStr}` : undefined),
+    [medicoOptionsBase, medicoIdStr]
+  );
+  const tipoSangreOptions = useMemo(
+    () => ensureSelectedOption(tipoSangreOptionsBase, String(d.tipo_sangre ?? "").trim()),
+    [tipoSangreOptionsBase, d.tipo_sangre]
+  );
+  const tipoPacienteOptions = useMemo(
+    () => ensureSelectedOption(tipoPacienteOptionsBase, String(d.tipo_paciente ?? "").trim()),
+    [tipoPacienteOptionsBase, d.tipo_paciente]
+  );
 
   return (
     <div className="space-y-4">

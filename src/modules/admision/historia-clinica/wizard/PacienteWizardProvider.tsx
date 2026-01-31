@@ -8,13 +8,15 @@ type State = {
   draft: PacienteDraft;
   savedHash: string | null;
   saving: boolean;
+  savedDraft: PacienteDraft;
 };
 
 type Action =
   | { type: "set"; patch: Partial<PacienteDraft> }
   | { type: "setContacto"; patch: Partial<PacienteDraft["contacto_emergencia"]> }
   | { type: "markSaving"; value: boolean }
-  | { type: "markSaved"; draft: PacienteDraft };
+  | { type: "markSaved"; draft: PacienteDraft }
+  | { type: "resetDraft" };
 
 const hashDraft = (d: PacienteDraft) => JSON.stringify(d);
 
@@ -29,7 +31,10 @@ function reducer(state: State, action: Action): State {
     return { ...state, saving: action.value };
   }
   if (action.type === "markSaved") {
-    return { ...state, draft: action.draft, savedHash: hashDraft(action.draft) };
+    return { ...state, draft: action.draft, savedHash: hashDraft(action.draft), savedDraft: action.draft };
+  }
+  if (action.type === "resetDraft") {
+    return { ...state, draft: state.savedDraft };
   }
   return state;
 }
@@ -41,6 +46,7 @@ export function PacienteWizardProvider({ initial, children }: { initial?: Pacien
     draft: initDraft,
     savedHash: initial ? hashDraft(initDraft) : null,
     saving: false,
+    savedDraft: initDraft,
   });
 
   const derived = useMemo(() => {
@@ -56,6 +62,7 @@ export function PacienteWizardProvider({ initial, children }: { initial?: Pacien
         setContacto: (patch) => dispatch({ type: "setContacto", patch }),
         markSaving: (value) => dispatch({ type: "markSaving", value }),
         markSaved: (draft) => dispatch({ type: "markSaved", draft }),
+        resetDraft: () => dispatch({ type: "resetDraft" }),
       },
       derived,
     }),

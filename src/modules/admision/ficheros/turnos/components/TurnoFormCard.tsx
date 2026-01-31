@@ -2,13 +2,24 @@ import * as React from "react";
 import type { JornadaTurno, RecordStatus, TipoTurno, Turno } from "../../types/turnos.types";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useTurnos";
-import { ChevronDown, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
+import { SelectMenu as SharedSelectMenu } from "../../../../../shared/ui/SelectMenu";
 
 type Opt = { value: string; label: string; disabled?: boolean };
 
 function SelectMenu(props: { value: string; onChange: (v: string) => void; options: Opt[]; ariaLabel: string }) {
   const { value, onChange, options, ariaLabel } = props;
-  const [open, setOpen] = React.useState(false);
+  return (
+    <SharedSelectMenu
+      value={value}
+      onChange={onChange}
+      options={options}
+      ariaLabel={ariaLabel}
+      buttonClassName="mt-1 w-full"
+      menuClassName="min-w-full w-full"
+    />
+  );
+  /* const [open, setOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState<number>(() => {
     const i = options.findIndex((o) => o.value === value);
     return i >= 0 ? i : 0;
@@ -154,6 +165,7 @@ function SelectMenu(props: { value: string; onChange: (v: string) => void; optio
       </div>
     </div>
   );
+  */
 }
 
 function useIsTouchUi(): boolean {

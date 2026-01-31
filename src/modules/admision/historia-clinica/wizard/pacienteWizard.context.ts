@@ -6,12 +6,14 @@ export type PacienteWizardCtxValue = {
     draft: PacienteDraft;
     savedHash: string | null;
     saving: boolean;
+    savedDraft: PacienteDraft;
   };
   actions: {
     set: (patch: Partial<PacienteDraft>) => void;
     setContacto: (patch: Partial<PacienteDraft["contacto_emergencia"]>) => void;
     markSaving: (value: boolean) => void;
     markSaved: (draft: PacienteDraft) => void;
+    resetDraft: () => void;
   };
   derived: {
     isDirty: boolean;

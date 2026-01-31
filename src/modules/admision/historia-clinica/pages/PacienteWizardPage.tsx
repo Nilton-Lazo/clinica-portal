@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { PrimaryButton } from "../../../../shared/ui/buttons";
+import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { PacienteWizardProvider } from "../wizard/PacienteWizardProvider";
 import { usePacienteWizard } from "../wizard/usePacienteWizard";
 import { PacienteSummaryBar } from "../wizard/PacienteSummaryBar";
@@ -226,7 +226,14 @@ function WizardInner({
           </div>
 
           {step !== "acreditacion" ? (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <SecondaryButton
+                onClick={actions.resetDraft}
+                disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </SecondaryButton>
               <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
                 {state.saving ? "Guardando..." : "Guardar"}
               </PrimaryButton>
