@@ -13,6 +13,12 @@ function toTipoClienteLabel(x: TipoClienteLookup): string {
   return c && d ? `${c} · ${d}` : c || d || `#${x.id}`;
 }
 
+function planHeaderLabel(selected: AcreditacionPlan | null): string {
+  if (!selected) return "";
+  if (selected.tipo_cliente) return toTipoClienteLabel(selected.tipo_cliente);
+  return `#${selected.tipo_cliente_id}`;
+}
+
 function useIsTouchUi(): boolean {
   const [isTouch, setIsTouch] = React.useState(() => {
     if (typeof window === "undefined") return false;
@@ -123,7 +129,7 @@ export default function AcreditacionPlanFormCard(props: {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
-            {mode === "new" ? "Nuevo plan afiliado" : `Editando: ${selected ? `#${selected.id}` : ""}`}
+            {mode === "new" ? "Nuevo plan afiliado" : `Editando: ${planHeaderLabel(selected)}`}
           </div>
           <div className="text-xs text-(--color-text-secondary)">
             {mode === "new" ? "Afiliar un nuevo plan." : "Modifica campos y guarda cambios."}

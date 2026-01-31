@@ -19,24 +19,35 @@ function withPlaceholder(options: SelectOption[], placeholder: string): SelectOp
   return [{ value: "", label: placeholder, disabled: true }, ...options];
 }
 
+function ensureSelectedOption(options: SelectOption[], value: string, label?: string): SelectOption[] {
+  const v = value.trim();
+  if (!v) return options;
+  if (options.some((opt) => String(opt.value) === v)) return options;
+  return [{ value: v, label: label ?? v }, ...options];
+}
+
 export function DatosAdicionalesStep({ catalog }: { catalog: PacienteFormCatalogos | null }) {
   const { state, actions } = usePacienteWizard();
   const d = state.draft;
 
-  const ocupacionOptions = withPlaceholder(
+  let ocupacionOptions = withPlaceholder(
     optionsFrom(catalog?.ocupacion),
     catalog ? "Selecciona ocupación" : "Cargando ocupación…"
   );
 
-  const parentescoEmergenciaOptions = withPlaceholder(
+  let parentescoEmergenciaOptions = withPlaceholder(
     optionsFrom(catalog?.parentesco_emergencia),
     catalog ? "Selecciona parentesco" : "Cargando parentescos…"
   );
 
-  const medioInfoOptions = withPlaceholder(
+  let medioInfoOptions = withPlaceholder(
     optionsFrom(catalog?.medio_informacion),
     catalog ? "Selecciona medio" : "Cargando medios…"
   );
+
+  ocupacionOptions = ensureSelectedOption(ocupacionOptions, d.ocupacion);
+  parentescoEmergenciaOptions = ensureSelectedOption(parentescoEmergenciaOptions, d.contacto_emergencia.parentesco_emergencia);
+  medioInfoOptions = ensureSelectedOption(medioInfoOptions, d.medio_informacion);
 
   return (
     <div className="space-y-4">

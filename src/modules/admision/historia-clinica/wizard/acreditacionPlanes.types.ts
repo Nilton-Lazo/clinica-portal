@@ -11,7 +11,18 @@ export type TipoClienteLookup = {
   contratante_id?: number | null;
 };
 
-export type ParentescoSeguro = "TITULAR" | "CONYUGE" | "HIJO" | "PADRE" | "MADRE" | "OTRO";
+export type ParentescoSeguro =
+  | "NO_DEFINIDO"
+  | "TITULAR"
+  | "CONYUGE"
+  | "PADRE"
+  | "MADRE"
+  | "HIJO"
+  | "HIJA"
+  | "HERMANO"
+  | "HERMANA"
+  | "HIJO_INCAPACITADO"
+  | "OTRO";
 
 export type IafaLookup = {
   id: number;

@@ -11,10 +11,13 @@ export function SelectMenu(props: {
   buttonClassName?: string;
   menuClassName?: string;
   disabled?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }) {
-  const { value, onChange, options, ariaLabel, buttonClassName, menuClassName, disabled } = props;
+  const { value, onChange, options, ariaLabel, buttonClassName, menuClassName, disabled, searchable, searchPlaceholder } = props;
 
   const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState<number>(() => {
     const i = options.findIndex((o) => o.value === value);
     return i >= 0 ? i : 0;
@@ -22,8 +25,17 @@ export function SelectMenu(props: {
 
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const btnRef = React.useRef<HTMLButtonElement | null>(null);
+  const searchRef = React.useRef<HTMLInputElement | null>(null);
 
   const selected = options.find((o) => o.value === value) ?? options[0];
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchable || !query.trim()) return options;
+    const q = query.trim().toLowerCase();
+    const head = options[0] && options[0].disabled ? [options[0]] : [];
+    const rest = (options[0] && options[0].disabled ? options.slice(1) : options).filter((o) => o.label.toLowerCase().includes(q));
+    return [...head, ...rest];
+  }, [options, query, searchable]);
 
   React.useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -49,11 +61,30 @@ export function SelectMenu(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  React.useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    if (searchable) {
+      requestAnimationFrame(() => searchRef.current?.focus());
+    }
+  }, [open, searchable]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const list = filteredOptions.length ? filteredOptions : options;
+    const i = list.findIndex((o) => o.value === value);
+    const next = i >= 0 ? i : 0;
+    setActiveIndex(next);
+  }, [filteredOptions, open, options, value]);
+
   const move = (dir: 1 | -1) => {
     let i = activeIndex;
-    for (let k = 0; k < options.length; k++) {
-      i = (i + dir + options.length) % options.length;
-      if (!options[i].disabled) {
+    const list = filteredOptions.length ? filteredOptions : options;
+    for (let k = 0; k < list.length; k++) {
+      i = (i + dir + list.length) % list.length;
+      if (!list[i].disabled) {
         setActiveIndex(i);
         return;
       }
@@ -78,7 +109,7 @@ export function SelectMenu(props: {
         onClick={() => {
           if (disabled) return;
           setOpen((o) => !o);
-          const i = options.findIndex((o) => o.value === value);
+          const i = filteredOptions.findIndex((o) => o.value === value);
           setActiveIndex(i >= 0 ? i : 0);
         }}
         onKeyDown={(e) => {
@@ -132,7 +163,7 @@ export function SelectMenu(props: {
             move(-1);
           } else if (e.key === "Enter") {
             e.preventDefault();
-            const opt = options[activeIndex];
+            const opt = (filteredOptions.length ? filteredOptions : options)[activeIndex];
             if (opt && !opt.disabled) pick(opt.value);
           } else if (e.key === "Tab") {
             setOpen(false);
@@ -140,7 +171,19 @@ export function SelectMenu(props: {
         }}
       >
         <div className="max-h-60 overflow-auto p-1 app-scrollbar app-scrollbar-no-gutter">
-          {options.map((o, idx) => {
+          {searchable ? (
+            <div className="px-2 pt-2 pb-1">
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={searchPlaceholder ?? "Buscar..."}
+                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm outline-none focus:ring-2 focus:ring-(--color-primary)"
+                aria-label={searchPlaceholder ?? "Buscar"}
+              />
+            </div>
+          ) : null}
+          {(filteredOptions.length ? filteredOptions : options).map((o, idx) => {
             const isSelected = o.value === value;
             const isActive = idx === activeIndex;
 

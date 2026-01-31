@@ -11,9 +11,14 @@ function planLabel(p: AcreditacionPlan): string {
 
 function parentescoLabel(v: string | null): string {
   const s = (v ?? "").toUpperCase();
+  if (s === "NO_DEFINIDO") return "No definido";
   if (s === "TITULAR") return "Titular";
   if (s === "CONYUGE") return "Cónyuge";
   if (s === "HIJO") return "Hijo";
+  if (s === "HIJA") return "Hija";
+  if (s === "HERMANO") return "Hermano";
+  if (s === "HERMANA") return "Hermana";
+  if (s === "HIJO_INCAPACITADO") return "Hijo incapacitado";
   if (s === "PADRE") return "Padre";
   if (s === "MADRE") return "Madre";
   if (s === "OTRO") return "Otro";

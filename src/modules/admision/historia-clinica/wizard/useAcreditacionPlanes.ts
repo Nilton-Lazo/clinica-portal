@@ -51,9 +51,14 @@ function isDateIso(s: string): boolean {
 
 function normalizeParentesco(v: string | null | undefined): ParentescoSeguro | "" {
   const s = (v ?? "").trim().toUpperCase();
+  if (s === "NO_DEFINIDO") return "NO_DEFINIDO";
   if (s === "TITULAR") return "TITULAR";
   if (s === "CONYUGE") return "CONYUGE";
   if (s === "HIJO") return "HIJO";
+  if (s === "HIJA") return "HIJA";
+  if (s === "HERMANO") return "HERMANO";
+  if (s === "HERMANA") return "HERMANA";
+  if (s === "HIJO_INCAPACITADO") return "HIJO_INCAPACITADO";
   if (s === "PADRE") return "PADRE";
   if (s === "MADRE") return "MADRE";
   if (s === "OTRO") return "OTRO";
@@ -62,9 +67,14 @@ function normalizeParentesco(v: string | null | undefined): ParentescoSeguro | "
 
 function parentescoLabel(v: string | null | undefined): string {
   const s = (v ?? "").toString().trim().toUpperCase();
+  if (s === "NO_DEFINIDO") return "No definido";
   if (s === "TITULAR") return "Titular";
   if (s === "CONYUGE") return "Cónyuge";
   if (s === "HIJO") return "Hijo";
+  if (s === "HIJA") return "Hija";
+  if (s === "HERMANO") return "Hermano";
+  if (s === "HERMANA") return "Hermana";
+  if (s === "HIJO_INCAPACITADO") return "Hijo incapacitado";
   if (s === "PADRE") return "Padre";
   if (s === "MADRE") return "Madre";
   if (s === "OTRO") return "Otro";

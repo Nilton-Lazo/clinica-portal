@@ -114,9 +114,11 @@ export function SelectField(
     ariaLabel: string;
     buttonClassName?: string;
     menuClassName?: string;
+    searchable?: boolean;
+    searchPlaceholder?: string;
   }
 ) {
-  const { label, value, onChange, options, ariaLabel, disabled, buttonClassName, menuClassName } = props;
+  const { label, value, onChange, options, ariaLabel, disabled, buttonClassName, menuClassName, searchable, searchPlaceholder } = props;
 
   return (
     <div>
@@ -130,6 +132,8 @@ export function SelectField(
           disabled={disabled}
           buttonClassName={buttonClassName ?? "w-full"}
           menuClassName={menuClassName ?? "min-w-full"}
+          searchable={searchable}
+          searchPlaceholder={searchPlaceholder}
         />
       </div>
     </div>

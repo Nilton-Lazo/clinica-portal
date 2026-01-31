@@ -33,6 +33,13 @@ function withPlaceholder(options: SelectOption[], placeholder: string): SelectOp
   return [{ value: "", label: placeholder, disabled: true }, ...options];
 }
 
+function ensureSelectedOption(options: SelectOption[], value: string, label?: string): SelectOption[] {
+  const v = value.trim();
+  if (!v) return options;
+  if (options.some((opt) => String(opt.value) === v)) return options;
+  return [{ value: v, label: label ?? v }, ...options];
+}
+
 function readArray(src: unknown, keys: string[]): unknown[] {
   if (!src || typeof src !== "object") return [];
   const r = src as CatalogRecord;
@@ -61,7 +68,7 @@ function toPaisOptions(arr: unknown[]): SelectOption[] {
       const r = it as Record<string, unknown>;
       const iso2 = typeof r.iso2 === "string" ? r.iso2.trim() : "";
       const nombre = typeof r.nombre === "string" ? r.nombre.trim() : "";
-      if (iso2 && nombre) out.push({ value: iso2, label: nombre });
+      if (iso2 && nombre) out.push({ value: iso2, label: `${nombre} (${iso2})` });
       continue;
     }
     if (typeof it === "string") {
@@ -73,19 +80,24 @@ function toPaisOptions(arr: unknown[]): SelectOption[] {
 }
 
 function toUbigeoOptions(arr: unknown[]): SelectOption[] {
-  const out: SelectOption[] = [];
+  type UbigeoOption = SelectOption & { distrito: string };
+  const out: UbigeoOption[] = [];
   for (const it of arr) {
     if (typeof it !== "object" || it === null) continue;
     const r = it as Record<string, unknown>;
     const codigo = typeof r.codigo === "string" ? r.codigo.trim() : "";
-    const dpto = typeof r.departamento === "string" ? r.departamento.trim() : "";
-    const prov = typeof r.provincia === "string" ? r.provincia.trim() : "";
     const dist = typeof r.distrito === "string" ? r.distrito.trim() : "";
     if (!codigo) continue;
-    const label = [dpto, prov, dist].filter(Boolean).join(" / ").trim();
-    out.push({ value: codigo, label: label || codigo });
+    const label = dist ? `${codigo} · ${dist}` : codigo;
+    out.push({ value: codigo, label, distrito: dist });
   }
-  return out;
+  out.sort((a, b) => {
+    const ad = a.distrito ?? "";
+    const bd = b.distrito ?? "";
+    const name = ad.localeCompare(bd, "es", { sensitivity: "base" });
+    return name !== 0 ? name : a.label.localeCompare(b.label, "es", { sensitivity: "base" });
+  });
+  return out.map((o) => ({ value: o.value, label: o.label, disabled: o.disabled }));
 }
 
 function medicoLabel(m: MedicoItem): string {
@@ -136,14 +148,22 @@ export function DatosGeneralesStep({
   const { state, actions } = usePacienteWizard();
   const d = state.draft;
 
+  const {
+    parentesco_seguro,
+    nombres,
+    apellido_paterno,
+    apellido_materno,
+    titular_nombre,
+  } = d;
+
   useEffect(() => {
-    const parentesco = d.parentesco_seguro.trim().toUpperCase();
+    const parentesco = parentesco_seguro.trim().toUpperCase();
     if (parentesco !== "TITULAR") return;
-    const name = fullNameFromDraft(d);
+    const name = fullNameFromDraft({ nombres, apellido_paterno, apellido_materno });
     if (!name) return;
-    if (d.titular_nombre.trim() === name) return;
+    if (titular_nombre.trim() === name) return;
     actions.set({ titular_nombre: name });
-  }, [d.parentesco_seguro, d.nombres, d.apellido_paterno, d.apellido_materno, d.titular_nombre, actions]);
+  }, [parentesco_seguro, nombres, apellido_paterno, apellido_materno, titular_nombre, actions]);
 
   const tipoDocOptions = withPlaceholder(optionsFrom(catalog?.tipo_documento), catalog ? "Selecciona tipo" : "Cargando tipos…");
 
@@ -162,15 +182,15 @@ export function DatosGeneralesStep({
   const tipoSangreArr = readArray(catalogRecord, ["tipo_sangre", "tipos_sangre", "tiposSangre"]);
   const tipoPacienteArr = readArray(catalogRecord, ["tipo_paciente", "tipos_paciente", "tiposPaciente"]);
 
-  const paisOptions = withPlaceholder(toPaisOptions(paisesArr), catalog ? "Selecciona nacionalidad" : "Cargando nacionalidades…");
+  let paisOptions = catalog ? toPaisOptions(paisesArr) : withPlaceholder([], "Cargando nacionalidades…");
 
-  const ubigeoOptions = withPlaceholder(toUbigeoOptions(ubigeosArr), catalog ? "Selecciona distrito" : "Cargando distritos…");
+  let ubigeoOptions = catalog ? toUbigeoOptions(ubigeosArr) : withPlaceholder([], "Cargando distritos…");
 
-  const medicoOptions = withPlaceholder(toMedicoOptions(medicosArr), catalog ? "Selecciona médico" : "Cargando médicos…");
+  let medicoOptions = withPlaceholder(toMedicoOptions(medicosArr), catalog ? "Selecciona médico" : "Cargando médicos…");
 
-  const tipoSangreOptions = withPlaceholder(toStringEnumOptions(tipoSangreArr), catalog ? "Selecciona tipo" : "Cargando…");
+  let tipoSangreOptions = withPlaceholder(toStringEnumOptions(tipoSangreArr), catalog ? "Selecciona tipo" : "Cargando…");
 
-  const tipoPacienteOptions = withPlaceholder(toStringEnumOptions(tipoPacienteArr), catalog ? "Selecciona tipo" : "Cargando…");
+  let tipoPacienteOptions = withPlaceholder(toStringEnumOptions(tipoPacienteArr), catalog ? "Selecciona tipo" : "Cargando…");
 
   const tipo = d.tipo_documento.trim().toUpperCase();
   const requiereDoc = tipo !== "" && tipo !== "SIN_DOCUMENTO";
@@ -184,6 +204,13 @@ export function DatosGeneralesStep({
   const ubDom = String((d as unknown as { ubigeo_domicilio?: unknown }).ubigeo_domicilio ?? "").trim();
 
   const medicoIdStr = String((d as unknown as { medico_tratante_id?: unknown }).medico_tratante_id ?? "");
+
+  paisOptions = ensureSelectedOption(paisOptions, String(d.nacionalidad_iso2 ?? "").trim());
+  ubigeoOptions = ensureSelectedOption(ubigeoOptions, ubNac);
+  ubigeoOptions = ensureSelectedOption(ubigeoOptions, ubDom);
+  medicoOptions = ensureSelectedOption(medicoOptions, medicoIdStr, medicoIdStr ? `Médico #${medicoIdStr}` : undefined);
+  tipoSangreOptions = ensureSelectedOption(tipoSangreOptions, String(d.tipo_sangre ?? "").trim());
+  tipoPacienteOptions = ensureSelectedOption(tipoPacienteOptions, String(d.tipo_paciente ?? "").trim());
 
   return (
     <div className="space-y-4">
@@ -234,119 +261,127 @@ export function DatosGeneralesStep({
         </div>
       </FormCard>
 
-      <FormCard title="Datos de procedencia">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SelectField
-            label="Nacionalidad"
-            value={String((d as unknown as { nacionalidad_iso2?: unknown }).nacionalidad_iso2 ?? "")}
-            onChange={(v) => actions.set({ nacionalidad_iso2: v })}
-            options={paisOptions}
-            ariaLabel="Nacionalidad"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <FormCard title="Datos de procedencia">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SelectField
+              label="Nacionalidad"
+              value={String((d as unknown as { nacionalidad_iso2?: unknown }).nacionalidad_iso2 ?? "")}
+              onChange={(v) => actions.set({ nacionalidad_iso2: v })}
+              options={paisOptions}
+              ariaLabel="Nacionalidad"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              searchable
+              searchPlaceholder="Buscar nacionalidad"
+              disabled={!catalog}
+            />
 
-          <SelectField
-            label="Distrito de nacimiento"
-            value={ubNac}
-            onChange={(v) => actions.set({ ubigeo_nacimiento: v })}
-            options={ubigeoOptions}
-            ariaLabel="Distrito de nacimiento"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
+            <SelectField
+              label="Distrito de nacimiento"
+              value={ubNac}
+              onChange={(v) => actions.set({ ubigeo_nacimiento: v })}
+              options={ubigeoOptions}
+              ariaLabel="Distrito de nacimiento"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              searchable
+              searchPlaceholder="Buscar distrito"
+              disabled={!catalog}
+            />
 
-          <div className="md:col-span-2">
             <TextField
               label="Domicilio actual"
               value={String((d as unknown as { direccion?: unknown }).direccion ?? "")}
               onChange={(v) => actions.set({ direccion: v })}
             />
+
+            <SelectField
+              label="Distrito de domicilio"
+              value={ubDom}
+              onChange={(v) => actions.set({ ubigeo_domicilio: v })}
+              options={ubigeoOptions}
+              ariaLabel="Distrito de domicilio"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              searchable
+              searchPlaceholder="Buscar distrito"
+              disabled={!catalog}
+            />
           </div>
+        </FormCard>
 
-          <SelectField
-            label="Distrito de domicilio"
-            value={ubDom}
-            onChange={(v) => actions.set({ ubigeo_domicilio: v })}
-            options={ubigeoOptions}
-            ariaLabel="Distrito de domicilio"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
-        </div>
-      </FormCard>
+        <FormCard title="Condición">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <SelectField
+              label="Parentesco (seguro) *"
+              value={d.parentesco_seguro}
+              onChange={onChangeParentesco}
+              options={parentescoSeguroOptions}
+              ariaLabel="Parentesco seguro"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              disabled={!catalog}
+            />
 
-      <FormCard title="Condición">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SelectField
-            label="Parentesco (seguro) *"
-            value={d.parentesco_seguro}
-            onChange={onChangeParentesco}
-            options={parentescoSeguroOptions}
-            ariaLabel="Parentesco seguro"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
+            <TextField label="Titular *" value={d.titular_nombre} onChange={(v) => actions.set({ titular_nombre: v })} />
+          </div>
+        </FormCard>
 
-          <TextField label="Titular *" value={d.titular_nombre} onChange={(v) => actions.set({ titular_nombre: v })} />
-        </div>
-      </FormCard>
+        <FormCard title="Contacto">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <TextField label="Número de celular" value={d.celular} onChange={(v) => actions.set({ celular: v })} inputMode="numeric" />
+            <TextField label="Número de teléfono" value={d.telefono} onChange={(v) => actions.set({ telefono: v })} inputMode="numeric" />
+          </div>
+        </FormCard>
+      </div>
 
-      <FormCard title="Contacto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TextField label="Número de celular" value={d.celular} onChange={(v) => actions.set({ celular: v })} inputMode="numeric" />
-          <TextField label="Número de teléfono" value={d.telefono} onChange={(v) => actions.set({ telefono: v })} inputMode="numeric" />
-        </div>
-      </FormCard>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <FormCard title="Atención">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <SelectField
+              label="Médico tratante"
+              value={medicoIdStr}
+              onChange={(v) => actions.set({ medico_tratante_id: v })}
+              options={medicoOptions}
+              ariaLabel="Médico tratante"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              disabled={!catalog}
+            />
+          </div>
+        </FormCard>
 
-      <FormCard title="Atención">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SelectField
-            label="Médico tratante"
-            value={medicoIdStr}
-            onChange={(v) => actions.set({ medico_tratante_id: v })}
-            options={medicoOptions}
-            ariaLabel="Médico tratante"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
-        </div>
-      </FormCard>
+        <FormCard title="Sangre">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <SelectField
+              label="Tipo de sangre"
+              value={String((d as unknown as { tipo_sangre?: unknown }).tipo_sangre ?? "")}
+              onChange={(v) => actions.set({ tipo_sangre: v })}
+              options={tipoSangreOptions}
+              ariaLabel="Tipo de sangre"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              disabled={!catalog}
+            />
+          </div>
+        </FormCard>
 
-      <FormCard title="Sangre">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SelectField
-            label="Tipo de sangre"
-            value={String((d as unknown as { tipo_sangre?: unknown }).tipo_sangre ?? "")}
-            onChange={(v) => actions.set({ tipo_sangre: v })}
-            options={tipoSangreOptions}
-            ariaLabel="Tipo de sangre"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
-        </div>
-      </FormCard>
-
-      <FormCard title="Paciente">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <SelectField
-            label="Tipo de paciente"
-            value={String((d as unknown as { tipo_paciente?: unknown }).tipo_paciente ?? "")}
-            onChange={(v) => actions.set({ tipo_paciente: v })}
-            options={tipoPacienteOptions}
-            ariaLabel="Tipo de paciente"
-            buttonClassName="w-full"
-            menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
-            disabled={!catalog}
-          />
-        </div>
-      </FormCard>
+        <FormCard title="Paciente">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <SelectField
+              label="Tipo de paciente"
+              value={String((d as unknown as { tipo_paciente?: unknown }).tipo_paciente ?? "")}
+              onChange={(v) => actions.set({ tipo_paciente: v })}
+              options={tipoPacienteOptions}
+              ariaLabel="Tipo de paciente"
+              buttonClassName="w-full"
+              menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
+              disabled={!catalog}
+            />
+          </div>
+        </FormCard>
+      </div>
     </div>
   );
 }

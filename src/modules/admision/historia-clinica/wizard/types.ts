@@ -245,6 +245,21 @@ export const computeAge = (fecha: string) => {
   return age >= 0 ? age : null;
 };
 
+function toCodeOrEmpty(v: unknown): string {
+  if (typeof v === "string") return v ?? "";
+  if (v && typeof v === "object") {
+    const r = v as Record<string, unknown>;
+    if (typeof r.codigo === "string") return r.codigo;
+    if (typeof r.iso2 === "string") return r.iso2;
+  }
+  return "";
+}
+
+function getContactoEmergencia(p: PacienteFull): PacienteFull["contactoEmergencia"] | null | undefined {
+  const maybeSnake = (p as unknown as { contacto_emergencia?: PacienteFull["contactoEmergencia"] }).contacto_emergencia;
+  return p.contactoEmergencia ?? maybeSnake ?? null;
+}
+
 export const mapPacienteToDraft = (p: PacienteFull): PacienteDraft => ({
   id: p.id,
 
@@ -260,10 +275,10 @@ export const mapPacienteToDraft = (p: PacienteFull): PacienteDraft => ({
   sexo: p.sexo ?? "",
   fecha_nacimiento: p.fecha_nacimiento ?? "",
 
-  nacionalidad_iso2: p.nacionalidad_iso2 ?? "",
-  ubigeo_nacimiento: p.ubigeo_nacimiento ?? "",
+  nacionalidad_iso2: toCodeOrEmpty(p.nacionalidad_iso2),
+  ubigeo_nacimiento: toCodeOrEmpty(p.ubigeo_nacimiento),
   direccion: p.direccion ?? "",
-  ubigeo_domicilio: p.ubigeo_domicilio ?? "",
+  ubigeo_domicilio: toCodeOrEmpty(p.ubigeo_domicilio),
 
   parentesco_seguro: p.parentesco_seguro ?? "",
   titular_nombre: p.titular_nombre ?? "",
@@ -287,13 +302,13 @@ export const mapPacienteToDraft = (p: PacienteFull): PacienteDraft => ({
   estado: p.estado,
 
   contacto_emergencia: {
-    nombres: p.contactoEmergencia?.nombres ?? "",
-    apellido_paterno: p.contactoEmergencia?.apellido_paterno ?? "",
-    apellido_materno: p.contactoEmergencia?.apellido_materno ?? "",
-    parentesco_emergencia: p.contactoEmergencia?.parentesco_emergencia ?? "",
-    celular: p.contactoEmergencia?.celular ?? "",
-    telefono: p.contactoEmergencia?.telefono ?? "",
-    observaciones: p.contactoEmergencia?.observaciones ?? "",
+    nombres: getContactoEmergencia(p)?.nombres ?? "",
+    apellido_paterno: getContactoEmergencia(p)?.apellido_paterno ?? "",
+    apellido_materno: getContactoEmergencia(p)?.apellido_materno ?? "",
+    parentesco_emergencia: getContactoEmergencia(p)?.parentesco_emergencia ?? "",
+    celular: getContactoEmergencia(p)?.celular ?? "",
+    telefono: getContactoEmergencia(p)?.telefono ?? "",
+    observaciones: getContactoEmergencia(p)?.observaciones ?? "",
   },
 });
 

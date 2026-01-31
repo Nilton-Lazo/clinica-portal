@@ -19,40 +19,7 @@ import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
 
-import type { ApiError } from "../../../../shared/api/apiError";
-
-type Notice = { type: "success" | "error"; text: string } | null;
-
-function isApiError(e: unknown): e is ApiError {
-  return typeof e === "object" && e !== null && "status" in e && "message" in e;
-}
-
-function errorText(e: unknown): string {
-  if (isApiError(e)) {
-    const maybeErrors = (e as unknown as { errors?: unknown }).errors;
-
-    if (e.status === 422 && maybeErrors && typeof maybeErrors === "object") {
-      const entries = Object.entries(maybeErrors as Record<string, unknown>).map(([k, v]) => {
-        if (Array.isArray(v)) return `${k}: ${v.map(String).join(", ")}`;
-        return `${k}: ${String(v)}`;
-      });
-
-      if (entries.length) return `${e.message}\n${entries.join("\n")}`;
-    }
-
-    return e.message;
-  }
-
-  if (typeof e === "object" && e !== null && "message" in e && typeof (e as { message: unknown }).message === "string") {
-    return (e as { message: string }).message;
-  }
-
-  return "No se pudo guardar. Revisa Network y logs del backend.";
-}
-
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
-
-const STEP_ORDER: StepKey[] = ["datos-generales", "datos-adicionales", "acreditacion"];
 
 function stepFromPath(pathname: string): StepKey | null {
   if (pathname.includes("/datos-generales")) return "datos-generales";
@@ -92,15 +59,15 @@ export default function PacienteWizardPage() {
       try {
         const [formRes, paisesRes, ubigeosRes, medicosRes] = await Promise.all([
           catalogoPacienteService.pacienteForm(),
-          catalogoPacienteService.paises(),
-          catalogoPacienteService.ubigeos(),
+          catalogoPacienteService.paisesAll(),
+          catalogoPacienteService.ubigeosAll(),
           catalogoPacienteService.medicosActivos(),
         ]);
 
         const merged: PacienteFormCatalogos = {
           ...formRes.data,
-          paises: paisesRes.data,
-          ubigeos: ubigeosRes.data,
+          paises: paisesRes,
+          ubigeos: ubigeosRes,
           medicos: medicosRes.data,
         };
 
@@ -171,8 +138,6 @@ function WizardInner({
   const navigate = useNavigate();
   const { state, actions, derived } = usePacienteWizard();
 
-  const [notice, setNotice] = useState<Notice>(null);
-
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
 
   const canGoAcreditacion = Boolean((state.draft as unknown as { id?: unknown })?.id) && !derived.isDirty;
@@ -213,7 +178,6 @@ function WizardInner({
   };
 
   const save = async () => {
-    setNotice(null);
     actions.markSaving(true);
     try {
       const payload = buildPacientePayload(state.draft);
@@ -229,34 +193,14 @@ function WizardInner({
       const nextDraft = mapPacienteToDraft(saved);
       actions.markSaved(nextDraft);
 
-      setNotice({ type: "success", text: "Guardado correctamente." });
-
       if (!((state.draft as unknown as { id?: unknown })?.id)) {
         navigate(`/admision/historia-clinica/${saved.id}/datos-generales`, { replace: true });
       }
-    } catch (e) {
-      setNotice({ type: "error", text: errorText(e) });
     } finally {
       actions.markSaving(false);
     }
   };
 
-  const idx = STEP_ORDER.indexOf(step);
-  const prevStep = idx > 0 ? STEP_ORDER[idx - 1] : null;
-  const nextStep = idx >= 0 && idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : null;
-
-  const canNext = nextStep === null ? false : nextStep === "acreditacion" ? canGoAcreditacion : true;
-
-  const goPrev = () => {
-    if (!prevStep) return;
-    navigate(`${base}/${prevStep}`);
-  };
-
-  const goNext = () => {
-    if (!nextStep) return;
-    if (nextStep === "acreditacion" && !canGoAcreditacion) return;
-    navigate(`${base}/${nextStep}`);
-  };
 
   return (
     <div className="space-y-4">
@@ -272,23 +216,25 @@ function WizardInner({
             <TabButton active={step === "acreditacion"} disabled={!canGoAcreditacion} onClick={() => onTab("acreditacion")}>
               Acreditación
             </TabButton>
+            <button
+              type="button"
+              onClick={() => navigate("/admision/historia-clinica")}
+              className="ml-2 h-10 px-4 rounded-xl border border-dashed border-(--border-color-default) bg-(--color-background) text-sm font-semibold text-(--color-text-secondary) transition hover:bg-(--color-surface) hover:text-(--color-text-primary)"
+            >
+              Regresar a historias
+            </button>
           </div>
 
-          <div className="flex justify-end">
-            <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
-              Guardar
-            </PrimaryButton>
-          </div>
-
-          {notice ? (
-            <div className="rounded-xl border border-(--border-color-default) bg-(--color-surface) px-4 py-3 text-sm text-(--color-text-primary) whitespace-pre-line">
-              <span className="font-semibold">{notice.type === "success" ? "✅ " : "⚠️ "}</span>
-              {notice.text}
+          {step !== "acreditacion" ? (
+            <div className="flex justify-end">
+              <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
+                {state.saving ? "Guardando..." : "Guardar"}
+              </PrimaryButton>
             </div>
           ) : null}
         </div>
 
-        <PacienteSummaryBar />
+            <PacienteSummaryBar />
       </div>
 
       {catalogLoading || loadingPaciente ? (
@@ -311,33 +257,12 @@ function WizardInner({
 
           {step === "datos-adicionales" ? <DatosAdicionalesStep catalog={catalog} /> : null}
 
-          {step === "acreditacion" ? <AcreditacionStep /> : null}
+          {step === "acreditacion" ? (
+            <div>
+              <AcreditacionStep />
+            </div>
+          ) : null}
 
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={goPrev}
-              disabled={!prevStep}
-              className={`h-10 px-4 rounded-xl border border-(--border-color-default) bg-(--color-surface) text-sm font-medium text-(--color-text-primary) transition ${
-                !prevStep ? "opacity-50 cursor-not-allowed" : "hover:bg-(--color-background)"
-              }`}
-            >
-              Anterior
-            </button>
-
-            <button
-              type="button"
-              onClick={goNext}
-              disabled={!nextStep || !canNext}
-              className={`h-10 px-4 rounded-xl text-sm font-semibold transition ${
-                !nextStep || !canNext
-                  ? "opacity-50 cursor-not-allowed bg-(--color-surface) text-(--color-text-secondary) border border-(--border-color-default)"
-                  : "bg-(--color-primary) text-(--color-text-inverse) hover:brightness-110"
-              }`}
-            >
-              Siguiente
-            </button>
-          </div>
         </>
       ) : null}
     </div>
