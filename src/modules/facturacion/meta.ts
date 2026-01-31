@@ -8,7 +8,7 @@ export const facturacionMeta: Record<string, RouteMeta> = {
   },
   "/facturacion/tarifario": {
     title: "Tarifario",
-    subtitle: "Gestión de tarifas, categorías, subcategorías y servicios.",
+    subtitle: "Administración central con control de precios, unidades y clonación de tarifas.",
     breadcrumb: [{ label: "Facturación", path: "/facturacion" }, { label: "Tarifario" }],
   },
   "/facturacion/tarifario/gestion/categorias": {

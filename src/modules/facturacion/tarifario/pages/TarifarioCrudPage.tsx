@@ -1963,13 +1963,12 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   <input
                     value={vm.nomenclador}
                     onChange={(e) => vm.setNomenclador(e.target.value)}
-                    placeholder="Opcional"
                     className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm text-(--color-text-primary)">Precio sin I.G.V.</label>
+                    <label className="text-sm text-(--color-text-primary)">Precio</label>
                     <input
                       value={vm.precio}
                       onChange={(e) => vm.setPrecio(e.target.value)}

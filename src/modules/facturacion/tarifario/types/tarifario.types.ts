@@ -124,4 +124,21 @@ export type TarifaBaseTree = {
   tree: TarifaTreeCategoria[];
 };
 
+export type TarifaCloneResult = {
+  base: { id: number; codigo: string };
+  target: { id: number; codigo: string };
+  selection: {
+    clone_all: boolean;
+    categorias: number;
+    subcategorias: number;
+    servicios: number;
+  };
+  applied: {
+    categorias: number;
+    subcategorias: number;
+    servicios: number;
+    nomencladores_nulled_por_conflicto: number;
+  };
+};
+
 export type Notice = { type: "success" | "error"; text: string } | null;

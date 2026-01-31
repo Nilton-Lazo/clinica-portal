@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Notice,
   PaginatedResponse,
+  RecordStatus,
   TarifaBaseTree,
   TarifaOperativa,
   TarifaServicioListItem,
+  TarifaCloneResult,
 } from "../types/tarifario.types";
 import {
   cloneTarifaFromBase,
@@ -45,9 +47,11 @@ export function useTarifario() {
 
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
+  const noticeTimerRef = useRef<number | null>(null);
 
   const [page, setPage] = useState(1);
-  const [perPage] = useState(25);
+  const [perPage, setPerPage] = useState(25);
+  const [statusFilter, setStatusFilter] = useState<"ALL" | RecordStatus>("ALL");
 
   const [codigo, setCodigo] = useState("");
   const [nomenclador, setNomenclador] = useState("");
@@ -68,6 +72,52 @@ export function useTarifario() {
   const [selectedSubcategorias, setSelectedSubcategorias] = useState<Set<number>>(new Set());
   const [selectedServicios, setSelectedServicios] = useState<Set<number>>(new Set());
 
+  const [expandedCategorias, setExpandedCategorias] = useState<Set<number>>(new Set());
+  const [expandedSubcategorias, setExpandedSubcategorias] = useState<Set<number>>(new Set());
+
+  const treeMaps = useMemo(() => {
+    const subsByCat = new Map<number, number[]>();
+    const svcsBySub = new Map<number, number[]>();
+    const catBySub = new Map<number, number>();
+    const subBySvc = new Map<number, number>();
+
+    if (!baseTree) {
+      return { subsByCat, svcsBySub, catBySub, subBySvc };
+    }
+
+    baseTree.tree.forEach((cat) => {
+      const subIds: number[] = [];
+      cat.subcategorias.forEach((sub) => {
+        subIds.push(sub.id);
+        catBySub.set(sub.id, cat.id);
+        const svcIds = sub.servicios.map((s) => s.id);
+        svcsBySub.set(sub.id, svcIds);
+        svcIds.forEach((sid) => subBySvc.set(sid, sub.id));
+      });
+      subsByCat.set(cat.id, subIds);
+    });
+
+    return { subsByCat, svcsBySub, catBySub, subBySvc };
+  }, [baseTree]);
+
+  useEffect(() => {
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = null;
+    }
+    if (!notice) return;
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice(null);
+      noticeTimerRef.current = null;
+    }, 10000);
+    return () => {
+      if (noticeTimerRef.current) {
+        window.clearTimeout(noticeTimerRef.current);
+        noticeTimerRef.current = null;
+      }
+    };
+  }, [notice]);
+
   useEffect(() => {
     let alive = true;
     setTarifasLoading(true);
@@ -75,10 +125,6 @@ export function useTarifario() {
       .then((items) => {
         if (!alive) return;
         setTarifas(items);
-        if (!tarifaId && items.length > 0) {
-          setTarifaId(items[0].id);
-          setCloneTarifaId(items[0].id);
-        }
       })
       .catch((e) => {
         if (!alive) return;
@@ -95,24 +141,21 @@ export function useTarifario() {
     };
   }, [tarifaId]);
 
-  useEffect(() => {
-    if (!tarifaId) return;
-    if (cloneTarifaId == null) {
-      setCloneTarifaId(tarifaId);
-    }
-  }, [tarifaId, cloneTarifaId]);
 
   const refresh = useCallback(
-    async (next?: { page?: number }) => {
+    async (next?: { page?: number; silent?: boolean }) => {
       if (!tarifaId) return;
       setLoading(true);
-      setNotice(null);
+      if (!next?.silent) {
+        setNotice(null);
+      }
       try {
         const res = await listTarifaServicios(tarifaId, {
           page: next?.page ?? page,
           per_page: perPage,
           codigo: codigoNormalized.trim() ? codigoNormalized.trim() : undefined,
           nomenclador: nomencladorDebounced.trim() ? nomencladorDebounced.trim() : undefined,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
         });
         setData(res);
         if (res.data.length === 0) {
@@ -128,14 +171,24 @@ export function useTarifario() {
         setLoading(false);
       }
     },
-    [tarifaId, page, perPage, codigoNormalized, nomencladorDebounced, selected]
+    [tarifaId, page, perPage, codigoNormalized, nomencladorDebounced, statusFilter, selected]
   );
 
-  const prevFiltersRef = useRef<{ codigo: string; nomenclador: string } | null>(null);
+  const prevFiltersRef = useRef<{ codigo: string; nomenclador: string; status: string; perPage: number } | null>(null);
   useEffect(() => {
     const prev = prevFiltersRef.current;
-    const next = { codigo: codigoNormalized, nomenclador: nomencladorDebounced };
-    const filtersChanged = !prev || prev.codigo !== next.codigo || prev.nomenclador !== next.nomenclador;
+    const next = {
+      codigo: codigoNormalized,
+      nomenclador: nomencladorDebounced,
+      status: statusFilter,
+      perPage,
+    };
+    const filtersChanged =
+      !prev ||
+      prev.codigo !== next.codigo ||
+      prev.nomenclador !== next.nomenclador ||
+      prev.status !== next.status ||
+      prev.perPage !== next.perPage;
     prevFiltersRef.current = next;
 
     if (filtersChanged && page !== 1) {
@@ -144,7 +197,7 @@ export function useTarifario() {
     }
 
     void refresh();
-  }, [page, refresh, codigoNormalized, nomencladorDebounced]);
+  }, [page, refresh, codigoNormalized, nomencladorDebounced, statusFilter, perPage]);
 
   useEffect(() => {
     let alive = true;
@@ -169,37 +222,107 @@ export function useTarifario() {
     };
   }, []);
 
-  const toggleCategoria = useCallback((id: number) => {
-    setSelectedCategorias((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const toggleCategoria = useCallback(
+    (id: number) => {
+      const isChecked = selectedCategorias.has(id);
+      const nextChecked = !isChecked;
+      const subIds = treeMaps.subsByCat.get(id) ?? [];
+      const svcIds = subIds.flatMap((sid) => treeMaps.svcsBySub.get(sid) ?? []);
 
-  const toggleSubcategoria = useCallback((id: number) => {
-    setSelectedSubcategorias((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+      setSelectedCategorias((prev) => {
+        const next = new Set(prev);
+        if (nextChecked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
 
-  const toggleServicio = useCallback((id: number) => {
-    setSelectedServicios((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+      setSelectedSubcategorias((prev) => {
+        const next = new Set(prev);
+        if (nextChecked) {
+          subIds.forEach((sid) => next.add(sid));
+        } else {
+          subIds.forEach((sid) => next.delete(sid));
+        }
+        return next;
+      });
+
+      setSelectedServicios((prev) => {
+        const next = new Set(prev);
+        if (nextChecked) {
+          svcIds.forEach((sid) => next.add(sid));
+        } else {
+          svcIds.forEach((sid) => next.delete(sid));
+        }
+        return next;
+      });
+    },
+    [treeMaps, selectedCategorias]
+  );
+
+  const toggleSubcategoria = useCallback(
+    (id: number) => {
+      const isChecked = selectedSubcategorias.has(id);
+      const nextChecked = !isChecked;
+      const svcIds = treeMaps.svcsBySub.get(id) ?? [];
+
+      setSelectedSubcategorias((prev) => {
+        const next = new Set(prev);
+        if (nextChecked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+
+      setSelectedServicios((prev) => {
+        const next = new Set(prev);
+        if (nextChecked) {
+          svcIds.forEach((sid) => next.add(sid));
+        } else {
+          svcIds.forEach((sid) => next.delete(sid));
+        }
+        return next;
+      });
+
+    },
+    [treeMaps, selectedSubcategorias]
+  );
+
+  const toggleServicio = useCallback(
+    (id: number) => {
+      const isChecked = selectedServicios.has(id);
+      const nextChecked = !isChecked;
+
+      setSelectedServicios((prev) => {
+        const next = new Set(prev);
+        if (nextChecked) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    },
+    [selectedServicios]
+  );
 
   const clearSelection = useCallback(() => {
     setSelectedCategorias(new Set());
     setSelectedSubcategorias(new Set());
     setSelectedServicios(new Set());
+  }, []);
+
+  const toggleExpandCategoria = useCallback((id: number) => {
+    setExpandedCategorias((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleExpandSubcategoria = useCallback((id: number) => {
+    setExpandedSubcategorias((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
   const canCloneSelected = useMemo(() => {
@@ -210,19 +333,49 @@ export function useTarifario() {
     );
   }, [selectedCategorias, selectedSubcategorias, selectedServicios]);
 
+  const isSubChecked = useCallback(
+    (subId: number) => {
+      if (selectedSubcategorias.has(subId)) return true;
+      const svcIds = treeMaps.svcsBySub.get(subId) ?? [];
+      return svcIds.some((sid) => selectedServicios.has(sid));
+    },
+    [selectedSubcategorias, selectedServicios, treeMaps]
+  );
+
+  const isCatChecked = useCallback(
+    (catId: number) => {
+      if (selectedCategorias.has(catId)) return true;
+      const subIds = treeMaps.subsByCat.get(catId) ?? [];
+      return subIds.some((sid) => isSubChecked(sid));
+    },
+    [selectedCategorias, treeMaps, isSubChecked]
+  );
+
   const onCloneAll = useCallback(async () => {
     if (!cloneTarifaId) {
       setNotice({ type: "error", text: "Selecciona una tarifa destino." });
       return;
     }
     try {
-      await cloneTarifaFromBase(cloneTarifaId, { clone_all: true });
-      setNotice({ type: "success", text: "Tarifario clonado correctamente." });
+      const result = await cloneTarifaFromBase(cloneTarifaId, { clone_all: true });
+      const applied = result.applied;
+      setNotice({
+        type: "success",
+        text:
+          "Se clonó todo el tarifario. " +
+          `Categorías: ${applied.categorias}, ` +
+          `Subcategorías: ${applied.subcategorias}, ` +
+          `Servicios: ${applied.servicios}.`,
+      });
+      clearSelection();
+      if (tarifaId === cloneTarifaId) {
+        void refresh({ page: 1, silent: true });
+      }
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo clonar el tarifario.";
       setNotice({ type: "error", text: msg });
     }
-  }, [cloneTarifaId]);
+  }, [cloneTarifaId, clearSelection, refresh, tarifaId]);
 
   const onCloneSelected = useCallback(async () => {
     if (!cloneTarifaId) {
@@ -234,18 +387,39 @@ export function useTarifario() {
       return;
     }
     try {
-      await cloneTarifaFromBase(cloneTarifaId, {
+      const result: TarifaCloneResult = await cloneTarifaFromBase(cloneTarifaId, {
         clone_all: false,
         categoria_ids: Array.from(selectedCategorias),
         subcategoria_ids: Array.from(selectedSubcategorias),
         servicio_ids: Array.from(selectedServicios),
       });
-      setNotice({ type: "success", text: "Clonación parcial completada." });
+      const applied = result.applied;
+      setNotice({
+        type: "success",
+        text:
+          "Clonación parcial completada. " +
+          `Categorías: ${applied.categorias}, ` +
+          `Subcategorías: ${applied.subcategorias}, ` +
+          `Servicios: ${applied.servicios}.`,
+      });
+      clearSelection();
+      if (tarifaId === cloneTarifaId) {
+        void refresh({ page: 1, silent: true });
+      }
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo clonar el tarifario.";
       setNotice({ type: "error", text: msg });
     }
-  }, [cloneTarifaId, canCloneSelected, selectedCategorias, selectedSubcategorias, selectedServicios]);
+  }, [
+    cloneTarifaId,
+    canCloneSelected,
+    clearSelection,
+    refresh,
+    selectedCategorias,
+    selectedSubcategorias,
+    selectedServicios,
+    tarifaId,
+  ]);
 
   return {
     tarifas,
@@ -261,6 +435,9 @@ export function useTarifario() {
     page,
     setPage,
     perPage,
+    setPerPage,
+    statusFilter,
+    setStatusFilter,
     codigo,
     setCodigo,
     nomenclador,
@@ -272,10 +449,18 @@ export function useTarifario() {
     selectedCategorias,
     selectedSubcategorias,
     selectedServicios,
+    expandedCategorias,
+    setExpandedCategorias,
+    expandedSubcategorias,
+    setExpandedSubcategorias,
+    toggleExpandCategoria,
+    toggleExpandSubcategoria,
     toggleCategoria,
     toggleSubcategoria,
     toggleServicio,
     clearSelection,
+    isSubChecked,
+    isCatChecked,
     onCloneAll,
     onCloneSelected,
     canCloneSelected,

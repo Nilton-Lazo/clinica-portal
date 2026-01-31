@@ -30,6 +30,7 @@ export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const isHistoriaClinicaWizard = location.pathname.includes("/admision/historia-clinica/");
+  const isTarifario = location.pathname.startsWith("/facturacion/tarifario");
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const canHover = useMediaQuery("(hover: hover) and (pointer: fine)");
@@ -110,7 +111,7 @@ export default function AppShell() {
           <div
             className={[
               "mx-auto w-full max-w-400 px-4 py-4",
-              isHistoriaClinicaWizard ? "" : "h-full min-h-0",
+              isHistoriaClinicaWizard || isTarifario ? "" : "h-full min-h-0",
             ].join(" ")}
           >
             <Outlet />

@@ -12,6 +12,7 @@ import type {
   TarifaSubcategoriaLookup,
   TarifarioServiciosQuery,
   RecordStatus,
+  TarifaCloneResult,
 } from "../types/tarifario.types";
 
 function qs(params: Record<string, string | number | null | undefined>): string {
@@ -70,8 +71,12 @@ export async function cloneTarifaFromBase(
     subcategoria_ids?: number[];
     servicio_ids?: number[];
   }
-): Promise<void> {
-  await api.post(`/facturacion/tarifario/tarifas/${tarifaId}/clonar-desde-base`, payload);
+): Promise<TarifaCloneResult> {
+  const res = await api.post<{ data: TarifaCloneResult }>(
+    `/facturacion/tarifario/tarifas/${tarifaId}/clonar-desde-base`,
+    payload
+  );
+  return res.data;
 }
 
 export async function listCategorias(
