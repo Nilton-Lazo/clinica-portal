@@ -3,7 +3,8 @@ import type { AdmisionHubItem } from "../types/admisionHub.types";
 type Props = {
   item: AdmisionHubItem;
   onEnter: () => void;
-  onAction: (to: string, label: string) => void;
+  onSelectAction: (actionId: string) => void;
+  selectedActionId?: string;
   mode?: "desktop" | "sheet";
   isOpen?: boolean;
   onClose?: () => void;
@@ -12,30 +13,40 @@ type Props = {
 function PanelBody({
   item,
   onEnter,
-  onAction,
+  onSelectAction,
+  selectedActionId,
   compact,
 }: {
   item: AdmisionHubItem;
   onEnter: () => void;
-  onAction: (to: string, label: string) => void;
+  onSelectAction: (actionId: string) => void;
+  selectedActionId?: string;
   compact: boolean;
 }) {
+  const selectedAction = item.actions.find((action) => action.id === selectedActionId);
+  const enterLabel = selectedAction
+    ? `Ingresar a ${selectedAction.label}`
+    : "Seleccione una opción";
+
   return (
     <div className="h-full flex flex-col min-h-0">
       <div className={compact ? "px-4 pb-4" : "px-6 py-4"}>
         <button
           type="button"
           onClick={onEnter}
+          disabled={!selectedAction}
           className={[
             "w-full h-11",
             "rounded-lg",
-            "bg-(--color-primary) text-(--color-text-inverse)",
+            selectedAction
+              ? "bg-(--color-primary) text-(--color-text-inverse)"
+              : "bg-(--color-surface-muted) text-(--color-text-secondary)",
             "text-base font-semibold",
             "transition-transform duration-150 ease-out",
-            "hover:scale-[1.01]",
+            selectedAction ? "hover:scale-[1.01]" : "cursor-not-allowed",
           ].join(" ")}
         >
-          Ingresar a {item.title}
+          {enterLabel}
         </button>
       </div>
 
@@ -65,12 +76,14 @@ function PanelBody({
               <button
                 key={a.id}
                 type="button"
-                onClick={() => onAction(a.to, a.label)}
+                onClick={() => onSelectAction(a.id)}
                 className={[
                   "block w-full text-left",
                   compact ? "px-4 py-4 text-sm" : "px-6 py-5 text-sm",
                   "transition-colors",
-                  "hover:bg-(--color-primary) hover:text-(--color-text-inverse)",
+                  selectedActionId === a.id
+                    ? "bg-(--color-primary) text-(--color-text-inverse)"
+                    : "hover:bg-(--color-primary) hover:text-(--color-text-inverse)",
                   "active:bg-(--color-primary-active) active:text-(--color-text-inverse)",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)",
                 ].join(" ")}
@@ -88,7 +101,8 @@ function PanelBody({
 export default function AdmisionActionsPanel({
   item,
   onEnter,
-  onAction,
+  onSelectAction,
+  selectedActionId,
   mode = "desktop",
   isOpen = false,
   onClose,
@@ -104,7 +118,13 @@ export default function AdmisionActionsPanel({
           "overflow-hidden",
         ].join(" ")}
       >
-        <PanelBody item={item} onEnter={onEnter} onAction={onAction} compact={false} />
+        <PanelBody
+          item={item}
+          onEnter={onEnter}
+          onSelectAction={onSelectAction}
+          selectedActionId={selectedActionId}
+          compact={false}
+        />
       </div>
     );
   }
@@ -166,16 +186,24 @@ export default function AdmisionActionsPanel({
                   <button
                     type="button"
                     onClick={onEnter}
+                    disabled={!selectedActionId}
                     className={[
                       "w-full h-11",
                       "rounded-lg",
-                      "bg-(--color-primary) text-(--color-text-inverse)",
+                      selectedActionId
+                        ? "bg-(--color-primary) text-(--color-text-inverse)"
+                        : "bg-(--color-surface-muted) text-(--color-text-secondary)",
                       "text-base font-semibold",
                       "transition-transform duration-150 ease-out",
-                      "hover:scale-[1.01]",
+                      selectedActionId ? "hover:scale-[1.01]" : "cursor-not-allowed",
                     ].join(" ")}
                   >
-                    Ingresar a {item.title}
+                    {selectedActionId
+                      ? `Ingresar a ${
+                          item.actions.find((action) => action.id === selectedActionId)?.label ??
+                          item.title
+                        }`
+                      : "Seleccione una opción"}
                   </button>
                 </div>
 
@@ -198,12 +226,14 @@ export default function AdmisionActionsPanel({
                         <button
                           key={a.id}
                           type="button"
-                          onClick={() => onAction(a.to, a.label)}
+                          onClick={() => onSelectAction(a.id)}
                           className={[
                             "block w-full text-left",
                             "px-4 py-4 text-sm",
                             "transition-colors",
-                            "hover:bg-(--color-primary) hover:text-(--color-text-inverse)",
+                            selectedActionId === a.id
+                              ? "bg-(--color-primary) text-(--color-text-inverse)"
+                              : "hover:bg-(--color-primary) hover:text-(--color-text-inverse)",
                             "active:bg-(--color-primary-active) active:text-(--color-text-inverse)",
                           ].join(" ")}
                         >

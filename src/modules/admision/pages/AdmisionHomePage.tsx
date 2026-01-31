@@ -28,12 +28,20 @@ export default function AdmisionHomePage() {
   const isLgUp = useIsLgUp();
 
   const [selectedId, setSelectedId] = React.useState(ADMISION_HUB[0].id);
+  const [selectedActionByItem, setSelectedActionByItem] = React.useState<
+    Record<string, string | undefined>
+  >({});
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const selected = React.useMemo(
     () => ADMISION_HUB.find((x) => x.id === selectedId) ?? ADMISION_HUB[0],
     [selectedId]
   );
+
+  const selectedAction = React.useMemo(() => {
+    const actionId = selectedActionByItem[selectedId];
+    return selected.actions.find((action) => action.id === actionId);
+  }, [selected.actions, selectedId, selectedActionByItem]);
 
   React.useEffect(() => {
     if (isLgUp) {
@@ -79,8 +87,17 @@ export default function AdmisionHomePage() {
 
         <AdmisionActionsPanel
           item={selected}
-          onEnter={() => go(selected.to, `Admision:${selected.id}`)}
-          onAction={(to, label) => go(to, `Admision:${selected.id}:${label}`)}
+          selectedActionId={selectedAction?.id}
+          onEnter={() => {
+            if (!selectedAction) return;
+            go(selectedAction.to, `Admision:${selected.id}:${selectedAction.label}`);
+          }}
+          onSelectAction={(actionId) => {
+            setSelectedActionByItem((prev) => ({
+              ...prev,
+              [selectedId]: actionId,
+            }));
+          }}
         />
       </div>
 
@@ -109,8 +126,17 @@ export default function AdmisionHomePage() {
         isOpen={sheetOpen && !isLgUp}
         onClose={() => setSheetOpen(false)}
         item={selected}
-        onEnter={() => go(selected.to, `Admision:${selected.id}`)}
-        onAction={(to, label) => go(to, `Admision:${selected.id}:${label}`)}
+        selectedActionId={selectedAction?.id}
+        onEnter={() => {
+          if (!selectedAction) return;
+          go(selectedAction.to, `Admision:${selected.id}:${selectedAction.label}`);
+        }}
+        onSelectAction={(actionId) => {
+          setSelectedActionByItem((prev) => ({
+            ...prev,
+            [selectedId]: actionId,
+          }));
+        }}
       />
     </div>
   );

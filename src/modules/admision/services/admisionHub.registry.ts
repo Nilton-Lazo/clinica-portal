@@ -18,6 +18,11 @@ import {
       icon: FileText,
       to: "/admision/historia-clinica",
       actions: [
+        {
+          id: "principal",
+          label: "Historia clínica principal",
+          to: "/admision/historia-clinica",
+        },
         { id: "consulta", label: "Consulta Historia clínica", to: "/admision/historia-clinica/consulta" },
         { id: "busqueda", label: "Búsqueda de atención al paciente", to: "/admision/historia-clinica/busqueda-atencion" },
         { id: "prestaciones", label: "Prestaciones (Sin Historia clínica)", to: "/admision/historia-clinica/prestaciones-sin-hc" },
@@ -30,6 +35,11 @@ import {
       icon: CalendarDays,
       to: "/admision/citas",
       actions: [
+        {
+          id: "programacion",
+          label: "Programación médica",
+          to: "/admision/citas/programacion",
+        },
         { id: "agenda", label: "Agenda de citas", to: "/admision/citas/agenda" },
         { id: "nueva", label: "Registrar cita", to: "/admision/citas/nueva" },
         { id: "consultar", label: "Consultar citas", to: "/admision/citas/consulta" },
@@ -86,6 +96,11 @@ import {
       icon: Folder,
       to: "/admision/ficheros",
       actions: [
+        {
+          id: "principal",
+          label: "Ficheros principal",
+          to: "/admision/ficheros/especialidades",
+        },
         { id: "pacientes", label: "Pacientes", to: "/admision/ficheros/pacientes" },
         { id: "medicos", label: "Médicos", to: "/admision/ficheros/medicos" },
         { id: "especialidades", label: "Especialidades", to: "/admision/ficheros/especialidades" },
