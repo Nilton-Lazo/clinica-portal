@@ -101,6 +101,30 @@ function getPreferredEspecialidadId(x: MedicoLookup): number | null {
   return null;
 }
 
+function isActiveEspecialidad(e: EspecialidadLookup): boolean {
+  return !e.estado || e.estado === "ACTIVO";
+}
+
+function getMedicoEspecialidadIds(m: MedicoLookup, allEspecialidades: EspecialidadLookup[]): number[] {
+  const ids = new Set<number>();
+
+  if (hasEspecialidades(m)) {
+    (m.especialidades ?? []).forEach((e) => {
+      if (e && typeof e.id === "number" && e.id > 0 && isActiveEspecialidad(e)) {
+        ids.add(e.id);
+      }
+    });
+  }
+
+  const preferred = getPreferredEspecialidadId(m);
+  if (preferred) {
+    const exists = allEspecialidades.find((e) => e.id === preferred && isActiveEspecialidad(e));
+    if (exists) ids.add(preferred);
+  }
+
+  return Array.from(ids);
+}
+
 export function useProgramacionMedica() {
   const svc = React.useMemo(() => programacionMedicaService(), []);
   const today = React.useMemo(() => new Date(), []);
@@ -261,9 +285,7 @@ export function useProgramacionMedica() {
         return;
       }
 
-      const embedded = hasEspecialidades(m)
-        ? (m.especialidades ?? []).filter((x) => (x.estado ? x.estado === "ACTIVO" : true))
-        : [];
+      const embedded = hasEspecialidades(m) ? (m.especialidades ?? []).filter((x) => isActiveEspecialidad(x)) : [];
 
       if (embedded.length > 0) {
         setEspecialidadesDelMedico(embedded);
@@ -277,7 +299,7 @@ export function useProgramacionMedica() {
 
       const preferred = getPreferredEspecialidadId(m);
       if (preferred) {
-        const one = especialidades.find((e) => e.id === preferred && (!e.estado || e.estado === "ACTIVO"));
+        const one = especialidades.find((e) => e.id === preferred && isActiveEspecialidad(e));
         if (one) {
           setEspecialidadesDelMedico([one]);
           setEspecialidadId(one.id);
@@ -287,7 +309,7 @@ export function useProgramacionMedica() {
 
       const curId = especialidadIdRef.current;
       if (curId > 0) {
-        const cur = especialidades.find((e) => e.id === curId && (!e.estado || e.estado === "ACTIVO"));
+        const cur = especialidades.find((e) => e.id === curId && isActiveEspecialidad(e));
         if (cur) {
           setEspecialidadesDelMedico([cur]);
           return;
@@ -307,6 +329,17 @@ export function useProgramacionMedica() {
       if (mode === "new") setEspecialidadId(0);
     }
   }, [medicoId, mode, recomputeEspecialidadesDelMedico]);
+
+  const medicosFiltrados = React.useMemo(() => {
+    if (especialidadId <= 0) return medicos;
+    return medicos.filter((m) => getMedicoEspecialidadIds(m, especialidades).includes(especialidadId));
+  }, [medicos, especialidades, especialidadId]);
+
+  React.useEffect(() => {
+    if (medicoId <= 0 || especialidadId <= 0) return;
+    const exists = medicosFiltrados.some((m) => m.id === medicoId);
+    if (!exists) setMedicoId(0);
+  }, [medicoId, especialidadId, medicosFiltrados]);
 
   React.useEffect(() => {
     let alive = true;
@@ -709,17 +742,21 @@ export function useProgramacionMedica() {
   );
 
   const medicoOptions = React.useMemo(
-    () => medicos.map((m) => ({ id: m.id, label: medicoLabel(m) })),
-    [medicos]
+    () => medicosFiltrados.map((m) => ({ id: m.id, label: medicoLabel(m) })),
+    [medicosFiltrados]
   );
 
   const especialidadOptions = React.useMemo(
-    () =>
-      especialidadesDelMedico.map((e) => ({
-        id: e.id,
-        label: especialidadLabel(e),
-      })),
-    [especialidadesDelMedico]
+    () => {
+      const base = medicoId > 0 && especialidadesDelMedico.length > 0 ? especialidadesDelMedico : especialidades;
+      return base
+        .filter((e) => isActiveEspecialidad(e))
+        .map((e) => ({
+          id: e.id,
+          label: especialidadLabel(e),
+        }));
+    },
+    [medicoId, especialidadesDelMedico, especialidades]
   );
 
   const consultorioOptions = React.useMemo(

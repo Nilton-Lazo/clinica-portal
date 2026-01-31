@@ -3,6 +3,11 @@ import { ChevronDown } from "lucide-react";
 
 export type SelectOption = { value: string; label: string; disabled?: boolean };
 
+const isSelectPlaceholderLabel = (label: string) => {
+  const t = (label ?? "").toString().trim().toLowerCase();
+  return t.startsWith("selecciona") || t.startsWith("seleccione");
+};
+
 export function SelectMenu(props: {
   value: string;
   onChange: (v: string) => void;
@@ -13,7 +18,6 @@ export function SelectMenu(props: {
   disabled?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
-  keepPlaceholder?: boolean;
 }) {
   const {
     value,
@@ -23,23 +27,20 @@ export function SelectMenu(props: {
     buttonClassName,
     menuClassName,
     disabled,
-    searchable = ariaLabel !== "Estado",
+    searchable,
     searchPlaceholder = "Buscar...",
-    keepPlaceholder = ariaLabel === "Estado",
   } = props;
 
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const optionsNoPlaceholder = React.useMemo(() => {
-    if (keepPlaceholder) return options;
     return options.filter((opt) => {
       if (opt.disabled && opt.value === "") return false;
-      const label = (opt.label ?? "").toString().trim().toLowerCase();
-      if (opt.value === "" && label.startsWith("selecciona")) return false;
-      if (label.startsWith("selecciona")) return false;
+      if (opt.value === "" && isSelectPlaceholderLabel(opt.label)) return false;
+      if (isSelectPlaceholderLabel(opt.label)) return false;
       return true;
     });
-  }, [keepPlaceholder, options]);
+  }, [options]);
 
   const [activeIndex, setActiveIndex] = React.useState<number>(() => {
     const i = optionsNoPlaceholder.findIndex((o) => o.value === value);
@@ -52,11 +53,13 @@ export function SelectMenu(props: {
 
   const selected = optionsNoPlaceholder.find((o) => o.value === value);
 
+  const shouldShowSearch = optionsNoPlaceholder.length > 4 && searchable !== false;
+
   const filteredOptions = React.useMemo(() => {
-    if (!searchable || !query.trim()) return optionsNoPlaceholder;
+    if (!shouldShowSearch || !query.trim()) return optionsNoPlaceholder;
     const q = query.trim().toLowerCase();
     return optionsNoPlaceholder.filter((o) => o.label.toLowerCase().includes(q));
-  }, [optionsNoPlaceholder, query, searchable]);
+  }, [optionsNoPlaceholder, query, shouldShowSearch]);
 
   React.useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -87,10 +90,10 @@ export function SelectMenu(props: {
       setQuery("");
       return;
     }
-    if (searchable) {
+    if (shouldShowSearch) {
       requestAnimationFrame(() => searchRef.current?.focus());
     }
-  }, [open, searchable]);
+  }, [open, shouldShowSearch]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -193,7 +196,7 @@ export function SelectMenu(props: {
       >
         {open ? (
           <div className="max-h-60 overflow-auto p-1 app-scrollbar app-scrollbar-no-gutter">
-            {searchable ? (
+            {shouldShowSearch ? (
               <div className="px-2 pt-2 pb-1">
                 <input
                   ref={searchRef}

@@ -47,7 +47,7 @@ export default function ProgramacionMedicaPage() {
     <div className="flex w-full min-w-0 flex-col gap-4 pb-4">
       <NoticeBanner notice={vm.notice} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch">
         <div className="min-w-0 h-full">
           <ProgramacionCalendarCard
             modalidad={vm.modalidad}
@@ -63,7 +63,7 @@ export default function ProgramacionMedicaPage() {
           />
         </div>
 
-        <div ref={formRef} className="min-w-0">
+        <div ref={formRef} className="min-w-0 h-full">
           <ProgramacionMedicaFormCard
             mode={vm.mode}
             codigo={vm.codigoDisplay}

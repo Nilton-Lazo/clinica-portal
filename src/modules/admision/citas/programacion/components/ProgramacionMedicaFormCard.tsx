@@ -168,7 +168,6 @@ export default function ProgramacionMedicaFormCard(props: {
                 ariaLabel="Especialidad"
                 buttonClassName="w-full"
                 menuClassName="min-w-full"
-                disabled={medicoId <= 0 || especialidadOptions.length === 0}
               />
             </div>
           </div>
