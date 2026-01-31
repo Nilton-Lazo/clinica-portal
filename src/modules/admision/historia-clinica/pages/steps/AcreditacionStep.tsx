@@ -34,7 +34,12 @@ export function AcreditacionStep() {
     return Number.isFinite(id) && id > 0 ? id : null;
   }, [state.draft]);
 
-  const vm = useAcreditacionPlanes(pacienteId);
+  const parentescoSeguro = React.useMemo(() => {
+    const raw = String((state.draft as unknown as { parentesco_seguro?: unknown })?.parentesco_seguro ?? "").trim();
+    return raw ? raw : null;
+  }, [state.draft]);
+
+  const vm = useAcreditacionPlanes(pacienteId, parentescoSeguro);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
@@ -111,6 +116,8 @@ export function AcreditacionStep() {
                 onPrev={handlePrev}
                 onNext={handleNext}
                 emptyText={emptyText}
+                iafaById={vm.iafaById}
+                contratanteById={vm.contratanteById}
               />
             </div>
 
@@ -124,6 +131,8 @@ export function AcreditacionStep() {
                 onPrev={handlePrev}
                 onNext={handleNext}
                 emptyText={emptyText}
+                iafaById={vm.iafaById}
+                contratanteById={vm.contratanteById}
               />
             </div>
           </div>
@@ -137,8 +146,9 @@ export function AcreditacionStep() {
               tiposClientesLoading={vm.tiposClientesLoading}
               tipoClienteId={vm.tipoClienteId}
               onTipoClienteIdChange={vm.setTipoClienteId}
-              parentesco={vm.parentesco}
-              onParentescoChange={vm.setParentesco}
+              condicionLabel={vm.condicionLabel}
+              iafaLabel={vm.iafaLabel}
+              contratanteLabel={vm.contratanteLabel}
               fechaAfiliacion={vm.fechaAfiliacion}
               onFechaAfiliacionChange={vm.setFechaAfiliacion}
               estado={vm.estado}

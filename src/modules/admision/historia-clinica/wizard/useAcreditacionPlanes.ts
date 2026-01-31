@@ -2,13 +2,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApiError } from "../../../../shared/api/apiError";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 
-import type { AcreditacionPlan, ParentescoSeguro, RecordStatus, TipoClienteLookup } from "./acreditacionPlanes.types";
+import type {
+  AcreditacionPlan,
+  ParentescoSeguro,
+  RecordStatus,
+  TipoClienteLookup,
+  IafaLookup,
+  ContratanteLookup,
+} from "./acreditacionPlanes.types";
 import type { PaginatedResponse } from "../../../../shared/types/pagination";
 
 import {
   createPacientePlan,
   deactivatePacientePlan,
   listPacientePlanes,
+  listContratantesLookup,
+  listIafasLookup,
   listTiposClientesLookup,
   updatePacientePlan,
 } from "./acreditacionPlanes.service";
@@ -40,6 +49,61 @@ function isDateIso(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(t);
 }
 
+function normalizeParentesco(v: string | null | undefined): ParentescoSeguro | "" {
+  const s = (v ?? "").trim().toUpperCase();
+  if (s === "TITULAR") return "TITULAR";
+  if (s === "CONYUGE") return "CONYUGE";
+  if (s === "HIJO") return "HIJO";
+  if (s === "PADRE") return "PADRE";
+  if (s === "MADRE") return "MADRE";
+  if (s === "OTRO") return "OTRO";
+  return "";
+}
+
+function parentescoLabel(v: string | null | undefined): string {
+  const s = (v ?? "").toString().trim().toUpperCase();
+  if (s === "TITULAR") return "Titular";
+  if (s === "CONYUGE") return "Cónyuge";
+  if (s === "HIJO") return "Hijo";
+  if (s === "PADRE") return "Padre";
+  if (s === "MADRE") return "Madre";
+  if (s === "OTRO") return "Otro";
+  return s ? s : "—";
+}
+
+function todayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function mapById<T extends { id: number }>(items: T[]): Record<number, T> {
+  return items.reduce<Record<number, T>>((acc, item) => {
+    acc[item.id] = item;
+    return acc;
+  }, {});
+}
+
+function iafaLabel(x?: IafaLookup | null): string {
+  if (!x) return "—";
+  const dc = x.descripcion_corta?.trim();
+  if (dc) return dc;
+  const rs = x.razon_social?.trim();
+  if (rs) return rs;
+  const c = x.codigo?.trim();
+  return c || "—";
+}
+
+function contratanteLabel(x?: ContratanteLookup | null): string {
+  if (!x) return "—";
+  const rs = x.razon_social?.trim();
+  if (rs) return rs;
+  const c = x.codigo?.trim();
+  return c || "—";
+}
+
 function planLabel(p: AcreditacionPlan | null): string {
   if (!p) return "";
   const c = (p.tipo_cliente?.codigo ?? "").trim();
@@ -64,7 +128,7 @@ function matchesQ(p: AcreditacionPlan, q: string): boolean {
   return parts.includes(q);
 }
 
-export function useAcreditacionPlanes(pacienteId: number | null) {
+export function useAcreditacionPlanes(pacienteId: number | null, parentescoPaciente?: string | null) {
   const [raw, setRaw] = useState<AcreditacionPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -80,6 +144,8 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
 
   const [tiposClientes, setTiposClientes] = useState<TipoClienteLookup[]>([]);
   const [tiposClientesLoading, setTiposClientesLoading] = useState(false);
+  const [iafas, setIafas] = useState<IafaLookup[]>([]);
+  const [contratantes, setContratantes] = useState<ContratanteLookup[]>([]);
 
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<AcreditacionPlan | null>(null);
@@ -101,10 +167,18 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
   const loadTiposClientes = useCallback(async () => {
     setTiposClientesLoading(true);
     try {
-      const res = await listTiposClientesLookup();
-      setTiposClientes(res);
+      const [resTipos, resIafas, resContratantes] = await Promise.all([
+        listTiposClientesLookup(),
+        listIafasLookup(),
+        listContratantesLookup(),
+      ]);
+      setTiposClientes(resTipos);
+      setIafas(resIafas);
+      setContratantes(resContratantes);
     } catch {
       setTiposClientes([]);
+      setIafas([]);
+      setContratantes([]);
     } finally {
       setTiposClientesLoading(false);
     }
@@ -139,12 +213,12 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
     setMode("new");
     setSelected(null);
     setTipoClienteId(0);
-    setParentesco("");
-    setFechaAfiliacion("");
+    setParentesco(normalizeParentesco(parentescoPaciente));
+    setFechaAfiliacion(todayIso());
     setEstado("ACTIVO");
     originalRef.current = null;
     void reloadPlanes();
-  }, [pacienteId, reloadPlanes]);
+  }, [pacienteId, parentescoPaciente, reloadPlanes]);
 
   const filtered = useMemo(() => {
     const qx = qDebounced.trim().toLowerCase();
@@ -207,12 +281,12 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
     setMode("new");
     setSelected(null);
     setTipoClienteId(0);
-    setParentesco("");
-    setFechaAfiliacion("");
+    setParentesco(normalizeParentesco(parentescoPaciente));
+    setFechaAfiliacion(todayIso());
     setEstado("ACTIVO");
     originalRef.current = null;
     setNotice(null);
-  }, []);
+  }, [parentescoPaciente]);
 
   const loadForEdit = useCallback((p: AcreditacionPlan) => {
     setMode("edit");
@@ -277,7 +351,6 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
 
     const payload = {
       tipo_cliente_id: tipoClienteId,
-      parentesco_seguro: (parentesco ? (parentesco as ParentescoSeguro) : null),
       fecha_afiliacion: toNullIfBlank(fechaAfiliacion),
       estado,
     };
@@ -311,7 +384,6 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
     selected,
     isDirty,
     tipoClienteId,
-    parentesco,
     fechaAfiliacion,
     estado,
     reloadPlanes,
@@ -355,6 +427,28 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
 
   const selectedLabel = useMemo(() => planLabel(selected), [selected]);
 
+  const iafaById = useMemo(() => mapById(iafas), [iafas]);
+  const contratanteById = useMemo(() => mapById(contratantes), [contratantes]);
+
+  const selectedTipoCliente = useMemo(() => {
+    const fromLookup = tiposClientes.find((x) => x.id === tipoClienteId);
+    if (fromLookup) return fromLookup;
+    if (selected?.tipo_cliente && selected.tipo_cliente.id === tipoClienteId) return selected.tipo_cliente;
+    return null;
+  }, [tiposClientes, tipoClienteId, selected]);
+
+  const iafaLabelValue = useMemo(() => {
+    const id = selectedTipoCliente?.iafa_id ?? null;
+    if (!id) return "—";
+    return iafaLabel(iafaById[id]);
+  }, [selectedTipoCliente, iafaById]);
+
+  const contratanteLabelValue = useMemo(() => {
+    const id = selectedTipoCliente?.contratante_id ?? null;
+    if (!id) return "—";
+    return contratanteLabel(contratanteById[id]);
+  }, [selectedTipoCliente, contratanteById]);
+
   return {
     data,
     rawCount: raw.length,
@@ -373,6 +467,8 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
 
     tiposClientes,
     tiposClientesLoading,
+    iafaById,
+    contratanteById,
 
     mode,
     selected,
@@ -382,6 +478,9 @@ export function useAcreditacionPlanes(pacienteId: number | null) {
     setTipoClienteId,
     parentesco,
     setParentesco,
+    condicionLabel: parentescoLabel(parentesco),
+    iafaLabel: iafaLabelValue,
+    contratanteLabel: contratanteLabelValue,
     fechaAfiliacion,
     setFechaAfiliacion,
     estado,

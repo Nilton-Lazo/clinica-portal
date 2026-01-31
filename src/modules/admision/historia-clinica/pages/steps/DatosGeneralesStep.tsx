@@ -1,6 +1,8 @@
 import type { SelectOption } from "../../../../../shared/ui/SelectMenu";
+import { useEffect } from "react";
 import { usePacienteWizard } from "../../wizard/usePacienteWizard";
 import type { PacienteFormCatalogos } from "../../wizard/types";
+import { fullNameFromDraft } from "../../wizard/types";
 import { DateField, FormCard, SelectField, TextField } from "../../wizard/ui/formFields";
 
 type CatalogRecord = Record<string, unknown>;
@@ -133,6 +135,15 @@ export function DatosGeneralesStep({
 }) {
   const { state, actions } = usePacienteWizard();
   const d = state.draft;
+
+  useEffect(() => {
+    const parentesco = d.parentesco_seguro.trim().toUpperCase();
+    if (parentesco !== "TITULAR") return;
+    const name = fullNameFromDraft(d);
+    if (!name) return;
+    if (d.titular_nombre.trim() === name) return;
+    actions.set({ titular_nombre: name });
+  }, [d.parentesco_seguro, d.nombres, d.apellido_paterno, d.apellido_materno, d.titular_nombre, actions]);
 
   const tipoDocOptions = withPlaceholder(optionsFrom(catalog?.tipo_documento), catalog ? "Selecciona tipo" : "Cargando tipos…");
 

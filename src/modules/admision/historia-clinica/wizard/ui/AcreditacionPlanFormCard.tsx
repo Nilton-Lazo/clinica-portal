@@ -1,10 +1,11 @@
 import * as React from "react";
-import type { AcreditacionPlan, ParentescoSeguro, RecordStatus, TipoClienteLookup } from "../acreditacionPlanes.types";
+import type { AcreditacionPlan, RecordStatus, TipoClienteLookup } from "../acreditacionPlanes.types";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import type { Mode } from "../useAcreditacionPlanes";
 import { Calendar } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
+import { TextField } from "./formFields";
 
 function toTipoClienteLabel(x: TipoClienteLookup): string {
   const c = (x.codigo ?? "").trim();
@@ -47,8 +48,9 @@ export default function AcreditacionPlanFormCard(props: {
   tipoClienteId: number;
   onTipoClienteIdChange: (v: number) => void;
 
-  parentesco: ParentescoSeguro | "";
-  onParentescoChange: (v: ParentescoSeguro | "") => void;
+  condicionLabel: string;
+  iafaLabel: string;
+  contratanteLabel: string;
 
   fechaAfiliacion: string;
   onFechaAfiliacionChange: (v: string) => void;
@@ -77,8 +79,9 @@ export default function AcreditacionPlanFormCard(props: {
     tipoClienteId,
     onTipoClienteIdChange,
 
-    parentesco,
-    onParentescoChange,
+    condicionLabel,
+    iafaLabel,
+    contratanteLabel,
 
     fechaAfiliacion,
     onFechaAfiliacionChange,
@@ -104,16 +107,6 @@ export default function AcreditacionPlanFormCard(props: {
     { value: "ACTIVO", label: "Activo" },
     { value: "INACTIVO", label: "Inactivo" },
     { value: "SUSPENDIDO", label: "Suspendido" },
-  ];
-
-  const parentescoOptions: SelectOption[] = [
-    { value: "", label: "Selecciona parentesco", disabled: true },
-    { value: "TITULAR", label: "Titular" },
-    { value: "CONYUGE", label: "Cónyuge" },
-    { value: "HIJO", label: "Hijo" },
-    { value: "PADRE", label: "Padre" },
-    { value: "MADRE", label: "Madre" },
-    { value: "OTRO", label: "Otro" },
   ];
 
   const tipoOptions: SelectOption[] = [
@@ -157,21 +150,12 @@ export default function AcreditacionPlanFormCard(props: {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-sm text-(--color-text-primary)">Parentesco</label>
-            <div className="mt-1">
-              <SelectMenu
-                value={String(parentesco)}
-                onChange={(v) => onParentescoChange((v as ParentescoSeguro) ?? "")}
-                options={parentescoOptions}
-                ariaLabel="Parentesco"
-                buttonClassName="w-full"
-                menuClassName="min-w-full"
-                disabled={Boolean(disabled)}
-              />
-            </div>
-          </div>
+          <TextField label="IAFAS" value={iafaLabel} onChange={(v) => void v} readOnly disabled={Boolean(disabled)} />
+          <TextField label="Contratante" value={contratanteLabel} onChange={(v) => void v} readOnly disabled={Boolean(disabled)} />
+        </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Condición" value={condicionLabel} onChange={(v) => void v} readOnly disabled={Boolean(disabled)} />
           <div>
             <label className="text-sm text-(--color-text-primary)">Estado</label>
             <div className="mt-1">

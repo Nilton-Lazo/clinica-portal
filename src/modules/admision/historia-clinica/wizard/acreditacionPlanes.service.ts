@@ -1,11 +1,20 @@
 import { api } from "../../../../shared/api";
-import type { AcreditacionPlan, ParentescoSeguro, RecordStatus, TipoClienteLookup } from "./acreditacionPlanes.types";
+import type {
+  AcreditacionPlan,
+  ParentescoSeguro,
+  RecordStatus,
+  TipoClienteLookup,
+  IafaLookup,
+  ContratanteLookup,
+} from "./acreditacionPlanes.types";
 import { pacienteService } from "./paciente.service";
 
 type TipoClienteApi = {
   id: number;
   codigo?: unknown;
   descripcion_tipo_cliente?: unknown;
+  iafa_id?: unknown;
+  contratante_id?: unknown;
 };
 
 type PlanApi = {
@@ -15,6 +24,19 @@ type PlanApi = {
   parentesco_seguro?: unknown;
   fecha_afiliacion?: unknown;
   estado?: unknown;
+};
+
+type IafaApi = {
+  id: number;
+  codigo?: unknown;
+  razon_social?: unknown;
+  descripcion_corta?: unknown;
+};
+
+type ContratanteApi = {
+  id: number;
+  codigo?: unknown;
+  razon_social?: unknown;
 };
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -47,6 +69,18 @@ function toIntNonNeg(v: unknown, fallback: number): number {
   return fallback;
 }
 
+function toIntOrNull(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return Math.trunc(v);
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return null;
+    const n = Number(s);
+    if (!Number.isFinite(n)) return null;
+    return Math.trunc(n);
+  }
+  return null;
+}
+
 function normalizeEstado(v: unknown): RecordStatus {
   const s = toStrOrEmpty(v).toUpperCase();
   if (s === "INACTIVO") return "INACTIVO";
@@ -74,6 +108,8 @@ function normalizeTipoCliente(x: unknown): TipoClienteLookup | null {
     id,
     codigo: toStrOrEmpty(x.codigo),
     descripcion_tipo_cliente: toStrOrEmpty(x.descripcion_tipo_cliente),
+    iafa_id: toIntOrNull((x as Record<string, unknown>).iafa_id),
+    contratante_id: toIntOrNull((x as Record<string, unknown>).contratante_id),
   };
 }
 
@@ -101,8 +137,41 @@ export async function listTiposClientesLookup(): Promise<TipoClienteLookup[]> {
       id: x.id,
       codigo: toStrOrEmpty(x.codigo),
       descripcion_tipo_cliente: toStrOrEmpty(x.descripcion_tipo_cliente),
+      iafa_id: toIntOrNull(x.iafa_id),
+      contratante_id: toIntOrNull(x.contratante_id),
     }))
     .filter((x) => x.id > 0 && (x.codigo.trim() || x.descripcion_tipo_cliente.trim()));
+}
+
+export async function listIafasLookup(): Promise<IafaLookup[]> {
+  const res = await api.get<{
+    data: IafaApi[];
+    meta: { current_page: number; per_page: number; total: number; last_page: number };
+  }>(`/admision/ficheros/iafas?page=1&per_page=200&status=ACTIVO`);
+
+  return (res.data ?? [])
+    .map((x) => ({
+      id: x.id,
+      codigo: toStrOrEmpty(x.codigo),
+      razon_social: toStrOrEmpty(x.razon_social),
+      descripcion_corta: toStrOrEmpty(x.descripcion_corta),
+    }))
+    .filter((x) => x.id > 0 && (x.razon_social.trim() || x.descripcion_corta.trim() || x.codigo.trim()));
+}
+
+export async function listContratantesLookup(): Promise<ContratanteLookup[]> {
+  const res = await api.get<{
+    data: ContratanteApi[];
+    meta: { current_page: number; per_page: number; total: number; last_page: number };
+  }>(`/admision/ficheros/contratantes?page=1&per_page=200&status=ACTIVO`);
+
+  return (res.data ?? [])
+    .map((x) => ({
+      id: x.id,
+      codigo: toStrOrEmpty(x.codigo),
+      razon_social: toStrOrEmpty(x.razon_social),
+    }))
+    .filter((x) => x.id > 0 && (x.razon_social.trim() || x.codigo.trim()));
 }
 
 export async function listPacientePlanes(pacienteId: number): Promise<AcreditacionPlan[]> {
@@ -119,7 +188,6 @@ export async function listPacientePlanes(pacienteId: number): Promise<Acreditaci
 
 export type PlanCreatePayload = {
   tipo_cliente_id: number;
-  parentesco_seguro: ParentescoSeguro | null;
   fecha_afiliacion: string | null;
   estado: RecordStatus;
 };
@@ -127,7 +195,7 @@ export type PlanCreatePayload = {
 export type PlanUpdatePayload = PlanCreatePayload;
 
 function planesBase(pacienteId: number) {
-  return `/admision/historia-clinica/pacientes/${pacienteId}/planes`;
+  return `/admision/pacientes/${pacienteId}/planes`;
 }
 
 export async function createPacientePlan(pacienteId: number, payload: PlanCreatePayload): Promise<{ data: AcreditacionPlan }> {
@@ -145,6 +213,6 @@ export async function updatePacientePlan(
 }
 
 export async function deactivatePacientePlan(pacienteId: number, planId: number): Promise<{ data: AcreditacionPlan }> {
-  const res = await api.patch<{ data: PlanApi }>(`${planesBase(pacienteId)}/${planId}/desactivar`);
+  const res = await api.patch<{ data: PlanApi }>(`/admision/pacientes/planes/${planId}/desactivar`);
   return { data: normalizePlan(res.data) };
 }

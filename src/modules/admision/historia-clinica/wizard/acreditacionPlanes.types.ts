@@ -7,9 +7,24 @@ export type TipoClienteLookup = {
   id: number;
   codigo: string;
   descripcion_tipo_cliente: string;
+  iafa_id?: number | null;
+  contratante_id?: number | null;
 };
 
 export type ParentescoSeguro = "TITULAR" | "CONYUGE" | "HIJO" | "PADRE" | "MADRE" | "OTRO";
+
+export type IafaLookup = {
+  id: number;
+  codigo: string;
+  razon_social: string;
+  descripcion_corta: string;
+};
+
+export type ContratanteLookup = {
+  id: number;
+  codigo: string;
+  razon_social: string;
+};
 
 export type AcreditacionPlan = {
   id: number;
