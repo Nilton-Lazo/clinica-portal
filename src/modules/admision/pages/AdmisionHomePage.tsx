@@ -69,7 +69,9 @@ export default function AdmisionHomePage() {
               key={item.id}
               item={item}
               active={item.id === selectedId}
-              onSelect={() => setSelectedId(item.id)}
+              onSelect={() => {
+                setSelectedId(item.id);
+              }}
             />
           ))}
         </div>
@@ -80,7 +82,9 @@ export default function AdmisionHomePage() {
               key={item.id}
               item={item}
               active={item.id === selectedId}
-              onSelect={() => setSelectedId(item.id)}
+              onSelect={() => {
+                setSelectedId(item.id);
+              }}
             />
           ))}
         </div>

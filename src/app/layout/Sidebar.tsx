@@ -156,6 +156,7 @@ export default function Sidebar({
                 <li key={item.id}>
                   <NavLink
                     to={item.to}
+                    end={item.end}
                     onClick={onNavigateMobile}
                     className="block"
                   >

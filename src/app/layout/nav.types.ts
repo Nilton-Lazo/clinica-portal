@@ -10,4 +10,5 @@ export type NavItem = {
   to: string;
   icon: NavIconSpec;
   disabled?: boolean;
+  end?: boolean;
 };
