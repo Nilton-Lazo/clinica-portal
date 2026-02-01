@@ -51,6 +51,35 @@ export const admisionMeta: Record<string, RouteMeta> = {
             { label: "Programacion" },
         ],
     },
+    "/admision/citas/agenda": {
+        title: "Agenda medica",
+        subtitle: "Agendamiento de citas según programación médica.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Agenda médica" },
+        ],
+    },
+    "/admision/citas/agenda/pacientes": {
+        title: "Agenda medica",
+        subtitle: "Selecciona un paciente para la cita.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Pacientes" },
+        ],
+    },
+    "/admision/citas/agenda/nueva": {
+        title: "Agenda medica",
+        subtitle: "Generar cita.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Generar cita" },
+        ],
+    },
 };
 
   

@@ -102,7 +102,7 @@ export default function ProgramacionCalendarCard(props: {
   const cellBorder = "border-b border-r border-(--border-color-default) last:border-r-0";
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="h-full border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex h-full flex-col gap-3">
         <div>
           <div className="text-sm font-semibold text-(--color-text-primary)">Modalidad de fechas</div>
@@ -119,7 +119,7 @@ export default function ProgramacionCalendarCard(props: {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 rounded-2xl border border-(--border-color-default) overflow-hidden">
+        <div className="flex-1 min-h-0 border border-(--border-color-default) overflow-hidden">
           <div className="flex items-center justify-between bg-(--color-panel-context) px-3 py-2">
             <button
               type="button"
