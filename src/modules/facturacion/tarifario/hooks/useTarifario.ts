@@ -359,14 +359,24 @@ export function useTarifario() {
     try {
       const result = await cloneTarifaFromBase(cloneTarifaId, { clone_all: true });
       const applied = result.applied;
-      setNotice({
-        type: "success",
-        text:
-          "Se clonó todo el tarifario. " +
-          `Categorías: ${applied.categorias}, ` +
-          `Subcategorías: ${applied.subcategorias}, ` +
-          `Servicios: ${applied.servicios}.`,
-      });
+      
+      let message = "";
+      if (applied.categorias === 0 && applied.subcategorias === 0 && applied.servicios === 0) {
+        message = "No hay elementos nuevos para clonar.";
+      } else {
+        const parts = [];
+        if (applied.categorias > 0) parts.push(`${applied.categorias} categorías`);
+        if (applied.subcategorias > 0) parts.push(`${applied.subcategorias} subcategorías`);
+        if (applied.servicios > 0) parts.push(`${applied.servicios} servicios`);
+        
+        message = `Se clonaron: ${parts.join(", ")}.`;
+        
+        if (applied.nomencladores_nulled_por_conflicto > 0) {
+          message += ` ${applied.nomencladores_nulled_por_conflicto} nomencladores omitidos por conflicto.`;
+        }
+      }
+      
+      setNotice({ type: "success", text: message });
       clearSelection();
       if (tarifaId === cloneTarifaId) {
         void refresh({ page: 1, silent: true });
@@ -394,14 +404,24 @@ export function useTarifario() {
         servicio_ids: Array.from(selectedServicios),
       });
       const applied = result.applied;
-      setNotice({
-        type: "success",
-        text:
-          "Clonación parcial completada. " +
-          `Categorías: ${applied.categorias}, ` +
-          `Subcategorías: ${applied.subcategorias}, ` +
-          `Servicios: ${applied.servicios}.`,
-      });
+      
+      let message = "";
+      if (applied.categorias === 0 && applied.subcategorias === 0 && applied.servicios === 0) {
+        message = "No hay elementos nuevos para clonar.";
+      } else {
+        const parts = [];
+        if (applied.categorias > 0) parts.push(`${applied.categorias} categorías`);
+        if (applied.subcategorias > 0) parts.push(`${applied.subcategorias} subcategorías`);
+        if (applied.servicios > 0) parts.push(`${applied.servicios} servicios`);
+        
+        message = `Se clonaron: ${parts.join(", ")}.`;
+        
+        if (applied.nomencladores_nulled_por_conflicto > 0) {
+          message += ` ${applied.nomencladores_nulled_por_conflicto} nomencladores omitidos por conflicto.`;
+        }
+      }
+      
+      setNotice({ type: "success", text: message });
       clearSelection();
       if (tarifaId === cloneTarifaId) {
         void refresh({ page: 1, silent: true });
