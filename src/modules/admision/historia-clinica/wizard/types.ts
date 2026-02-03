@@ -187,7 +187,7 @@ export const emptyDraft = (): PacienteDraft => ({
   direccion: "",
   ubigeo_domicilio: "",
 
-  parentesco_seguro: "",
+  parentesco_seguro: "TITULAR",
   titular_nombre: "",
 
   celular: "",
