@@ -5,6 +5,8 @@ import { PrimaryButton } from "../../../../../shared/ui/buttons";
 import AgendaMedicaCalendarCard from "../components/AgendaMedicaCalendarCard";
 import AgendaMedicaTable from "../components/AgendaMedicaTable";
 import AgendaMedicaMobileList from "../components/AgendaMedicaMobileList";
+import AgendaServicioProgramadoList from "../components/AgendaServicioProgramadoList";
+import AgendaMedicoProgramadoList from "../components/AgendaMedicoProgramadoList";
 import { useAgendaMedicaContext } from "../hooks/AgendaMedicaContext";
 
 const perPageOptions: SelectOption[] = [
@@ -54,20 +56,6 @@ export default function AgendaMedicaPage() {
     navigate(`/admision/citas/agenda/nueva?${params.toString()}`);
   }, [navigate, vm.selectedDateStr, vm.especialidadId, vm.medicoId]);
 
-  const noServicio = Boolean(vm.selectedDateStr) && !vm.opcionesLoading && vm.especialidadOptions.length === 0;
-  const noMedico =
-    Boolean(vm.selectedDateStr) &&
-    !vm.opcionesLoading &&
-    (noServicio || (Boolean(vm.especialidadId) && vm.medicoOptions.length === 0));
-  const servicioOptions = noServicio
-    ? [{ value: "__none", label: "Sin servicios programados", disabled: true }]
-    : vm.especialidadOptions;
-  const medicoOptions = noMedico
-    ? [{ value: "__none", label: "Sin médicos programados", disabled: true }]
-    : vm.medicoOptions;
-  const servicioValue = noServicio ? "__none" : vm.especialidadId ? String(vm.especialidadId) : "";
-  const medicoValue = noMedico ? "__none" : vm.medicoId ? String(vm.medicoId) : "";
-
   const summaryServicio = vm.programacion?.especialidad
     ? `${vm.programacion.especialidad.codigo} · ${vm.programacion.especialidad.descripcion}`
     : "—";
@@ -114,7 +102,7 @@ export default function AgendaMedicaPage() {
               />
             </div>
 
-            <div className="mt-6 rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-3">
+            <div className="mt-6 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-(--color-text-primary)">Programación seleccionada</div>
                 <button
@@ -123,38 +111,40 @@ export default function AgendaMedicaPage() {
                     vm.setEspecialidadId(null);
                     vm.setMedicoId(null);
                   }}
-                  className="text-xs text-(--color-text-secondary) hover:text-(--color-text-primary) hover:underline"
+                  disabled={!vm.selectedDateStr}
+                  className="text-xs text-(--color-text-secondary) hover:text-(--color-text-primary) hover:underline disabled:opacity-50 disabled:pointer-events-none"
                 >
                   Limpiar selección
                 </button>
               </div>
               <div>
-                <label className="text-sm text-(--color-text-primary)">Servicio programado</label>
-                <div className="mt-1">
-                  <SelectMenu
-                    value={servicioValue}
-                    onChange={(v) => vm.setEspecialidadId(v ? Number(v) : null)}
-                    options={servicioOptions}
-                    ariaLabel="Servicio programado"
-                    buttonClassName="w-full"
-                    menuClassName="min-w-full"
-                    disabled={!vm.selectedDateStr || vm.opcionesLoading || noServicio}
-                  />
-                </div>
+                <div className="mb-1 text-sm font-medium text-(--color-text-primary)">Lista de servicios:</div>
+                <AgendaServicioProgramadoList
+                  list={vm.especialidadesList}
+                  selectedId={vm.especialidadId}
+                  onSelect={(id) => {
+                    vm.setMedicoId(null);
+                    vm.setEspecialidadId(id);
+                  }}
+                  loading={vm.opcionesLoading}
+                  emptyMessage={vm.selectedDateStr ? "Sin servicios programados para esta fecha" : "Seleccione una fecha"}
+                />
               </div>
               <div>
-                <label className="text-sm text-(--color-text-primary)">Médico programado</label>
-                <div className="mt-1">
-                  <SelectMenu
-                    value={medicoValue}
-                    onChange={(v) => vm.setMedicoId(v ? Number(v) : null)}
-                    options={medicoOptions}
-                    ariaLabel="Médico programado"
-                    buttonClassName="w-full"
-                    menuClassName="min-w-full"
-                    disabled={!vm.selectedDateStr || vm.opcionesLoading || noMedico}
-                  />
-                </div>
+                <div className="mb-1 text-sm font-medium text-(--color-text-primary)">Lista de médicos:</div>
+                <AgendaMedicoProgramadoList
+                  list={vm.medicosList}
+                  selectedId={vm.medicoId}
+                  onSelect={(id) => vm.setMedicoId(id)}
+                  loading={vm.medicosLoading}
+                  emptyMessage={
+                    !vm.selectedDateStr
+                      ? "Seleccione una fecha"
+                      : vm.especialidadId === null
+                        ? "Seleccione un servicio"
+                        : "Sin médicos programados para este servicio"
+                  }
+                />
               </div>
             </div>
           </div>
@@ -186,35 +176,49 @@ export default function AgendaMedicaPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-sm">
-              <div>
-                <span className="text-(--color-text-secondary)">Servicio:</span>{" "}
-                <span className="text-(--color-text-primary) font-medium">{summaryServicio}</span>
-              </div>
-              <div>
-                <span className="text-(--color-text-secondary)">Médico:</span>{" "}
-                <span className="text-(--color-text-primary) font-medium">{summaryMedico}</span>
-              </div>
-              <div>
-                <span className="text-(--color-text-secondary)">Consultorio:</span>{" "}
-                <span className="text-(--color-text-primary) font-medium">{summaryConsultorio}</span>
-              </div>
-            </div>
+            {vm.selectedDateStr && vm.especialidadId && vm.medicoId ? (
+              <>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-sm">
+                  <div>
+                    <span className="text-(--color-text-secondary)">Servicio:</span>{" "}
+                    <span className="text-(--color-text-primary) font-medium">{summaryServicio}</span>
+                  </div>
+                  <div>
+                    <span className="text-(--color-text-secondary)">Médico:</span>{" "}
+                    <span className="text-(--color-text-primary) font-medium">{summaryMedico}</span>
+                  </div>
+                  <div>
+                    <span className="text-(--color-text-secondary)">Consultorio:</span>{" "}
+                    <span className="text-(--color-text-primary) font-medium">{summaryConsultorio}</span>
+                  </div>
+                </div>
 
-            <AgendaMedicaTable
-              data={vm.data}
-              loading={vm.loading}
-              page={vm.page}
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-            />
-            <AgendaMedicaMobileList
-              data={vm.data}
-              loading={vm.loading}
-              page={vm.page}
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-            />
+                <AgendaMedicaTable
+                  data={vm.data}
+                  loading={vm.loading}
+                  page={vm.page}
+                  onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                />
+                <AgendaMedicaMobileList
+                  data={vm.data}
+                  loading={vm.loading}
+                  page={vm.page}
+                  onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                />
+              </>
+            ) : (
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-(--border-color-default) bg-(--color-surface) py-8 text-center">
+                <p className="text-sm text-(--color-text-secondary)">
+                  {!vm.selectedDateStr
+                    ? "Seleccione una fecha en el calendario para cargar la programación."
+                    : !vm.especialidadId
+                      ? "Seleccione un servicio programado."
+                      : "Seleccione un médico programado."}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

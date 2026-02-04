@@ -5,13 +5,16 @@ export type AgendaEspecialidadOption = {
   id: number;
   codigo: string;
   descripcion: string;
+  cupos_disponibles?: number;
 };
 
 export type AgendaMedicoOption = {
   id: number;
+  codigo?: string | null;
   nombres: string;
   apellido_paterno: string;
   apellido_materno: string;
+  cmp?: string | null;
 };
 
 export type AgendaOpciones = {

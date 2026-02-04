@@ -3,6 +3,8 @@ import type { SelectOption } from "../../../../../shared/ui/SelectMenu";
 import type {
   AgendaCita,
   AgendaCitasPaginated,
+  AgendaEspecialidadOption,
+  AgendaMedicoOption,
   AgendaOpciones,
   AgendaProgramacion,
   AgendaSlotsResponse,
@@ -45,14 +47,16 @@ export function useAgendaMedica() {
   const draftLoadedRef = React.useRef(false);
   const draftReadyRef = React.useRef(false);
 
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(() => new Date());
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const selectedDateStr = React.useMemo(() => (selectedDate ? ymd(selectedDate) : ""), [selectedDate]);
 
   const [especialidadId, setEspecialidadId] = React.useState<number | null>(null);
   const [medicoId, setMedicoId] = React.useState<number | null>(null);
 
-  const [opciones, setOpciones] = React.useState<AgendaOpciones>({ especialidades: [], medicos: [] });
+  const [especialidadesList, setEspecialidadesList] = React.useState<AgendaEspecialidadOption[]>([]);
+  const [medicosList, setMedicosList] = React.useState<AgendaMedicoOption[]>([]);
   const [opcionesLoading, setOpcionesLoading] = React.useState(false);
+  const [medicosLoading, setMedicosLoading] = React.useState(false);
 
   const [slots, setSlots] = React.useState<AgendaSlotsResponse | null>(null);
   const [slotsLoading, setSlotsLoading] = React.useState(false);
@@ -123,12 +127,12 @@ export function useAgendaMedica() {
   const [extraVisible, setExtraVisible] = React.useState(0);
 
   const especialidadOptions: SelectOption[] = React.useMemo(
-    () => opciones.especialidades.map((e) => ({ value: String(e.id), label: `${e.codigo} · ${e.descripcion}` })),
-    [opciones.especialidades]
+    () => especialidadesList.map((e) => ({ value: String(e.id), label: `${e.codigo} · ${e.descripcion}` })),
+    [especialidadesList]
   );
   const medicoOptions: SelectOption[] = React.useMemo(
-    () => opciones.medicos.map((m) => ({ value: String(m.id), label: medicoLabel(m) })),
-    [opciones.medicos]
+    () => medicosList.map((m) => ({ value: String(m.id), label: medicoLabel(m) })),
+    [medicosList]
   );
 
   const allSlots = React.useMemo(() => {
@@ -172,19 +176,23 @@ export function useAgendaMedica() {
   const canAddAdicional = baseFull && adicionalVisible < adicionalesTotal;
   const canAddExtra = baseFull && adicionalUsado && extraVisible < extrasTotal;
 
+  // Cargar especialidades solo cuando hay fecha seleccionada.
   React.useEffect(() => {
     if (!selectedDateStr) {
-      setOpciones({ especialidades: [], medicos: [] });
+      setEspecialidadesList([]);
+      setMedicosList([]);
+      setEspecialidadId(null);
+      setMedicoId(null);
       return;
     }
     setOpcionesLoading(true);
-    getAgendaOpciones({
-      fecha: selectedDateStr,
-      especialidad_id: especialidadId ?? undefined,
-      medico_id: medicoId ?? undefined,
-    })
+    setMedicosList([]);
+    setMedicoId(null);
+    getAgendaOpciones({ fecha: selectedDateStr })
       .then((data) => {
-        setOpciones(data);
+        setEspecialidadesList(data.especialidades);
+        const ids = data.especialidades.map((e) => e.id);
+        setEspecialidadId((prev) => (prev !== null && ids.includes(prev) ? prev : data.especialidades[0]?.id ?? null));
       })
       .catch((e) => {
         const err = toApiError(e);
@@ -192,24 +200,42 @@ export function useAgendaMedica() {
           err.kind === "validation"
             ? Object.values(err.errors).flat()[0] ?? err.message
             : err.message;
-        setNotice({ type: "error", text: msg || "No se pudieron cargar opciones de agenda." });
+        setNotice({ type: "error", text: msg || "No se pudieron cargar servicios programados." });
+        setEspecialidadesList([]);
+        setEspecialidadId(null);
       })
       .finally(() => setOpcionesLoading(false));
-  }, [selectedDateStr, especialidadId, medicoId, reloadFlag]);
+  }, [selectedDateStr, reloadFlag]);
 
+  // Cargar médicos cuando hay fecha y servicio seleccionado; por defecto se selecciona el primero.
+  // Al cambiar de servicio, limpiar médico de inmediato para no llamar a slots con (fecha, nuevoServicio, médicoViejo).
   React.useEffect(() => {
-    if (!selectedDateStr || opcionesLoading) return;
-    if (especialidadId && !opciones.especialidades.some((e) => e.id === especialidadId)) {
-      setEspecialidadId(null);
-    }
-  }, [opciones.especialidades, especialidadId, opcionesLoading, selectedDateStr]);
-
-  React.useEffect(() => {
-    if (!selectedDateStr || opcionesLoading) return;
-    if (medicoId && !opciones.medicos.some((m) => m.id === medicoId)) {
+    if (!selectedDateStr || especialidadId === null) {
+      setMedicosList([]);
       setMedicoId(null);
+      return;
     }
-  }, [opciones.medicos, medicoId, opcionesLoading, selectedDateStr]);
+    setMedicosList([]);
+    setMedicoId(null);
+    setMedicosLoading(true);
+    getAgendaOpciones({ fecha: selectedDateStr, especialidad_id: especialidadId })
+      .then((data) => {
+        setMedicosList(data.medicos);
+        const ids = data.medicos.map((m) => m.id);
+        setMedicoId((prev) => (prev !== null && ids.includes(prev) ? prev : data.medicos[0]?.id ?? null));
+      })
+      .catch((e) => {
+        const err = toApiError(e);
+        const msg =
+          err.kind === "validation"
+            ? Object.values(err.errors).flat()[0] ?? err.message
+            : err.message;
+        setNotice({ type: "error", text: msg || "No se pudieron cargar médicos programados." });
+        setMedicosList([]);
+        setMedicoId(null);
+      })
+      .finally(() => setMedicosLoading(false));
+  }, [selectedDateStr, especialidadId, reloadFlag]);
 
   React.useEffect(() => {
     if (!selectedDateStr || !especialidadId || !medicoId) {
@@ -434,8 +460,10 @@ export function useAgendaMedica() {
     setEspecialidadId,
     medicoId,
     setMedicoId,
-    opciones,
+    especialidadesList,
+    medicosList,
     opcionesLoading,
+    medicosLoading,
     especialidadOptions,
     medicoOptions,
     slots,
