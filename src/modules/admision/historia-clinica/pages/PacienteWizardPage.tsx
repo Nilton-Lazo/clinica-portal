@@ -153,12 +153,12 @@ function WizardInner({
     const tipo = String((d as unknown as { tipo_documento?: unknown })?.tipo_documento ?? "").trim().toUpperCase();
     if (!tipo) return false;
 
+    if (tipo === "SIN_DOCUMENTO") return true;
+
     const parentesco = String((d as unknown as { parentesco_seguro?: unknown })?.parentesco_seguro ?? "").trim();
     const titular = String((d as unknown as { titular_nombre?: unknown })?.titular_nombre ?? "").trim();
     if (!parentesco) return false;
     if (!titular) return false;
-
-    if (tipo === "SIN_DOCUMENTO") return true;
 
     const nd = String((d as unknown as { numero_documento?: unknown })?.numero_documento ?? "").trim();
     const n = String((d as unknown as { nombres?: unknown })?.nombres ?? "").trim();

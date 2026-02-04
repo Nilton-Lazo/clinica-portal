@@ -255,7 +255,13 @@ export function DatosGeneralesStep({
           <SelectField
             label="Tipo de documento *"
             value={d.tipo_documento}
-            onChange={(v) => actions.set({ tipo_documento: v })}
+            onChange={(v) => {
+              const esSinDoc = String(v).trim().toUpperCase() === "SIN_DOCUMENTO";
+              actions.set({
+                tipo_documento: v,
+                parentesco_seguro: esSinDoc ? "" : "TITULAR",
+              });
+            }}
             options={tipoDocOptions}
             ariaLabel="Tipo de documento"
             buttonClassName="w-full"
