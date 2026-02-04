@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
-import { PrimaryButton } from "../../../../../shared/ui/buttons";
+import { DangerButton, PrimaryButton } from "../../../../../shared/ui/buttons";
+import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import AgendaMedicaCalendarCard from "../components/AgendaMedicaCalendarCard";
 import AgendaMedicaTable from "../components/AgendaMedicaTable";
 import AgendaMedicaMobileList from "../components/AgendaMedicaMobileList";
@@ -55,6 +56,15 @@ export default function AgendaMedicaPage() {
     if (vm.medicoId) params.set("medico_id", String(vm.medicoId));
     navigate(`/admision/citas/agenda/nueva?${params.toString()}`);
   }, [navigate, vm.selectedDateStr, vm.especialidadId, vm.medicoId]);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (!vm.confirmEliminarOpen && vm.selectedCita) vm.setConfirmEliminarOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [vm.confirmEliminarOpen, vm.selectedCita, vm.setConfirmEliminarOpen]);
 
   const summaryServicio = vm.programacion?.especialidad
     ? `${vm.programacion.especialidad.descripcion}`
@@ -170,8 +180,14 @@ export default function AgendaMedicaPage() {
                     menuClassName="min-w-full"
                   />
                 </div>
+                <DangerButton
+                  onClick={vm.requestEliminarCita}
+                  disabled={!vm.selectedCita}
+                >
+                  Eliminar cita
+                </DangerButton>
                 <PrimaryButton onClick={onNuevaCita} disabled={!vm.programacion || vm.slotsLoading}>
-                Generar cita
+                  Generar cita
                 </PrimaryButton>
               </div>
             </div>
@@ -199,6 +215,8 @@ export default function AgendaMedicaPage() {
                   page={vm.page}
                   onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                   onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                  selectedId={vm.selectedCita?.id ?? null}
+                  onSelect={(row) => vm.setSelectedCita(row)}
                 />
                 <AgendaMedicaMobileList
                   data={vm.data}
@@ -206,6 +224,8 @@ export default function AgendaMedicaPage() {
                   page={vm.page}
                   onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                   onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                  selectedId={vm.selectedCita?.id ?? null}
+                  onSelect={(row) => vm.setSelectedCita(row)}
                 />
               </>
             ) : (
@@ -222,6 +242,21 @@ export default function AgendaMedicaPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={vm.confirmEliminarOpen}
+        title="Eliminar cita"
+        description={
+          vm.selectedCita
+            ? "¿Estás seguro de eliminar esta cita? La hora quedará libre para otra cita. El registro se conservará en el sistema."
+            : "Selecciona una cita."
+        }
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        destructive
+        onCancel={() => vm.setConfirmEliminarOpen(false)}
+        onConfirm={vm.onEliminarCitaConfirmed}
+      />
     </div>
   );
 }

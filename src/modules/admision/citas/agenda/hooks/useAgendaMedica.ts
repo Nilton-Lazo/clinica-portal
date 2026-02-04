@@ -5,12 +5,13 @@ import type {
   AgendaCitasPaginated,
   AgendaEspecialidadOption,
   AgendaMedicoOption,
-  AgendaOpciones,
+  // AgendaOpciones,
   AgendaProgramacion,
   AgendaSlotsResponse,
   PacienteAgenda,
 } from "../types/agendaMedica.types";
 import {
+  anularAgendaCita,
   createAgendaCita,
   getAgendaOpciones,
   getAgendaSlots,
@@ -82,6 +83,9 @@ export function useAgendaMedica() {
   const [iafaId, setIafaId] = React.useState<number | null>(null);
   const [paciente, setPaciente] = React.useState<PacienteAgenda | null>(null);
   const [pacienteLoading, setPacienteLoading] = React.useState(false);
+
+  const [selectedCita, setSelectedCita] = React.useState<AgendaCita | null>(null);
+  const [confirmEliminarOpen, setConfirmEliminarOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (noticeTimerRef.current) {
@@ -474,8 +478,13 @@ export function useAgendaMedica() {
       setReloadFlag((v) => v + 1);
       setPage(1);
       return true;
-    } catch {
-      setNotice({ type: "error", text: "No se pudo agendar la cita." });
+    } catch (e) {
+      const err = toApiError(e);
+      const msg =
+        err.kind === "validation"
+          ? Object.values(err.errors).flat()[0] ?? err.message
+          : err.message;
+      setNotice({ type: "error", text: msg ?? "No se pudo agendar la cita." });
       return false;
     }
   }, [programacion, hora, paciente, motivo, observacion, autorizacion, iafaId, selectedDateStr, especialidadId, medicoId]);
@@ -484,6 +493,29 @@ export function useAgendaMedica() {
     const d = parseYmd(value);
     setSelectedDate(d);
   }, []);
+
+  const requestEliminarCita = React.useCallback(() => {
+    if (!selectedCita) return;
+    setConfirmEliminarOpen(true);
+  }, [selectedCita]);
+
+  const onEliminarCitaConfirmed = React.useCallback(async () => {
+    if (!selectedCita) return;
+    setConfirmEliminarOpen(false);
+    try {
+      await anularAgendaCita(selectedCita.id);
+      setNotice({ type: "success", text: "Cita eliminada, la hora quedó libre para otra cita." });
+      setSelectedCita(null);
+      setReloadFlag((v) => v + 1);
+    } catch (e) {
+      const err = toApiError(e);
+      const msg =
+        err.kind === "validation"
+          ? Object.values(err.errors).flat()[0] ?? err.message
+          : err.message;
+      setNotice({ type: "error", text: msg ?? "No se pudo eliminar la cita." });
+    }
+  }, [selectedCita]);
 
   return {
     notice,
@@ -537,6 +569,12 @@ export function useAgendaMedica() {
     onAgendar,
     clearDraft,
     saveDraft,
+    selectedCita,
+    setSelectedCita,
+    confirmEliminarOpen,
+    setConfirmEliminarOpen,
+    requestEliminarCita,
+    onEliminarCitaConfirmed,
     /** Refresca slots al entrar en Nueva cita (sin paciente_id). No preserva contadores para que se aplique la lógica de Adicional/Extra agotados. */
     refetchSlotsForNuevaCita: React.useCallback(() => setReloadFlag((v) => v + 1), []),
   };

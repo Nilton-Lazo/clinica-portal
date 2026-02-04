@@ -9,8 +9,10 @@ export default function AgendaMedicaTable(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  selectedId: number | null;
+  onSelect: (row: AgendaCita) => void;
 }) {
-  const { data, loading, onPrev, onNext } = props;
+  const { data, loading, onPrev, onNext, selectedId, onSelect } = props;
 
   const formatHora = (value?: string | null) => {
     if (!value) return "—";
@@ -102,7 +104,14 @@ export default function AgendaMedicaTable(props: {
 
   return (
     <div className="hidden h-full min-h-0 flex-col lg:flex">
-      <DataTable rows={data.data} columns={columns} loading={loading} getRowId={(x) => x.id} />
+      <DataTable
+        rows={data.data}
+        columns={columns}
+        loading={loading}
+        getRowId={(x) => x.id}
+        selectedId={selectedId}
+        onSelect={onSelect}
+      />
       <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} />
     </div>
   );

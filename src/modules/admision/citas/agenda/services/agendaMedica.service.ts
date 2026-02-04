@@ -80,6 +80,10 @@ export async function createAgendaCita(payload: AgendaCitaPayload) {
   return unwrapData<unknown>(res);
 }
 
+export async function anularAgendaCita(id: number): Promise<void> {
+  await api.patch(`/admision/citas/agenda-medica/${id}/anular`);
+}
+
 export async function getPacienteAgenda(id: number): Promise<PacienteAgenda> {
   const res = await api.get<unknown>(`/admision/pacientes/${id}`);
   const x = unwrapData<any>(res) ?? {};

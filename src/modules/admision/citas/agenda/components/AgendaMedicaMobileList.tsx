@@ -9,8 +9,10 @@ export default function AgendaMedicaMobileList(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  selectedId: number | null;
+  onSelect: (row: AgendaCita) => void;
 }) {
-  const { data, loading, onPrev, onNext } = props;
+  const { data, loading, onPrev, onNext, selectedId, onSelect } = props;
 
   const formatHora = (value?: string | null) => {
     if (!value) return "—";
@@ -30,9 +32,9 @@ export default function AgendaMedicaMobileList(props: {
       <MobileEntityList<AgendaCita>
         rows={data.data}
         loading={loading}
-        selectedId={null}
+        selectedId={selectedId}
         getRowId={(x) => x.id}
-        onSelect={() => {}}
+        onSelect={onSelect}
         renderMain={(x) => (
           <div className="min-w-0">
             <div className="text-sm font-semibold text-(--color-text-primary) tabular-nums">
