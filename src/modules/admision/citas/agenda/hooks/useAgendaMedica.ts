@@ -176,10 +176,10 @@ export function useAgendaMedica() {
   const extrasTotal = slots?.extras ?? 0;
   const baseFull = slots ? baseAvailable.length === 0 : false;
   const canAddAdicional = baseFull && adicionalVisible < adicionalesTotal;
-  const canAddExtra =
-    baseFull &&
-    adicionalVisible >= adicionalesTotal &&
-    extraVisible < extrasTotal;
+  const adicionalesAllTaken =
+    adicionalesTotal === 0 ||
+    (slots?.slots_adicional ?? []).every((h) => takenSet.has(h));
+  const canAddExtra = baseFull && adicionalesAllTaken && extraVisible < extrasTotal;
 
   // Cargar especialidades solo cuando hay fecha seleccionada.
   React.useEffect(() => {
