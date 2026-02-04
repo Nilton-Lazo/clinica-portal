@@ -46,6 +46,8 @@ export function useAgendaMedica() {
   const draftKeyRef = React.useRef("admision:agendaMedicaDraft");
   const draftLoadedRef = React.useRef(false);
   const draftReadyRef = React.useRef(false);
+  /** Número de respuestas de slots para las que NO resetear contadores (vuelta de Buscar paciente; evita que un 2.º .then por Strict Mode limpie la Hora). */
+  const preserveVisibleCountersRef = React.useRef(0);
 
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const selectedDateStr = React.useMemo(() => (selectedDate ? ymd(selectedDate) : ""), [selectedDate]);
@@ -169,12 +171,11 @@ export function useAgendaMedica() {
   const adicionalesTotal = slots?.adicionales ?? 0;
   const extrasTotal = slots?.extras ?? 0;
   const baseFull = slots ? baseAvailable.length === 0 : false;
-  const adicionalUsado = React.useMemo(() => {
-    if (!slots) return false;
-    return (slots.slots_adicional ?? []).some((t) => takenSet.has(t));
-  }, [slots, takenSet]);
   const canAddAdicional = baseFull && adicionalVisible < adicionalesTotal;
-  const canAddExtra = baseFull && adicionalUsado && extraVisible < extrasTotal;
+  const canAddExtra =
+    baseFull &&
+    adicionalVisible >= adicionalesTotal &&
+    extraVisible < extrasTotal;
 
   // Cargar especialidades solo cuando hay fecha seleccionada.
   React.useEffect(() => {
@@ -250,8 +251,17 @@ export function useAgendaMedica() {
       .then((res) => {
         setSlots(res);
         setProgramacion(res.programacion ?? null);
-        setAdicionalVisible(0);
-        setExtraVisible(0);
+        if (preserveVisibleCountersRef.current > 0) {
+          preserveVisibleCountersRef.current -= 1;
+        } else {
+          const taken = new Set((res.slots_tomados ?? []).map((h) => (String(h).length >= 5 ? String(h).slice(0, 5) : String(h))));
+          const adicionales = res.slots_adicional ?? [];
+          const extras = res.slots_extra ?? [];
+          const allAdicionalTaken = adicionales.length > 0 && adicionales.every((h) => taken.has(String(h).slice(0, 5)));
+          const allExtraTaken = extras.length > 0 && extras.every((h) => taken.has(String(h).slice(0, 5)));
+          setAdicionalVisible(allAdicionalTaken ? adicionales.length : 0);
+          setExtraVisible(allExtraTaken ? extras.length : 0);
+        }
       })
       .catch((e) => {
         const err = toApiError(e);
@@ -340,14 +350,41 @@ export function useAgendaMedica() {
   }, [hora, slotOrderMap]);
 
   const onAddAdicional = React.useCallback(() => {
-    if (!canAddAdicional) return;
-    setAdicionalVisible((v) => Math.min(adicionalesTotal, v + 1));
-  }, [canAddAdicional, adicionalesTotal]);
+    if (!canAddAdicional || !slots) return;
+    const src = slots.slots_adicional ?? [];
+    // El slot que estamos revelando es el que está en el índice actual de la lista completa
+    // (no de la lista filtrada por no tomados), para evitar el bug del “segundo clic”.
+    // Revelar hasta el siguiente slot disponible y seleccionarlo en un solo clic.
+    let nextVisible = adicionalVisible + 1;
+    while (nextVisible <= adicionalesTotal) {
+      const slot = src[nextVisible - 1] ?? null;
+      if (slot && !takenSet.has(slot)) {
+        setAdicionalVisible(nextVisible);
+        setHora(slot);
+        setOrden(slotOrderMap.get(slot) ?? null);
+        return;
+      }
+      nextVisible++;
+    }
+    setAdicionalVisible(adicionalesTotal);
+  }, [canAddAdicional, adicionalesTotal, slots, takenSet, adicionalVisible, slotOrderMap]);
 
   const onAddExtra = React.useCallback(() => {
-    if (!canAddExtra) return;
-    setExtraVisible((v) => Math.min(extrasTotal, v + 1));
-  }, [canAddExtra, extrasTotal]);
+    if (!canAddExtra || !slots) return;
+    const src = slots.slots_extra ?? [];
+    let nextVisible = extraVisible + 1;
+    while (nextVisible <= extrasTotal) {
+      const slot = src[nextVisible - 1] ?? null;
+      if (slot && !takenSet.has(slot)) {
+        setExtraVisible(nextVisible);
+        setHora(slot);
+        setOrden(slotOrderMap.get(slot) ?? null);
+        return;
+      }
+      nextVisible++;
+    }
+    setExtraVisible(extrasTotal);
+  }, [canAddExtra, extrasTotal, slots, takenSet, extraVisible, slotOrderMap]);
 
   const onSelectPaciente = React.useCallback(async (id: number) => {
     setPacienteLoading(true);
@@ -500,5 +537,7 @@ export function useAgendaMedica() {
     onAgendar,
     clearDraft,
     saveDraft,
+    /** Refresca slots al entrar en Nueva cita (sin paciente_id). No preserva contadores para que se aplique la lógica de Adicional/Extra agotados. */
+    refetchSlotsForNuevaCita: React.useCallback(() => setReloadFlag((v) => v + 1), []),
   };
 }

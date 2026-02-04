@@ -30,6 +30,10 @@ export default function AgendaMedicaNuevaCitaPage() {
     if (med) vm.setMedicoId(Number(med));
     if (hora) vm.onPickHora(hora);
     if (pacienteId) void vm.onSelectPaciente(Number(pacienteId));
+
+    // Refrescar slots solo si NO venimos de Buscar paciente (sin paciente_id).
+    // Si venimos con paciente_id, no refetch para no resetear contadores y no limpiar Hora.
+    if (!pacienteId) vm.refetchSlotsForNuevaCita?.();
   }, [searchParams, vm]);
 
   const onBuscarPaciente = React.useCallback(() => {
@@ -131,6 +135,7 @@ export default function AgendaMedicaNuevaCitaPage() {
                   <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
                     <div className="min-w-40">
                       <SelectMenu
+                        key={`hora-${vm.availableHoras.join(",")}`}
                         value={vm.hora}
                         onChange={(v) => vm.onPickHora(v ?? "")}
                         options={vm.availableHoras.map((h) => ({ value: h, label: h }))}
@@ -140,10 +145,16 @@ export default function AgendaMedicaNuevaCitaPage() {
                         disabled={!vm.programacion}
                       />
                     </div>
-                    <SecondaryButton disabled={!vm.canAddAdicional} onClick={vm.onAddAdicional}>
+                    <SecondaryButton
+                      disabled={vm.slotsLoading || !vm.canAddAdicional}
+                      onClick={vm.onAddAdicional}
+                    >
                       Adicional
                     </SecondaryButton>
-                    <SecondaryButton disabled={!vm.canAddExtra} onClick={vm.onAddExtra}>
+                    <SecondaryButton
+                      disabled={vm.slotsLoading || !vm.canAddExtra}
+                      onClick={vm.onAddExtra}
+                    >
                       Extra
                     </SecondaryButton>
                   </div>

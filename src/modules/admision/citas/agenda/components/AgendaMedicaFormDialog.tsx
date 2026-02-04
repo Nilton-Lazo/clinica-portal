@@ -123,6 +123,7 @@ export default function AgendaMedicaFormDialog(props: {
                 <label className="text-sm text-(--color-text-primary)">Hora</label>
                 <div className="mt-1 flex gap-2">
                   <SelectMenu
+                    key={`hora-${availableHoras.join(",")}`}
                     value={hora}
                     onChange={(v) => onHoraChange(v ?? "")}
                     options={availableHoras.map((h) => ({ value: h, label: h }))}

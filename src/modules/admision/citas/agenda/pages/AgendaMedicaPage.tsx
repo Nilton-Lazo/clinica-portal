@@ -57,7 +57,7 @@ export default function AgendaMedicaPage() {
   }, [navigate, vm.selectedDateStr, vm.especialidadId, vm.medicoId]);
 
   const summaryServicio = vm.programacion?.especialidad
-    ? `${vm.programacion.especialidad.codigo} · ${vm.programacion.especialidad.descripcion}`
+    ? `${vm.programacion.especialidad.descripcion}`
     : "—";
   const summaryMedico = formatMedicoLabel(vm.programacion?.medico) || "—";
   const summaryConsultorio = vm.programacion?.consultorio

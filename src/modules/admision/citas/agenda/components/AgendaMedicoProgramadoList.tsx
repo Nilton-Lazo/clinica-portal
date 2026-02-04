@@ -41,7 +41,7 @@ export default function AgendaMedicoProgramadoList({
   return (
     <div className="border border-(--border-color-default) bg-(--color-surface)">
       <div className={`grid ${gridCols} border-b border-(--border-color-default) bg-(--color-panel-context)`}>
-        <div className={`min-w-[4rem] px-2 py-2 text-center text-xs font-semibold text-(--color-text-secondary) ${cellBorder}`}>
+        <div className={`min-w-16 px-2 py-2 text-center text-xs font-semibold text-(--color-text-secondary) ${cellBorder}`}>
           Código
         </div>
         <div className={`px-2 py-2 text-left text-xs font-semibold text-(--color-text-secondary) ${cellBorder}`}>
@@ -68,7 +68,7 @@ export default function AgendaMedicoProgramadoList({
               aria-pressed={isSelected}
               aria-label={`Seleccionar ${medicoLabel(m)}`}
             >
-              <div className={`min-w-[4rem] px-2 py-2 text-center text-sm tabular-nums text-(--color-text-primary) ${cellBorder}`}>
+              <div className={`min-w-16 px-2 py-2 text-center text-sm tabular-nums text-(--color-text-primary) ${cellBorder}`}>
                 {m.codigo != null && String(m.codigo).trim() !== "" ? String(m.codigo).trim() : "—"}
               </div>
               <div className={`min-w-0 px-2 py-2 text-left text-sm text-(--color-text-primary) truncate ${cellBorder}`}>
