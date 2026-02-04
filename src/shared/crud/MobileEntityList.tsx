@@ -1,5 +1,7 @@
 import * as React from "react";
 
+const LONG_PRESS_MS = 500;
+
 export function MobileEntityList<T>(props: {
   rows: T[];
   loading: boolean;
@@ -9,8 +11,43 @@ export function MobileEntityList<T>(props: {
   renderMain: (row: T) => React.ReactNode;
   renderRight?: (row: T) => React.ReactNode;
   emptyText?: string;
+  onLongPress?: (row: T) => void;
 }) {
-  const { rows, loading, selectedId, getRowId, onSelect, renderMain, renderRight, emptyText } = props;
+  const { rows, loading, selectedId, getRowId, onSelect, renderMain, renderRight, emptyText, onLongPress } = props;
+  const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressHandledRef = React.useRef(false);
+
+  const clearLongPressTimer = React.useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleTouchStart = React.useCallback(
+    (row: T) => {
+      if (!onLongPress) return;
+      longPressHandledRef.current = false;
+      clearLongPressTimer();
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTimerRef.current = null;
+        longPressHandledRef.current = true;
+        if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(50);
+        onLongPress(row);
+      }, LONG_PRESS_MS);
+    },
+    [onLongPress, clearLongPressTimer]
+  );
+
+  const handleTouchEnd = React.useCallback(() => {
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
+
+  const handleTouchMove = React.useCallback(() => {
+    clearLongPressTimer();
+  }, [clearLongPressTimer]);
+
+  React.useEffect(() => () => clearLongPressTimer(), [clearLongPressTimer]);
 
   if (loading) {
     return (
@@ -38,7 +75,14 @@ export function MobileEntityList<T>(props: {
           <button
             key={String(id)}
             type="button"
-            onClick={() => onSelect(row)}
+            onClick={() => {
+              if (longPressHandledRef.current) return;
+              onSelect(row);
+            }}
+            onTouchStart={() => handleTouchStart(row)}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onTouchMove={handleTouchMove}
             className={[
               "w-full rounded-2xl border border-(--border-color-default) p-4 text-left",
               "transition-transform duration-150 active:scale-[0.99]",

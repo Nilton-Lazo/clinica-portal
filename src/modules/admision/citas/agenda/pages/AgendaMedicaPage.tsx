@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
-import { DangerButton, PrimaryButton } from "../../../../../shared/ui/buttons";
+import { PrimaryButton } from "../../../../../shared/ui/buttons";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import AgendaMedicaCalendarCard from "../components/AgendaMedicaCalendarCard";
 import AgendaMedicaTable from "../components/AgendaMedicaTable";
@@ -180,12 +180,6 @@ export default function AgendaMedicaPage() {
                     menuClassName="min-w-full"
                   />
                 </div>
-                <DangerButton
-                  onClick={vm.requestEliminarCita}
-                  disabled={!vm.selectedCita}
-                >
-                  Eliminar cita
-                </DangerButton>
                 <PrimaryButton onClick={onNuevaCita} disabled={!vm.programacion || vm.slotsLoading}>
                   Generar cita
                 </PrimaryButton>
@@ -226,6 +220,10 @@ export default function AgendaMedicaPage() {
                   onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
                   selectedId={vm.selectedCita?.id ?? null}
                   onSelect={(row) => vm.setSelectedCita(row)}
+                  onLongPress={(row) => {
+                    vm.setSelectedCita(row);
+                    vm.setConfirmEliminarOpen(true);
+                  }}
                 />
               </>
             ) : (

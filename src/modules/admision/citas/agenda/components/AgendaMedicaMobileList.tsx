@@ -11,8 +11,9 @@ export default function AgendaMedicaMobileList(props: {
   onNext: () => void;
   selectedId: number | null;
   onSelect: (row: AgendaCita) => void;
+  onLongPress?: (row: AgendaCita) => void;
 }) {
-  const { data, loading, onPrev, onNext, selectedId, onSelect } = props;
+  const { data, loading, onPrev, onNext, selectedId, onSelect, onLongPress } = props;
 
   const formatHora = (value?: string | null) => {
     if (!value) return "—";
@@ -35,6 +36,7 @@ export default function AgendaMedicaMobileList(props: {
         selectedId={selectedId}
         getRowId={(x) => x.id}
         onSelect={onSelect}
+        onLongPress={onLongPress}
         renderMain={(x) => (
           <div className="min-w-0">
             <div className="text-sm font-semibold text-(--color-text-primary) tabular-nums">
