@@ -7,7 +7,7 @@ function medicoLabel(m: AgendaMedicoOption): string {
 
 const cellBorder = "border-b border-r border-(--border-color-default) last:border-r-0";
 
-const gridCols = "grid-cols-[4rem_1fr_5rem]";
+const gridCols = "grid-cols-[4rem_1fr_4.5rem]";
 
 export default function AgendaMedicoProgramadoList({
   list,
@@ -74,7 +74,7 @@ export default function AgendaMedicoProgramadoList({
               <div className={`min-w-0 px-2 py-2 text-left text-sm text-(--color-text-primary) truncate ${cellBorder}`}>
                 {medicoLabel(m)}
               </div>
-              <div className={`px-2 py-2 text-center text-sm tabular-nums text-(--color-text-secondary) ${cellBorder}`}>
+              <div className={`min-w-0 px-2 py-2 text-center text-sm tabular-nums text-(--color-text-secondary) truncate ${cellBorder}`} title={m.cmp ?? undefined}>
                 {m.cmp ?? "—"}
               </div>
             </button>
