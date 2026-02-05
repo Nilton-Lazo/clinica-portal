@@ -8,6 +8,7 @@ import type {
   // AgendaOpciones,
   AgendaProgramacion,
   AgendaSlotsResponse,
+  CitaAtencionEstado,
   PacienteAgenda,
 } from "../types/agendaMedica.types";
 import {
@@ -73,6 +74,7 @@ export function useAgendaMedica() {
   const [loading, setLoading] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(25);
+  const [estadoAtencionFilter, setEstadoAtencionFilter] = React.useState<"ALL" | CitaAtencionEstado>("ALL");
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [hora, setHora] = React.useState("");
@@ -282,7 +284,7 @@ export function useAgendaMedica() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [selectedDateStr, especialidadId, medicoId, perPage]);
+  }, [selectedDateStr, especialidadId, medicoId, perPage, estadoAtencionFilter]);
 
   React.useEffect(() => {
     if (!selectedDateStr || !especialidadId || !medicoId) {
@@ -294,6 +296,7 @@ export function useAgendaMedica() {
       fecha: selectedDateStr,
       especialidad_id: especialidadId,
       medico_id: medicoId,
+      estado_atencion: estadoAtencionFilter === "ALL" ? undefined : estadoAtencionFilter,
       page,
       per_page: perPage,
     })
@@ -310,7 +313,7 @@ export function useAgendaMedica() {
         setNotice({ type: "error", text: msg || "No se pudieron cargar las citas." });
       })
       .finally(() => setLoading(false));
-  }, [selectedDateStr, especialidadId, medicoId, page, perPage, reloadFlag]);
+  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, reloadFlag]);
 
   const resetForm = React.useCallback(() => {
     setHora("");
@@ -543,6 +546,8 @@ export function useAgendaMedica() {
     setPage,
     perPage,
     setPerPage,
+    estadoAtencionFilter,
+    setEstadoAtencionFilter,
     programacion,
     formOpen,
     openForm,

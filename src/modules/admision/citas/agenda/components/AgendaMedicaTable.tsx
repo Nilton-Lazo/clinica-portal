@@ -1,7 +1,7 @@
-import type { AgendaCita, AgendaCitasPaginated } from "../types/agendaMedica.types";
+import type { AgendaCita, AgendaCitasPaginated, CitaAtencionEstado } from "../types/agendaMedica.types";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
-import { StatusBadge } from "../../../ficheros/components/StatusBadge";
+import { CitaAtencionBadge } from "./CitaAtencionBadge";
 
 export default function AgendaMedicaTable(props: {
   data: AgendaCitasPaginated;
@@ -35,6 +35,13 @@ export default function AgendaMedicaTable(props: {
       headerClassName: "text-center w-24",
       cellClassName: "px-3 py-2 text-center tabular-nums",
       render: (x) => formatHora(x.hora),
+    },
+    {
+      key: "h_ing",
+      header: "H. Ing.",
+      headerClassName: "text-center w-20 whitespace-nowrap",
+      cellClassName: "px-3 py-2 text-center tabular-nums font-semibold",
+      render: (x) => (x.estado_atencion === "PENDIENTE" ? "P" : x.estado_atencion === "ATENDIDO" ? "A" : "—"),
     },
     {
       key: "hc",
@@ -96,7 +103,7 @@ export default function AgendaMedicaTable(props: {
       cellClassName: "px-3 py-2 text-center",
       render: (x) => (
         <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
+          <CitaAtencionBadge estado={(x.estado_atencion ?? "PENDIENTE") as CitaAtencionEstado} />
         </div>
       ),
     },

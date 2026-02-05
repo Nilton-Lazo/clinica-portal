@@ -16,6 +16,12 @@ const perPageOptions: SelectOption[] = [
   { value: "100", label: "100" },
 ];
 
+const estadoAtencionOptions: SelectOption[] = [
+  { value: "ALL", label: "Todos" },
+  { value: "PENDIENTE", label: "Pendiente" },
+  { value: "ATENDIDO", label: "Atendido" },
+];
+
 function formatMedicoLabel(m?: { nombres: string; apellido_paterno: string; apellido_materno: string } | null): string {
   if (!m) return "";
   return `${m.apellido_paterno} ${m.apellido_materno} ${m.nombres}`.trim();
@@ -170,6 +176,16 @@ export default function AgendaMedicaPage() {
                 </div>
               </div>
               <div className="flex flex-wrap items-end gap-2">
+                <div className="w-36">
+                  <SelectMenu
+                    value={vm.estadoAtencionFilter}
+                    onChange={(v) => vm.setEstadoAtencionFilter(v === "ALL" ? "ALL" : v === "PENDIENTE" ? "PENDIENTE" : "ATENDIDO")}
+                    options={estadoAtencionOptions}
+                    ariaLabel="Filtrar por estado"
+                    buttonClassName="w-full"
+                    menuClassName="min-w-full"
+                  />
+                </div>
                 <div className="w-28">
                   <SelectMenu
                     value={String(vm.perPage)}

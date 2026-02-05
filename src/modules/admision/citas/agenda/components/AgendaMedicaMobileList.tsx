@@ -1,7 +1,7 @@
-import type { AgendaCita, AgendaCitasPaginated } from "../types/agendaMedica.types";
+import type { AgendaCita, AgendaCitasPaginated, CitaAtencionEstado } from "../types/agendaMedica.types";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
-import { StatusBadge } from "../../../ficheros/components/StatusBadge";
+import { CitaAtencionBadge } from "./CitaAtencionBadge";
 
 export default function AgendaMedicaMobileList(props: {
   data: AgendaCitasPaginated;
@@ -28,6 +28,9 @@ export default function AgendaMedicaMobileList(props: {
     x.iafa?.codigo ||
     (x.iafa_id ? String(x.iafa_id) : "—");
 
+  const hIngLabel = (x: AgendaCita) =>
+    x.estado_atencion === "PENDIENTE" ? "P" : x.estado_atencion === "ATENDIDO" ? "A" : "—";
+
   return (
     <div className="lg:hidden">
       <MobileEntityList<AgendaCita>
@@ -40,7 +43,7 @@ export default function AgendaMedicaMobileList(props: {
         renderMain={(x) => (
           <div className="min-w-0">
             <div className="text-sm font-semibold text-(--color-text-primary) tabular-nums">
-              {x.codigo || "—"} · {formatHora(x.hora)}
+              {x.codigo || "—"} · {formatHora(x.hora)} · H. Ing.: {hIngLabel(x)}
             </div>
             <div className="mt-1 text-sm text-(--color-text-primary) truncate">
               {x.paciente_nombre || "—"}
@@ -51,7 +54,9 @@ export default function AgendaMedicaMobileList(props: {
             <div className="mt-1 text-xs text-(--color-text-secondary)">IAFA: {iafaLabel(x)}</div>
           </div>
         )}
-        renderRight={(x) => <StatusBadge status={x.estado} />}
+        renderRight={(x) => (
+          <CitaAtencionBadge estado={(x.estado_atencion ?? "PENDIENTE") as CitaAtencionEstado} />
+        )}
       />
 
       <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} />
