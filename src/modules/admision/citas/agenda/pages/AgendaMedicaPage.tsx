@@ -81,13 +81,12 @@ export default function AgendaMedicaPage() {
     : "—";
 
   return (
-    <div className="flex w-full min-w-0 flex-col pb-4">
+    <div className="flex w-full min-w-0 flex-col space-y-4">
       {vm.notice ? (
         <div
           role="status"
           className={[
             "rounded-2xl border px-4 py-3 text-sm",
-            "mb-4",
             vm.notice.type === "success"
               ? "border-(--color-success) text-(--color-success)"
               : "border-(--color-danger) text-(--color-danger)",
@@ -109,16 +108,13 @@ export default function AgendaMedicaPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
         <div className="min-w-0">
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-            <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-              <AgendaMedicaCalendarCard
-                selectedDate={vm.selectedDate}
-                onPick={onPickDate}
-                variant="embedded"
-              />
-            </div>
-
-            <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-4">
+            <AgendaMedicaCalendarCard
+              selectedDate={vm.selectedDate}
+              onPick={onPickDate}
+              variant="embedded"
+            />
+            <div className="space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-(--color-text-primary)">Programación seleccionada</div>
                 <button
@@ -167,7 +163,7 @@ export default function AgendaMedicaPage() {
         </div>
 
         <div className="min-w-0 h-full">
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-3">
+          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold text-(--color-text-primary)">Agenda médica</div>
@@ -227,6 +223,7 @@ export default function AgendaMedicaPage() {
                   onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
                   selectedId={vm.selectedCita?.id ?? null}
                   onSelect={(row) => vm.setSelectedCita(row)}
+                  onDoubleClick={(row) => navigate(`/admision/citas/agenda/${row.id}/atencion`)}
                 />
                 <AgendaMedicaMobileList
                   data={vm.data}
@@ -235,7 +232,10 @@ export default function AgendaMedicaPage() {
                   onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                   onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
                   selectedId={vm.selectedCita?.id ?? null}
-                  onSelect={(row) => vm.setSelectedCita(row)}
+                  onSelect={(row) => {
+                    vm.setSelectedCita(row);
+                    navigate(`/admision/citas/agenda/${row.id}/atencion`);
+                  }}
                   onLongPress={(row) => {
                     vm.setSelectedCita(row);
                     vm.setConfirmEliminarOpen(true);
@@ -243,7 +243,7 @@ export default function AgendaMedicaPage() {
                 />
               </>
             ) : (
-              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-(--border-color-default) bg-(--color-surface) py-8 text-center">
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border border-(--border-color-default) bg-(--color-surface) py-8 text-center">
                 <p className="text-sm text-(--color-text-secondary)">
                   {!vm.selectedDateStr
                     ? "Seleccione una fecha en el calendario para cargar la programación."

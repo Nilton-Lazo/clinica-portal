@@ -80,6 +80,16 @@ export const admisionMeta: Record<string, RouteMeta> = {
             { label: "Generar cita" },
         ],
     },
+    "/admision/citas/agenda/:citaId/atencion": {
+        title: "Atención de cita",
+        subtitle: "Registro de la atención médica, evolución clínica y acciones relacionadas a la cita del paciente.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Atención de cita" },
+        ],
+    },
 };
 
   

@@ -15,9 +15,10 @@ export function DataTable<T>(props: {
   selectedId: string | number | null;
   getRowId: (row: T) => string | number;
   onSelect: (row: T) => void;
+  onDoubleClick?: (row: T) => void;
   emptyText?: string;
 }) {
-  const { rows, columns, loading, selectedId, getRowId, onSelect, emptyText } = props;
+  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, emptyText } = props;
 
   return (
     <div className="rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
@@ -60,6 +61,7 @@ export function DataTable<T>(props: {
                   <tr
                     key={String(id)}
                     onClick={() => onSelect(row)}
+                    onDoubleClick={() => onDoubleClick?.(row)}
                     className={[
                       "cursor-pointer border-t border-(--border-color-default)",
                       "transition-colors",

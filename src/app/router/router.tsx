@@ -23,6 +23,7 @@ import AgendaMedicaLayout from "../../modules/admision/citas/agenda/pages/Agenda
 import AgendaMedicaPage from "../../modules/admision/citas/agenda/pages/AgendaMedicaPage";
 import AgendaPacienteSelectPage from "../../modules/admision/citas/agenda/pages/AgendaPacienteSelectPage";
 import AgendaMedicaNuevaCitaPage from "../../modules/admision/citas/agenda/pages/AgendaMedicaNuevaCitaPage";
+import AtencionCitaPage from "../../modules/admision/citas/agenda/pages/AtencionCitaPage";
 
 import TiposIafasPage from "../../modules/admision/ficheros/pages/TiposIafasPage";
 import IafasPage from "../../modules/admision/ficheros/pages/IafasPage";
@@ -105,6 +106,7 @@ export const router = createBrowserRouter([
                         element: <AgendaMedicaLayout />,
                         children: [
                           { index: true, element: <AgendaMedicaPage /> },
+                          { path: ":citaId/atencion", element: <AtencionCitaPage /> },
                           { path: "nueva", element: <AgendaMedicaNuevaCitaPage /> },
                           { path: "pacientes", element: <AgendaPacienteSelectPage /> },
                         ],

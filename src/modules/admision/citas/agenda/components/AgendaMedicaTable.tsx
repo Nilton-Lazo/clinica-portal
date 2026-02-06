@@ -11,8 +11,9 @@ export default function AgendaMedicaTable(props: {
   onNext: () => void;
   selectedId: number | null;
   onSelect: (row: AgendaCita) => void;
+  onDoubleClick?: (row: AgendaCita) => void;
 }) {
-  const { data, loading, onPrev, onNext, selectedId, onSelect } = props;
+  const { data, loading, onPrev, onNext, selectedId, onSelect, onDoubleClick } = props;
 
   const formatHora = (value?: string | null) => {
     if (!value) return "—";
@@ -118,6 +119,7 @@ export default function AgendaMedicaTable(props: {
         getRowId={(x) => x.id}
         selectedId={selectedId}
         onSelect={onSelect}
+        onDoubleClick={onDoubleClick}
       />
       <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} />
     </div>

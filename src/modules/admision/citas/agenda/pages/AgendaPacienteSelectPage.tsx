@@ -89,7 +89,7 @@ export default function AgendaPacienteSelectPage() {
   }, [selected, searchParams, navigate]);
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 pb-4">
+    <div className="flex w-full min-w-0 flex-col space-y-4">
       <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>

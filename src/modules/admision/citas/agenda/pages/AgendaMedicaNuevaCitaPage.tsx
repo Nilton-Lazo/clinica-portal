@@ -78,7 +78,7 @@ export default function AgendaMedicaNuevaCitaPage() {
     : "";
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 pb-4">
+    <div className="flex w-full min-w-0 flex-col space-y-4">
       {vm.notice ? (
         <div
           role="status"
