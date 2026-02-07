@@ -42,6 +42,11 @@ export default function AtencionCitaPage() {
   const [lastSavedPlanId, setLastSavedPlanId] = React.useState<number | null>(null);
   const [lastSavedParentesco, setLastSavedParentesco] = React.useState("");
   const [lastSavedTitular, setLastSavedTitular] = React.useState("");
+  const [controlPrePostNatal, setControlPrePostNatal] = React.useState(false);
+  const [controlNinoSano, setControlNinoSano] = React.useState(false);
+  const [chequeo, setChequeo] = React.useState(false);
+  const [carencia, setCarencia] = React.useState(false);
+  const [latencia, setLatencia] = React.useState(false);
 
   const formatHoraLocal = () => {
     const d = new Date();
@@ -70,6 +75,11 @@ export default function AtencionCitaPage() {
         setLastSavedPlanId(planId);
         setLastSavedParentesco(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
         setLastSavedTitular(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
+        setControlPrePostNatal(Boolean(res.atencion?.control_pre_post_natal));
+        setControlNinoSano(Boolean(res.atencion?.control_nino_sano));
+        setChequeo(Boolean(res.atencion?.chequeo));
+        setCarencia(Boolean(res.atencion?.carencia));
+        setLatencia(Boolean(res.atencion?.latencia));
       })
       .catch((e) => {
         const err = toApiError(e);
@@ -123,6 +133,11 @@ export default function AtencionCitaPage() {
     setLastSavedPlanId(res.atencion?.paciente_plan_id ?? null);
     setLastSavedParentesco(res.paciente.parentesco_seguro ?? "");
     setLastSavedTitular(res.paciente.titular_nombre ?? "");
+    setControlPrePostNatal(Boolean(res.atencion?.control_pre_post_natal));
+    setControlNinoSano(Boolean(res.atencion?.control_nino_sano));
+    setChequeo(Boolean(res.atencion?.chequeo));
+    setCarencia(Boolean(res.atencion?.carencia));
+    setLatencia(Boolean(res.atencion?.latencia));
   }, []);
 
   const onGuardar = React.useCallback(async () => {
@@ -136,6 +151,11 @@ export default function AtencionCitaPage() {
       paciente_plan_id: pacientePlanId ?? undefined,
       parentesco_seguro: parentescoSeguro.trim() || undefined,
       titular_nombre: titularNombre.trim() || undefined,
+      control_pre_post_natal: controlPrePostNatal,
+      control_nino_sano: controlNinoSano,
+      chequeo,
+      carencia,
+      latencia,
     };
     try {
       const res = await guardarAtencionCita(id, payload);
@@ -146,7 +166,7 @@ export default function AtencionCitaPage() {
     } finally {
       setSaving(false);
     }
-  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, actualizarGuardado]);
+  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, actualizarGuardado]);
 
   if (loading) {
     return (
@@ -419,6 +439,58 @@ export default function AtencionCitaPage() {
               className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Sección: Indicadores de atención */}
+      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+        <h2 className="text-sm font-semibold text-(--color-text-primary)">Indicadores de atención</h2>
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 lg:flex-nowrap lg:gap-4">
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={controlPrePostNatal}
+              onChange={(e) => setControlPrePostNatal(e.target.checked)}
+              className="h-4 w-4 rounded border border-(--border-color-default)"
+            />
+            <span className="text-sm text-(--color-text-primary)">Control Pre y Post Natal</span>
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={controlNinoSano}
+              onChange={(e) => setControlNinoSano(e.target.checked)}
+              className="h-4 w-4 rounded border border-(--border-color-default)"
+            />
+            <span className="text-sm text-(--color-text-primary)">Control niño sano</span>
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={chequeo}
+              onChange={(e) => setChequeo(e.target.checked)}
+              className="h-4 w-4 rounded border border-(--border-color-default)"
+            />
+            <span className="text-sm text-(--color-text-primary)">Chequeo</span>
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={carencia}
+              onChange={(e) => setCarencia(e.target.checked)}
+              className="h-4 w-4 rounded border border-(--border-color-default)"
+            />
+            <span className="text-sm text-(--color-text-primary)">Carencia</span>
+          </label>
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={latencia}
+              onChange={(e) => setLatencia(e.target.checked)}
+              className="h-4 w-4 rounded border border-(--border-color-default)"
+            />
+            <span className="text-sm text-(--color-text-primary)">Latencia</span>
+          </label>
         </div>
       </div>
     </div>

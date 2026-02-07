@@ -493,7 +493,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
       return { qFinal: qNormalized.trim() ? qNormalized.trim() : undefined, categoriaIdFinal: filterCategoriaId };
     }
     if (/^\d{2}\.\d{2}$/.test(qNormalized)) {
-      const [subCode, catCode] = qNormalized.split(".");
+      const [catCode, subCode] = qNormalized.split(".");
       const catId = categoriasByCodigo.get(catCode ?? "");
       return {
         qFinal: subCode,
@@ -1465,7 +1465,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
       cellClassName: "px-3 py-2 text-center tabular-nums",
       render: (x) => {
         const catCode = categoriaCodigoById.get(x.categoria_id);
-        return catCode ? `${x.codigo}.${catCode}` : x.codigo;
+        return catCode ? `${catCode}.${x.codigo}` : x.codigo;
       },
     },
     { key: "descripcion", header: "Descripción", render: (x) => x.descripcion },
@@ -1573,11 +1573,15 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
               onSelect={vm.loadForEdit}
-              renderMain={(x) => (
-                <div className="text-sm font-semibold text-(--color-text-primary)">
-                  <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
-                </div>
-              )}
+              renderMain={(x) => {
+                const catCode = categoriaCodigoById.get(x.categoria_id);
+                const codigoFull = catCode ? `${catCode}.${x.codigo}` : x.codigo;
+                return (
+                  <div className="text-sm font-semibold text-(--color-text-primary)">
+                    <span className="tabular-nums">{codigoFull}</span> · {x.descripcion}
+                  </div>
+                );
+              }}
               renderRight={(x) => <StatusBadge status={x.estado} />}
             />
             <PaginationFooter
@@ -1594,7 +1598,9 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">
-                  {vm.mode === "new" ? "Nuevo registro" : `Editando: ${vm.selected?.codigo ?? ""}`}
+                  {vm.mode === "new"
+                    ? "Nuevo registro"
+                    : `Editando: ${vm.selected ? (categoriaCodigoById.get(vm.selected.categoria_id) ? `${categoriaCodigoById.get(vm.selected.categoria_id)}.${vm.selected.codigo}` : vm.selected.codigo) : ""}`}
                 </div>
                 <div className="text-xs text-(--color-text-secondary)">
                   {vm.mode === "new" ? "Crea una subcategoría." : "Modifica campos y guarda cambios."}
@@ -1630,7 +1636,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
                   <input
                     value={
                       vm.categoriaId
-                        ? `${vm.codigo}.${categoriaCodigoById.get(vm.categoriaId) ?? ""}`.replace(/\.$/, "")
+                        ? `${categoriaCodigoById.get(vm.categoriaId) ?? ""}.${vm.codigo}`.replace(/^\./, "")
                         : vm.codigo
                     }
                     readOnly
@@ -1688,7 +1694,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
         title="Desactivar subcategoría"
         description={
           vm.selected
-            ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?`
+            ? `¿Deseas desactivar "${categoriaCodigoById.get(vm.selected.categoria_id) ? `${categoriaCodigoById.get(vm.selected.categoria_id)}.${vm.selected.codigo}` : vm.selected.codigo} - ${vm.selected.descripcion}"?`
             : ""
         }
         confirmText="Desactivar"

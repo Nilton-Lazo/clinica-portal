@@ -46,6 +46,11 @@ export type AtencionCitaData = {
     tarifa_id: number | null;
     parentesco_seguro: string | null;
     titular_nombre: string | null;
+    control_pre_post_natal: boolean;
+    control_nino_sano: boolean;
+    chequeo: boolean;
+    carencia: boolean;
+    latencia: boolean;
   } | null;
 };
 
@@ -57,4 +62,9 @@ export type AtencionCitaStorePayload = {
   paciente_plan_id?: number | null;
   parentesco_seguro?: string | null;
   titular_nombre?: string | null;
+  control_pre_post_natal?: boolean;
+  control_nino_sano?: boolean;
+  chequeo?: boolean;
+  carencia?: boolean;
+  latencia?: boolean;
 };

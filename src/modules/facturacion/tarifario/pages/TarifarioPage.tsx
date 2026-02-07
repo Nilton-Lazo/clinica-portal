@@ -108,7 +108,7 @@ const TreeNode = React.memo(function TreeNode({
                       onChange={() => onToggleSubcategoria(sub.id)}
                     />
                     <span>
-                      {sub.codigo} - {sub.nombre}
+                      {cat.codigo}.{sub.codigo} - {sub.nombre}
                     </span>
                   </label>
                 </div>
