@@ -217,19 +217,19 @@ export function ServiciosSolicitadosSection({
   );
 
   const precargaColumns: DataTableColumn<PrecargaServicioItem & { _idx: number }>[] = [
-    { key: "codigo", header: "Código", headerClassName: "text-center w-24", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => x.servicio_codigo || "—" },
+    { key: "codigo", header: "Código", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => x.servicio_codigo || "—" },
     {
       key: "descripcion",
       header: "Descripción de servicio",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2 min-w-[140px]",
-      render: (x) => <span className="truncate block">{x.servicio_descripcion || "—"}</span>,
+      headerClassName: "text-left align-middle",
+      cellClassName: "px-3 py-2 max-w-[220px] align-middle",
+      render: (x) => <span className="block wrap-break-word whitespace-normal text-left">{x.servicio_descripcion || "—"}</span>,
     },
     {
       key: "cop_var",
       header: "Copago variable",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-2 py-2",
+      headerClassName: "text-center w-28 align-middle",
+      cellClassName: "px-2 py-2 align-middle",
       render: (x) => (
         <input
           type="text"
@@ -244,8 +244,8 @@ export function ServiciosSolicitadosSection({
     {
       key: "cop_fijo",
       header: "Copago fijo",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-2 py-2",
+      headerClassName: "text-center w-28 align-middle",
+      cellClassName: "px-2 py-2 align-middle",
       render: (x) => (
         <input
           type="text"
@@ -260,8 +260,8 @@ export function ServiciosSolicitadosSection({
     {
       key: "descuento",
       header: "Descuento",
-      headerClassName: "text-center w-24",
-      cellClassName: "px-2 py-2",
+      headerClassName: "text-center w-24 align-middle",
+      cellClassName: "px-2 py-2 align-middle",
       render: (x) => (
         <input
           type="text"
@@ -276,8 +276,8 @@ export function ServiciosSolicitadosSection({
     {
       key: "aumento",
       header: "Aumento",
-      headerClassName: "text-center w-24",
-      cellClassName: "px-2 py-2",
+      headerClassName: "text-center w-24 align-middle",
+      cellClassName: "px-2 py-2 align-middle",
       render: (x) => (
         <input
           type="text"
@@ -292,8 +292,8 @@ export function ServiciosSolicitadosSection({
     {
       key: "cantidad",
       header: "Cantidad",
-      headerClassName: "text-center w-24",
-      cellClassName: "px-2 py-2",
+      headerClassName: "text-center w-24 align-middle",
+      cellClassName: "px-2 py-2 align-middle",
       render: (x) => (
         <input
           type="number"
@@ -309,22 +309,22 @@ export function ServiciosSolicitadosSection({
     {
       key: "precio_sin_igv",
       header: <span className="whitespace-nowrap">Precio sin IGV</span>,
-      headerClassName: "text-right w-32 min-w-[7rem]",
-      cellClassName: "px-3 py-2 text-right whitespace-nowrap",
+      headerClassName: "text-right w-32 min-w-[7rem] align-middle",
+      cellClassName: "px-3 py-2 text-right whitespace-nowrap align-middle",
       render: (x) => <PrecioCell valor={x.precio_sin_igv} />,
     },
     {
       key: "precio_con_igv",
       header: <span className="whitespace-nowrap">Precio con IGV</span>,
-      headerClassName: "text-right w-32 min-w-[7rem]",
-      cellClassName: "px-3 py-2 text-right whitespace-nowrap",
+      headerClassName: "text-right w-32 min-w-[7rem] align-middle",
+      cellClassName: "px-3 py-2 text-right whitespace-nowrap align-middle",
       render: (x) => <PrecioCell valor={x.precio_con_igv} />,
     },
     {
       key: "actions_precarga",
       header: "",
-      headerClassName: "w-14",
-      cellClassName: "px-2 py-2 text-center",
+      headerClassName: "w-14 align-middle",
+      cellClassName: "px-2 py-2 text-center align-middle",
       render: (x) => (
         <div onClick={(e) => e.stopPropagation()}>
           <DangerButton
@@ -344,41 +344,41 @@ export function ServiciosSolicitadosSection({
 
   const finalColumns: DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>[] = React.useMemo(() => {
     const base: DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>[] = [
-      { key: "codigo", header: "Código", headerClassName: "text-center w-24", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => x.servicio_codigo ?? "—" },
+      { key: "codigo", header: "Código", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => x.servicio_codigo ?? "—" },
       {
         key: "descripcion",
         header: "Descripción de servicio",
-        headerClassName: "text-left",
-        cellClassName: "px-3 py-2 min-w-[140px]",
-        render: (x) => <span className="truncate block">{x.servicio_descripcion ?? "—"}</span>,
+        headerClassName: "text-left align-middle",
+        cellClassName: "px-3 py-2 max-w-[220px] align-middle",
+        render: (x) => <span className="block wrap-break-word whitespace-normal text-left">{x.servicio_descripcion ?? "—"}</span>,
       },
-      { key: "cop_var", header: "Copago variable", headerClassName: "text-center w-28", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => (x.cop_var ?? 0).toFixed(2) },
-      { key: "cop_fijo", header: "Copago fijo", headerClassName: "text-center w-28", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => (x.cop_fijo ?? 0).toFixed(2) },
-      { key: "descuento", header: "Descuento", headerClassName: "text-center w-24", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => (x.descuento_pct ?? 0).toFixed(2) },
+      { key: "cop_var", header: "Copago variable", headerClassName: "text-center w-28 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cop_var ?? 0).toFixed(2) },
+      { key: "cop_fijo", header: "Copago fijo", headerClassName: "text-center w-28 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cop_fijo ?? 0).toFixed(2) },
+      { key: "descuento", header: "Descuento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.descuento_pct ?? 0).toFixed(2) },
     ];
     if (tieneAumento) {
-      base.push({ key: "aumento", header: "Aumento", headerClassName: "text-center w-24", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => (x.aumento_pct ?? 0).toFixed(2) });
+      base.push({ key: "aumento", header: "Aumento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.aumento_pct ?? 0).toFixed(2) });
     }
     base.push(
-      { key: "cantidad", header: "Cantidad", headerClassName: "text-center w-24", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => (x.cantidad ?? 1).toFixed(2) },
+      { key: "cantidad", header: "Cantidad", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cantidad ?? 1).toFixed(2) },
       {
         key: "precio_con_igv",
       header: <span className="whitespace-nowrap">Precio con IGV</span>,
-      headerClassName: "text-center w-32 min-w-[7rem]",
-      cellClassName: "px-3 py-2 text-center whitespace-nowrap",
+      headerClassName: "text-center w-32 min-w-[7rem] align-middle",
+      cellClassName: "px-3 py-2 text-center whitespace-nowrap align-middle",
       render: (x) => (
         <div className="flex justify-center">
           <PrecioCell valor={x.precio_con_igv ?? 0} />
         </div>
       ),
     },
-      { key: "medico", header: "Médico", headerClassName: "text-center w-20", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
-      { key: "usuario", header: "Usuario", headerClassName: "text-center w-32", cellClassName: "px-3 py-2 text-center", render: (x) => x.user_nombre ?? "—" },
+      { key: "medico", header: "Médico", headerClassName: "text-center w-20 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
+      { key: "usuario", header: "Usuario", headerClassName: "text-center w-32 align-middle", cellClassName: "px-3 py-2 text-center align-middle", render: (x) => x.user_nombre ?? "—" },
       {
         key: "actions",
         header: "",
-        headerClassName: "w-14",
-        cellClassName: "px-2 py-2 text-center",
+        headerClassName: "w-14 align-middle",
+        cellClassName: "px-2 py-2 text-center align-middle",
         render: (x) => (
           <div onClick={(e) => e.stopPropagation()}>
             <DangerButton
