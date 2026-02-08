@@ -140,7 +140,6 @@ export function ServiciosSolicitadosSection({
       if (selectedPrecargaIdx == null) return;
       const id = value ? Number(value) : medicoTratanteId ?? 0;
       const opt = medicosOptions.find((o) => o.value === (value || String(medicoTratanteId ?? "")));
-      const label = opt?.label ?? medicoTratanteLabel;
       const raw = opt?.label ?? "";
       const codigo = raw.includes(" · ") ? raw.split(" · ")[0]?.trim() ?? "" : raw.split(/\s+/)[0] ?? "";
       const nombre = (raw.includes(" · ") ? raw.split(" · ").slice(1).join(" · ").trim() : raw.split(/\s+/).slice(1).join(" ").trim()) || medicoTratanteLabel;
@@ -326,12 +325,11 @@ export function ServiciosSolicitadosSection({
       headerClassName: "w-14 align-middle",
       cellClassName: "px-2 py-2 text-center align-middle",
       render: (x) => (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div onClick={(e) => e.stopPropagation()} title="Eliminar">
           <DangerButton
             type="button"
             onClick={() => handleRemovePrecarga(x._idx)}
             className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
-            title="Eliminar"
           >
             <Trash2 className="h-4 w-4" />
           </DangerButton>
@@ -380,12 +378,11 @@ export function ServiciosSolicitadosSection({
         headerClassName: "w-14 align-middle",
         cellClassName: "px-2 py-2 text-center align-middle",
         render: (x) => (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()} title="Eliminar">
             <DangerButton
               type="button"
               onClick={() => handleRemoveLinea(x._idx)}
               className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
-              title="Eliminar"
             >
               <Trash2 className="h-4 w-4" />
             </DangerButton>

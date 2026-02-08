@@ -2,7 +2,6 @@ import { api } from "../../../../../shared/api";
 import type {
   AtencionCitaData,
   AtencionCitaStorePayload,
-  AtencionServicioLinea,
 } from "../types/atencionCita.types";
 
 export async function getAtencionCitaData(citaId: number): Promise<AtencionCitaData> {

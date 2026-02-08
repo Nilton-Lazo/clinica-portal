@@ -1,5 +1,6 @@
 import { api } from "../../../../../shared/api";
 import type {
+  AgendaCita,
   AgendaCitaPayload,
   AgendaCitasPaginated,
   AgendaCitasQuery,
@@ -63,7 +64,7 @@ export async function listAgendaCitas(
   const rows = Array.isArray(o.data) ? o.data : [];
   const metaObj = isObject(o.meta) ? (o.meta as Record<string, unknown>) : {};
   const data: AgendaCitasPaginated = {
-    data: rows as any,
+    data: rows as AgendaCita[],
     meta: {
       current_page: Number(metaObj.current_page ?? 1),
       per_page: Number(metaObj.per_page ?? 50),
@@ -84,22 +85,37 @@ export async function anularAgendaCita(id: number): Promise<void> {
   await api.patch(`/admision/citas/agenda-medica/${id}/anular`);
 }
 
+type IafaRaw = { id?: number; codigo?: string; descripcion_corta?: string; razon_social?: string };
+
+type PacienteApiResponse = {
+  id?: number;
+  hc?: string;
+  nr?: string | null;
+  nombre_completo?: string;
+  sexo?: string | null;
+  edad?: number | null;
+  titular_nombre?: string | null;
+  planes?: Array<{ tipo_cliente?: { iafa?: IafaRaw }; tipoCliente?: { iafa?: IafaRaw } }>;
+};
+
 export async function getPacienteAgenda(id: number): Promise<PacienteAgenda> {
   const res = await api.get<unknown>(`/admision/pacientes/${id}`);
-  const x = unwrapData<any>(res) ?? {};
+  const x = unwrapData<PacienteApiResponse>(res) ?? {};
 
   const planes = Array.isArray(x.planes) ? x.planes : [];
   const iafas = planes
-    .map((p: any) => p?.tipo_cliente?.iafa ?? p?.tipoCliente?.iafa)
-    .filter((i: any) => i && typeof i.id === "number")
-    .map((i: any) => {
+    .map((p: { tipo_cliente?: { iafa?: IafaRaw }; tipoCliente?: { iafa?: IafaRaw } }) => p?.tipo_cliente?.iafa ?? p?.tipoCliente?.iafa)
+    .filter((i: IafaRaw | undefined): i is IafaRaw => !!i && typeof i.id === "number")
+    .map((i: IafaRaw) => {
       const codigo = i.codigo ? String(i.codigo) : "";
       const nombre = String(i.descripcion_corta ?? i.razon_social ?? i.codigo ?? `IAFA ${i.id}`);
       const label = codigo && !nombre.startsWith(codigo) ? `${codigo} · ${nombre}` : nombre;
       return { id: Number(i.id), descripcion: label };
     });
 
-  const uniqueIafas = Array.from(new Map(iafas.map((i) => [i.id, i])).values());
+  const uniqueIafas = Array.from(
+    new Map(iafas.map((i: { id: number; descripcion: string }) => [i.id, i])).values()
+  ) as Array<{ id: number; descripcion: string }>;
 
   return {
     id: Number(x.id ?? id),

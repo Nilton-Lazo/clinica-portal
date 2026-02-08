@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 import { listPacientes } from "../../../historia-clinica/services/historiaClinica.service";
-import type { PacienteListItem, PaginatedResponse } from "../../../historia-clinica/types/historiaClinica.types";
+import type { PacienteListItem, PaginatedResponse, PacientesQuery } from "../../../historia-clinica/types/historiaClinica.types";
 import HistoriaClinicaTable from "../../../historia-clinica/components/HistoriaClinicaTable";
 import HistoriaClinicaMobileList from "../../../historia-clinica/components/HistoriaClinicaMobileList";
 
@@ -31,7 +31,11 @@ export default function AgendaPacienteSelectPage() {
 
   React.useEffect(() => {
     setLoading(true);
-    listPacientes({ q, status: status || undefined, page, per_page: perPage })
+    const query: PacientesQuery = { q, page, per_page: perPage };
+    if (status && ["ACTIVO", "INACTIVO", "SUSPENDIDO"].includes(status)) {
+      query.status = status as PacientesQuery["status"];
+    }
+    listPacientes(query)
       .then((res) => {
         setData(res);
       })
