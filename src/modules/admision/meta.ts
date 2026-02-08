@@ -42,6 +42,16 @@ export const admisionMeta: Record<string, RouteMeta> = {
         ],
     },
 
+    "/admision/ficheros/parametros/igv": {
+        title: "Ficheros",
+        subtitle: "Configuración de parámetros del sistema.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Ficheros", path: "/admision/ficheros" },
+            { label: "IGV" },
+        ],
+    },
+
     "/admision/citas/programacion": {
         title: "Programación medica",
         subtitle: "Planificación y control de la atención médica según disponibilidad y especialidad",
@@ -88,6 +98,17 @@ export const admisionMeta: Record<string, RouteMeta> = {
             { label: "Citas", path: "/admision/citas" },
             { label: "Agenda médica", path: "/admision/citas/agenda" },
             { label: "Atención de cita" },
+        ],
+    },
+    "/admision/citas/agenda/:citaId/atencion/buscar-servicios": {
+        title: "Buscar servicios",
+        subtitle: "Búsqueda y selección de servicios del tarifario.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Atención de cita", path: "/admision/citas/agenda/:citaId/atencion" },
+            { label: "Buscar servicios" },
         ],
     },
 };

@@ -1,10 +1,21 @@
 import * as React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
-import { getAtencionCitaData, guardarAtencionCita } from "../services/atencionCita.service";
-import type { AtencionCitaData, AtencionCitaStorePayload } from "../types/atencionCita.types";
+import { useAuth } from "../../../../../shared/auth/useAuth";
+import { api } from "../../../../../shared/api";
+import { getAtencionCitaData, getIgvPorcentaje, guardarAtencionCita } from "../services/atencionCita.service";
+import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
+import type {
+  AtencionCitaData,
+  AtencionCitaStorePayload,
+  AtencionServicioItem,
+  AtencionServicioLinea,
+  AtencionServicioLineaDisplay,
+  PrecargaServicioItem,
+} from "../types/atencionCita.types";
 import { toApiError } from "../../../../../shared/api/apiError";
+import { ServiciosSolicitadosSection } from "../components/ServiciosSolicitadosSection";
 
 const PARENTESCO_OPTIONS: SelectOption[] = [
   { value: "TITULAR", label: "Titular" },
@@ -24,15 +35,64 @@ function formatMedico(p: NonNullable<AtencionCitaData["programacion"]>["medico"]
   return [p.apellido_paterno, p.apellido_materno, p.nombres].filter(Boolean).join(" ").trim() || "—";
 }
 
+function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLineaDisplay {
+  return {
+    id: item.id,
+    tarifa_servicio_id: item.tarifa_servicio_id,
+    medico_id: item.medico_id,
+    cop_var: item.cop_var,
+    cop_fijo: item.cop_fijo,
+    descuento_pct: item.descuento_pct,
+    aumento_pct: item.aumento_pct,
+    cantidad: item.cantidad,
+    precio_sin_igv: item.precio_sin_igv,
+    precio_con_igv: item.precio_con_igv,
+    servicio_codigo: item.servicio_codigo ?? null,
+    servicio_descripcion: item.servicio_descripcion,
+    medico_codigo: item.medico_codigo,
+    user_nombre: item.user_nombre,
+  };
+}
+
+const TARIFAS_PRECIO_DIRECTO = ["Particular", "Privado"];
+
+function esPrecioDirecto(tarifaDescripcion: string | null): boolean {
+  if (!tarifaDescripcion) return false;
+  const n = tarifaDescripcion.trim();
+  return TARIFAS_PRECIO_DIRECTO.some((t) => t.toLowerCase() === n.toLowerCase());
+}
+
+function calcularPrecios(
+  precioBaseSinIgv: number,
+  cantidad: number,
+  descuentoPct: number,
+  aumentoPct: number,
+  igvPct: number
+): { precioSinIgv: number; precioConIgv: number } {
+  let subtotal = precioBaseSinIgv * Math.max(0, cantidad);
+  if (descuentoPct > 0) subtotal *= 1 - descuentoPct / 100;
+  if (aumentoPct > 0) subtotal *= 1 + aumentoPct / 100;
+  const precioSinIgv = Math.round(subtotal * 1000) / 1000;
+  const igv = precioSinIgv * (igvPct / 100);
+  const precioConIgv = Math.round((precioSinIgv + igv) * 1000) / 1000;
+  return { precioSinIgv, precioConIgv };
+}
+
 export default function AtencionCitaPage() {
   const { citaId } = useParams<"citaId">();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const id = citaId ? parseInt(citaId, 10) : NaN;
 
   const [data, setData] = React.useState<AtencionCitaData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+
+  const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
+  const [precargaServicios, setPrecargaServicios] = React.useState<PrecargaServicioItem[]>([]);
+  const [medicosOptions, setMedicosOptions] = React.useState<SelectOption[]>([]);
 
   const [acudio, setAcudio] = React.useState(false);
   const [horaAsistenciaDisplay, setHoraAsistenciaDisplay] = React.useState<string>("");
@@ -80,6 +140,7 @@ export default function AtencionCitaPage() {
         setChequeo(Boolean(res.atencion?.chequeo));
         setCarencia(Boolean(res.atencion?.carencia));
         setLatencia(Boolean(res.atencion?.latencia));
+        setLineas((res.servicios ?? []).map(mapServicioToDisplay));
       })
       .catch((e) => {
         const err = toApiError(e);
@@ -90,10 +151,12 @@ export default function AtencionCitaPage() {
 
   const planOptions: SelectOption[] = React.useMemo(() => {
     if (!data?.planes?.length) return [{ value: "", label: "Seleccione el plan" }];
-    return data.planes.map((p) => ({
-      value: String(p.id),
-      label: p.descripcion || `Plan ${p.id}`,
-    }));
+    return data.planes.map((p) => {
+      const desc = p.descripcion || `Plan ${p.id}`;
+      const idx = desc.indexOf("/");
+      const label = idx >= 0 ? `${desc.slice(0, idx).trim()} · ${desc.slice(idx + 1).trim()}` : desc;
+      return { value: String(p.id), label };
+    });
   }, [data?.planes]);
 
   const tarifaActual = React.useMemo(() => {
@@ -102,11 +165,100 @@ export default function AtencionCitaPage() {
     return plan ? (plan.tarifa_descripcion || plan.tarifa_codigo || "—") : null;
   }, [data?.planes, pacientePlanId]);
 
+  const tarifaId = React.useMemo(() => {
+    if (!pacientePlanId || !data?.planes) return null;
+    const plan = data.planes.find((p) => p.id === pacientePlanId);
+    return plan?.tarifa_id ?? null;
+  }, [data?.planes, pacientePlanId]);
+
+  const serviciosSectionRef = React.useRef<HTMLDivElement | null>(null);
+  const processedServiciosRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    const st = (location.state ?? {}) as {
+      selectedServicios?: TarifaServicioBusqueda[];
+      returnLineas?: AtencionServicioLineaDisplay[];
+      returnPrecarga?: PrecargaServicioItem[];
+      scrollToServicios?: boolean;
+    };
+    const servs = st.selectedServicios;
+    const restoreLineas = st.returnLineas;
+    const restorePrecarga = st.returnPrecarga;
+    const scrollTo = st.scrollToServicios;
+
+    if (scrollTo && serviciosSectionRef.current) {
+      requestAnimationFrame(() => {
+        serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      navigate(location.pathname, { replace: true, state: { ...st, scrollToServicios: false } });
+    }
+
+    if (restoreLineas != null) setLineas(restoreLineas);
+    if (restorePrecarga != null) setPrecargaServicios(restorePrecarga);
+
+    if (!servs?.length || !data) return;
+    const key = servs.map((s) => s.id).join(",");
+    if (processedServiciosRef.current === key) return;
+    processedServiciosRef.current = key;
+    navigate(location.pathname, { replace: true, state: {} });
+    const medicoId = data.programacion?.medico?.id ?? 0;
+    const medicoNombre = formatMedico(data.programacion?.medico ?? null);
+    getIgvPorcentaje().then((igvPct) => {
+      const medicosOpts = medicosOptions;
+      const medicoOpt = medicosOpts.find((o) => o.value === String(medicoId));
+      const labelMedico = medicoOpt?.label ?? "";
+      const codigoMedico = labelMedico.includes(" · ") ? labelMedico.split(" · ")[0]?.trim() ?? "" : labelMedico.split(/\s+/)[0] ?? "";
+      const tarifaDesc = tarifaActual;
+      const nuevas: PrecargaServicioItem[] = servs.map((s) => {
+        const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
+        const base = esPrecioDirecto(tarifaDesc) ? precioBase : precioBase;
+        const { precioSinIgv, precioConIgv } = calcularPrecios(base, 1, 0, 0, igvPct);
+        return {
+          tarifa_servicio_id: s.id,
+          servicio_codigo: s.codigo ?? "",
+          servicio_descripcion: s.descripcion ?? "",
+          cop_var: 0,
+          cop_fijo: 0,
+          descuento_pct: 0,
+          aumento_pct: 0,
+          cantidad: 1,
+          precio_sin_igv: precioSinIgv,
+          precio_con_igv: precioConIgv,
+          medico_id: medicoId,
+          medico_codigo: codigoMedico || medicoNombre,
+          medico_nombre: medicoNombre,
+        };
+      });
+      setPrecargaServicios((prev) => [...(restorePrecarga ?? prev), ...nuevas]);
+      if (restoreLineas != null) setLineas(restoreLineas);
+      processedServiciosRef.current = null;
+    });
+  }, [location.state, location.pathname, navigate, data, medicosOptions, tarifaActual, user]);
+
+  React.useEffect(() => {
+    api
+      .get<{ data?: Array<{ id: number; codigo?: string; nombres?: string; apellido_paterno?: string; apellido_materno?: string }> }>(
+        "/admision/ficheros/medicos?status=ACTIVO&per_page=200&page=1"
+      )
+      .then((res) => {
+        const raw = res as { data?: unknown };
+        const arr = Array.isArray(raw.data) ? raw.data : [];
+        const opts: SelectOption[] = arr.map((m: { id: number; codigo?: string; apellido_paterno?: string; apellido_materno?: string; nombres?: string }) => {
+          const code = (m.codigo ?? "").trim();
+          const name = [m.apellido_paterno, m.apellido_materno, m.nombres].filter(Boolean).join(" ").trim();
+          const label = code ? (name ? `${code} · ${name}` : code) : (name || `Médico ${m.id}`);
+          return { value: String(m.id), label };
+        });
+        setMedicosOptions(opts);
+      })
+      .catch(() => setMedicosOptions([]));
+  }, []);
+
   React.useEffect(() => {
     if (parentescoSeguro.trim().toUpperCase() === "TITULAR" && data?.paciente) {
       setTitularNombre(data.paciente.apellidos_nombres);
     }
-  }, [parentescoSeguro, data?.paciente?.apellidos_nombres]);
+  }, [parentescoSeguro, data?.paciente]);
 
   const onRegresar = React.useCallback(() => {
     navigate("/admision/citas/agenda");
@@ -138,12 +290,25 @@ export default function AtencionCitaPage() {
     setChequeo(Boolean(res.atencion?.chequeo));
     setCarencia(Boolean(res.atencion?.carencia));
     setLatencia(Boolean(res.atencion?.latencia));
+    setLineas((res.servicios ?? []).map(mapServicioToDisplay));
   }, []);
 
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(id)) return;
     setSaving(true);
     const soloActualizarDatos = hasPendingDataChanges;
+    const serviciosPayload: AtencionServicioLinea[] = lineas.map((l) => ({
+      tarifa_servicio_id: l.tarifa_servicio_id,
+      medico_id: l.medico_id,
+      cop_var: l.cop_var ?? 0,
+      cop_fijo: l.cop_fijo ?? 0,
+      descuento_pct: l.descuento_pct ?? 0,
+      aumento_pct: l.aumento_pct ?? 0,
+      cantidad: l.cantidad ?? 1,
+      precio_sin_igv: l.precio_sin_igv,
+      precio_con_igv: l.precio_con_igv,
+    }));
+
     const payload: AtencionCitaStorePayload = {
       ...(soloActualizarDatos && { solo_actualizar_datos: true }),
       acudio_a_su_cita: acudio,
@@ -156,6 +321,7 @@ export default function AtencionCitaPage() {
       chequeo,
       carencia,
       latencia,
+      servicios: serviciosPayload,
     };
     try {
       const res = await guardarAtencionCita(id, payload);
@@ -166,7 +332,56 @@ export default function AtencionCitaPage() {
     } finally {
       setSaving(false);
     }
-  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, actualizarGuardado]);
+  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, lineas, actualizarGuardado]);
+
+  const onActualizarDatos = React.useCallback(async () => {
+    if (!Number.isFinite(id) || !hasPendingDataChanges) return;
+    setSaving(true);
+    const serviciosPayload: AtencionServicioLinea[] = lineas.map((l) => ({
+      tarifa_servicio_id: l.tarifa_servicio_id,
+      medico_id: l.medico_id,
+      cop_var: l.cop_var ?? 0,
+      cop_fijo: l.cop_fijo ?? 0,
+      descuento_pct: l.descuento_pct ?? 0,
+      aumento_pct: l.aumento_pct ?? 0,
+      cantidad: l.cantidad ?? 1,
+      precio_sin_igv: l.precio_sin_igv,
+      precio_con_igv: l.precio_con_igv,
+    }));
+    const payload: AtencionCitaStorePayload = {
+      solo_actualizar_datos: true,
+      acudio_a_su_cita: acudio,
+      hora_asistencia: acudio && horaAsistenciaDisplay ? horaAsistenciaDisplay : undefined,
+      paciente_plan_id: pacientePlanId ?? undefined,
+      parentesco_seguro: parentescoSeguro.trim() || undefined,
+      titular_nombre: titularNombre.trim() || undefined,
+      control_pre_post_natal: controlPrePostNatal,
+      control_nino_sano: controlNinoSano,
+      chequeo,
+      carencia,
+      latencia,
+      servicios: serviciosPayload,
+    };
+    try {
+      const res = await guardarAtencionCita(id, payload);
+      actualizarGuardado(res);
+    } catch (e) {
+      const err = toApiError(e);
+      setError(err.message);
+      throw e;
+    } finally {
+      setSaving(false);
+    }
+  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, lineas, actualizarGuardado]);
+
+  const pendingChangesMessage = React.useMemo(() => {
+    const partes: string[] = [];
+    if (pacientePlanId !== lastSavedPlanId) partes.push("Plan");
+    if ((parentescoSeguro ?? "") !== lastSavedParentesco) partes.push("Condición");
+    if ((titularNombre ?? "") !== lastSavedTitular) partes.push("Titular");
+    if (partes.length === 0) return "";
+    return `Los siguientes cambios están pendientes por guardar: ${partes.join(", ")}. ¿Desea actualizar los datos antes de buscar servicios?`;
+  }, [pacientePlanId, lastSavedPlanId, parentescoSeguro, lastSavedParentesco, titularNombre, lastSavedTitular]);
 
   if (loading) {
     return (
@@ -380,7 +595,8 @@ export default function AtencionCitaPage() {
             <input
               value={titularNombre}
               onChange={(e) => setTitularNombre(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              readOnly={parentescoSeguro.trim().toUpperCase() === "TITULAR"}
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-70 disabled:cursor-not-allowed"
             />
           </div>
           <div>
@@ -492,6 +708,28 @@ export default function AtencionCitaPage() {
             <span className="text-sm text-(--color-text-primary)">Latencia</span>
           </label>
         </div>
+      </div>
+
+      {/* Sección: Servicios solicitados */}
+      <div ref={serviciosSectionRef}>
+      <ServiciosSolicitadosSection
+        medicoTratanteId={data.programacion?.medico?.id ?? null}
+        medicoTratanteLabel={
+          medicosOptions.find((o) => o.value === String(data.programacion?.medico?.id ?? ""))?.label ?? formatMedico(data.programacion?.medico ?? null)
+        }
+        tarifaId={tarifaId}
+        tarifaDescripcion={tarifaActual}
+        precargaServicios={precargaServicios}
+        onPrecargaChange={setPrecargaServicios}
+        lineas={lineas}
+        onLineasChange={setLineas}
+        medicosOptions={medicosOptions}
+        currentUsername={user?.username ?? ""}
+        citaId={id}
+        hasPendingDataChanges={hasPendingDataChanges}
+        onActualizarDatos={onActualizarDatos}
+        pendingChangesMessage={pendingChangesMessage}
+      />
       </div>
     </div>
   );

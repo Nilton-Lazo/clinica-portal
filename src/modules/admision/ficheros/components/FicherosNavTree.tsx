@@ -25,6 +25,12 @@ const groups: Group[] = [
       { label: "Tipos de clientes", to: "/admision/ficheros/tipos-clientes"},
     ],
   },
+  {
+    label: "Parámetros",
+    items: [
+      { label: "IGV", to: "/admision/ficheros/parametros/igv" },
+    ],
+  },
 ];
 
 export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {

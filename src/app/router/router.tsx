@@ -24,12 +24,14 @@ import AgendaMedicaPage from "../../modules/admision/citas/agenda/pages/AgendaMe
 import AgendaPacienteSelectPage from "../../modules/admision/citas/agenda/pages/AgendaPacienteSelectPage";
 import AgendaMedicaNuevaCitaPage from "../../modules/admision/citas/agenda/pages/AgendaMedicaNuevaCitaPage";
 import AtencionCitaPage from "../../modules/admision/citas/agenda/pages/AtencionCitaPage";
+import BuscarServiciosPage from "../../modules/admision/citas/agenda/pages/BuscarServiciosPage";
 
 import TiposIafasPage from "../../modules/admision/ficheros/pages/TiposIafasPage";
 import IafasPage from "../../modules/admision/ficheros/pages/IafasPage";
 import ContratantesPage from "../../modules/admision/ficheros/pages/ContratantesPage";
 import TarifasPage from "../../modules/admision/ficheros/pages/TarifasPage";
 import TiposClientesPage from "../../modules/admision/ficheros/pages/TiposClientesPage";
+import ParametrosIgvPage from "../../modules/admision/ficheros/pages/ParametrosIgvPage";
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
@@ -93,6 +95,7 @@ export const router = createBrowserRouter([
                       { path: "contratantes", element: <ContratantesPage /> },
                       { path: "tarifas", element: <TarifasPage /> },
                       { path: "tipos-clientes", element: <TiposClientesPage /> },
+                      { path: "parametros/igv", element: <ParametrosIgvPage /> },
                     ],
                   },
 
@@ -107,6 +110,7 @@ export const router = createBrowserRouter([
                         children: [
                           { index: true, element: <AgendaMedicaPage /> },
                           { path: ":citaId/atencion", element: <AtencionCitaPage /> },
+                          { path: ":citaId/atencion/buscar-servicios", element: <BuscarServiciosPage /> },
                           { path: "nueva", element: <AgendaMedicaNuevaCitaPage /> },
                           { path: "pacientes", element: <AgendaPacienteSelectPage /> },
                         ],

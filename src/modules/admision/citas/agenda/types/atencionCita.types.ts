@@ -52,6 +52,64 @@ export type AtencionCitaData = {
     carencia: boolean;
     latencia: boolean;
   } | null;
+  servicios: AtencionServicioItem[];
+};
+
+export type AtencionServicioItem = {
+  id: number;
+  tarifa_servicio_id: number;
+  servicio_codigo?: string | null;
+  servicio_descripcion: string | null;
+  medico_id: number;
+  medico_codigo: string | null;
+  medico_nombre: string | null;
+  user_id: number | null;
+  user_nombre: string | null;
+  cop_var: number;
+  cop_fijo: number;
+  descuento_pct: number;
+  aumento_pct: number;
+  cantidad: number;
+  precio_sin_igv: number;
+  precio_con_igv: number;
+};
+
+export type AtencionServicioLinea = {
+  tarifa_servicio_id: number;
+  medico_id: number;
+  cop_var?: number;
+  cop_fijo?: number;
+  descuento_pct?: number;
+  aumento_pct?: number;
+  cantidad?: number;
+  precio_sin_igv: number;
+  precio_con_igv: number;
+};
+
+/** Línea con datos de visualización (para nuevas líneas antes de guardar) */
+export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
+  id?: number;
+  servicio_codigo?: string | null;
+  servicio_descripcion?: string | null;
+  medico_codigo?: string | null;
+  user_nombre?: string | null;
+};
+
+/** Ítem en tabla de precarga (antes de "Cargar servicios") */
+export type PrecargaServicioItem = {
+  tarifa_servicio_id: number;
+  servicio_codigo: string;
+  servicio_descripcion: string;
+  cop_var: number;
+  cop_fijo: number;
+  descuento_pct: number;
+  aumento_pct: number;
+  cantidad: number;
+  precio_sin_igv: number;
+  precio_con_igv: number;
+  medico_id: number;
+  medico_codigo: string;
+  medico_nombre: string;
 };
 
 /** Payload para POST guardar atención */
@@ -67,4 +125,5 @@ export type AtencionCitaStorePayload = {
   chequeo?: boolean;
   carencia?: boolean;
   latencia?: boolean;
+  servicios?: AtencionServicioLinea[];
 };
