@@ -124,6 +124,25 @@ export type PrecargaServicioItem = {
   recargo_noche_activo?: boolean;
 };
 
+/** Draft del formulario de atención para preservar al navegar (ej. a Buscar servicios). */
+export type AtencionDraft = {
+  acudio: boolean;
+  horaAsistenciaDisplay: string;
+  pacientePlanId: number | null;
+  parentescoSeguro: string;
+  titularNombre: string;
+  controlPrePostNatal: boolean;
+  controlNinoSano: boolean;
+  chequeo: boolean;
+  carencia: boolean;
+  latencia: boolean;
+  soatActivo: boolean;
+  soatNumeroPoliza: string;
+  soatNumeroPlaca: string;
+  lineas: AtencionServicioLineaDisplay[];
+  precargaServicios: PrecargaServicioItem[];
+};
+
 /** Payload para POST guardar atención */
 export type AtencionCitaStorePayload = {
   solo_actualizar_datos?: boolean;

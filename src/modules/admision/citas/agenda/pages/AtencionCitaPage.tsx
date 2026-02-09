@@ -9,6 +9,7 @@ import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
 import type {
   AtencionCitaData,
   AtencionCitaStorePayload,
+  AtencionDraft,
   AtencionServicioItem,
   AtencionServicioLinea,
   AtencionServicioLineaDisplay,
@@ -94,7 +95,8 @@ export default function AtencionCitaPage() {
   const [data, setData] = React.useState<AtencionCitaData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [saving, setSaving] = React.useState(false);
+  const [savingState, setSavingState] = React.useState<"actualizar" | "guardar" | null>(null);
+  const saving = savingState !== null;
 
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
   const [precargaServicios, setPrecargaServicios] = React.useState<PrecargaServicioItem[]>([]);
@@ -124,6 +126,18 @@ export default function AtencionCitaPage() {
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
+  const DRAFT_STORAGE_KEY_PREFIX = "admision:atencionCitaDraft:";
+  const loadRunIdRef = React.useRef(0);
+
+  const clearDraftForCita = React.useCallback((citaId: number) => {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.removeItem(`${DRAFT_STORAGE_KEY_PREFIX}${citaId}`);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   React.useEffect(() => {
     if (!Number.isFinite(id)) {
       setError("ID de cita inválido");
@@ -132,8 +146,11 @@ export default function AtencionCitaPage() {
     }
     setLoading(true);
     setError(null);
+    const thisRunId = ++loadRunIdRef.current;
+    const draftStorageKey = `${DRAFT_STORAGE_KEY_PREFIX}${id}`;
     getAtencionCitaData(id)
       .then((res) => {
+        if (thisRunId !== loadRunIdRef.current) return;
         setData(res);
         setParentescoSeguro(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
         setTitularNombre(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
@@ -153,12 +170,41 @@ export default function AtencionCitaPage() {
         setSoatNumeroPoliza(res.atencion?.soat_numero_poliza ?? "");
         setSoatNumeroPlaca(res.atencion?.soat_numero_placa ?? "");
         setLineas((res.servicios ?? []).map(mapServicioToDisplay));
+
+        if (typeof window !== "undefined") {
+          const raw = window.sessionStorage.getItem(draftStorageKey);
+          if (raw) {
+            try {
+              const draft = JSON.parse(raw) as AtencionDraft;
+              setAcudio(draft.acudio ?? false);
+              setHoraAsistenciaDisplay(draft.horaAsistenciaDisplay ?? "");
+              setPacientePlanId(draft.pacientePlanId ?? null);
+              setParentescoSeguro(draft.parentescoSeguro ?? "");
+              setTitularNombre(draft.titularNombre ?? "");
+              setControlPrePostNatal(draft.controlPrePostNatal ?? false);
+              setControlNinoSano(draft.controlNinoSano ?? false);
+              setChequeo(draft.chequeo ?? false);
+              setCarencia(draft.carencia ?? false);
+              setLatencia(draft.latencia ?? false);
+              setSoatActivo(draft.soatActivo ?? false);
+              setSoatNumeroPoliza(draft.soatNumeroPoliza ?? "");
+              setSoatNumeroPlaca(draft.soatNumeroPlaca ?? "");
+              if (draft.lineas != null) setLineas(draft.lineas);
+              if (draft.precargaServicios != null) setPrecargaServicios(draft.precargaServicios);
+            } catch {
+              window.sessionStorage.removeItem(draftStorageKey);
+            }
+          }
+        }
       })
       .catch((e) => {
+        if (thisRunId !== loadRunIdRef.current) return;
         const err = toApiError(e);
         setError(err.message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (thisRunId === loadRunIdRef.current) setLoading(false);
+      });
   }, [id]);
 
   const planOptions: SelectOption[] = React.useMemo(() => {
@@ -183,6 +229,42 @@ export default function AtencionCitaPage() {
     return plan?.tarifa_id ?? null;
   }, [data?.planes, pacientePlanId]);
 
+  const getAtencionDraft = React.useCallback((): AtencionDraft => {
+    return {
+      acudio,
+      horaAsistenciaDisplay,
+      pacientePlanId,
+      parentescoSeguro,
+      titularNombre,
+      controlPrePostNatal,
+      controlNinoSano,
+      chequeo,
+      carencia,
+      latencia,
+      soatActivo,
+      soatNumeroPoliza,
+      soatNumeroPlaca,
+      lineas,
+      precargaServicios,
+    };
+  }, [
+    acudio,
+    horaAsistenciaDisplay,
+    pacientePlanId,
+    parentescoSeguro,
+    titularNombre,
+    controlPrePostNatal,
+    controlNinoSano,
+    chequeo,
+    carencia,
+    latencia,
+    soatActivo,
+    soatNumeroPoliza,
+    soatNumeroPlaca,
+    lineas,
+    precargaServicios,
+  ]);
+
   const serviciosSectionRef = React.useRef<HTMLDivElement | null>(null);
   const processedServiciosRef = React.useRef<string | null>(null);
 
@@ -197,12 +279,18 @@ export default function AtencionCitaPage() {
     const restoreLineas = st.returnLineas;
     const restorePrecarga = st.returnPrecarga;
     const scrollTo = st.scrollToServicios;
+    const stateSinDraft = () => ({
+      returnLineas: st.returnLineas,
+      returnPrecarga: st.returnPrecarga,
+      scrollToServicios: st.scrollToServicios,
+      selectedServicios: st.selectedServicios,
+    });
 
     if (scrollTo && serviciosSectionRef.current) {
       requestAnimationFrame(() => {
         serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
-      navigate(location.pathname, { replace: true, state: { ...st, scrollToServicios: false } });
+      navigate(location.pathname, { replace: true, state: { ...stateSinDraft(), scrollToServicios: false } });
     }
 
     if (restoreLineas != null) setLineas(restoreLineas);
@@ -276,8 +364,9 @@ export default function AtencionCitaPage() {
   }, [parentescoSeguro, data?.paciente]);
 
   const onRegresar = React.useCallback(() => {
+    if (Number.isFinite(id)) clearDraftForCita(id);
     navigate("/admision/citas/agenda");
-  }, [navigate]);
+  }, [navigate, id, clearDraftForCita]);
 
   const onAcudioChange = React.useCallback((checked: boolean) => {
     setAcudio(checked);
@@ -286,13 +375,65 @@ export default function AtencionCitaPage() {
   }, []);
 
   const montoAPagar = React.useMemo(() => {
-    return lineas.reduce((sum, l) => sum + (Number(l.precio_con_igv) || 0), 0);
+    return lineas
+      .filter((l) => (l.estado_facturacion ?? "PENDIENTE") === "PENDIENTE")
+      .reduce((sum, l) => sum + (Number(l.precio_con_igv) || 0), 0);
   }, [lineas]);
 
   const hasPendingDataChanges =
     pacientePlanId !== lastSavedPlanId ||
     (parentescoSeguro ?? "") !== lastSavedParentesco ||
     (titularNombre ?? "") !== lastSavedTitular;
+
+  const hasFormChangesComparedToSaved = React.useMemo(() => {
+    if (!data?.atencion) return true;
+    const a = data.atencion;
+    const s = data.servicios ?? [];
+    if (acudio !== Boolean(a.hora_asistencia)) return true;
+    if ((horaAsistenciaDisplay || "").trim() !== (a.hora_asistencia?.slice(0, 5) ?? "").trim()) return true;
+    if (controlPrePostNatal !== Boolean(a.control_pre_post_natal)) return true;
+    if (controlNinoSano !== Boolean(a.control_nino_sano)) return true;
+    if (chequeo !== Boolean(a.chequeo)) return true;
+    if (carencia !== Boolean(a.carencia)) return true;
+    if (latencia !== Boolean(a.latencia)) return true;
+    if (soatActivo !== Boolean(a.soat_activo)) return true;
+    if ((soatNumeroPoliza ?? "").trim() !== (a.soat_numero_poliza ?? "").trim()) return true;
+    if ((soatNumeroPlaca ?? "").trim() !== (a.soat_numero_placa ?? "").trim()) return true;
+    if (lineas.length !== s.length) return true;
+    const lineasChanged = lineas.some(
+      (l, i) =>
+        !s[i] || l.id !== s[i].id || Number(l.cantidad) !== Number(s[i].cantidad)
+    );
+    if (lineasChanged) return true;
+    return false;
+  }, [
+    data?.atencion,
+    data?.servicios,
+    acudio,
+    horaAsistenciaDisplay,
+    controlPrePostNatal,
+    controlNinoSano,
+    chequeo,
+    carencia,
+    latencia,
+    soatActivo,
+    soatNumeroPoliza,
+    soatNumeroPlaca,
+    lineas,
+  ]);
+
+  const canGuardarAtencion =
+    !hasPendingDataChanges &&
+    acudio &&
+    lineas.length > 0 &&
+    hasFormChangesComparedToSaved;
+  const horaAsistenciaGuardada = Boolean(data?.atencion?.hora_asistencia);
+
+  React.useEffect(() => {
+    if (!error) return;
+    if (error.startsWith("Debe marcar") && acudio) setError(null);
+    if (error.startsWith("Debe haber") && lineas.length > 0) setError(null);
+  }, [acudio, lineas.length, error]);
 
   const actualizarGuardado = React.useCallback((res: AtencionCitaData) => {
     setData(res);
@@ -317,8 +458,15 @@ export default function AtencionCitaPage() {
 
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(id)) return;
-    setSaving(true);
-    const soloActualizarDatos = hasPendingDataChanges;
+    if (!acudio) {
+      setError("Debe marcar la casilla «Hora de atención» para guardar la atención.");
+      return;
+    }
+    if (lineas.length === 0) {
+      setError("Debe haber al menos un servicio en la tabla Servicios finales para guardar la atención.");
+      return;
+    }
+    setSavingState("guardar");
     const serviciosPayload: AtencionServicioLinea[] = lineas.map((l) => ({
       tarifa_servicio_id: l.tarifa_servicio_id,
       medico_id: l.medico_id,
@@ -333,7 +481,6 @@ export default function AtencionCitaPage() {
     }));
 
     const payload: AtencionCitaStorePayload = {
-      ...(soloActualizarDatos && { solo_actualizar_datos: true }),
       acudio_a_su_cita: acudio,
       hora_asistencia: acudio && horaAsistenciaDisplay ? horaAsistenciaDisplay : undefined,
       paciente_plan_id: pacientePlanId ?? undefined,
@@ -353,29 +500,38 @@ export default function AtencionCitaPage() {
     try {
       const res = await guardarAtencionCita(id, payload);
       actualizarGuardado(res);
+      clearDraftForCita(id);
+      navigate("/admision/citas/agenda", {
+        replace: true,
+        state: { returnFromAtencion: true, citaId: id },
+      });
     } catch (e) {
       const err = toApiError(e);
       setError(err.message);
     } finally {
-      setSaving(false);
+      setSavingState(null);
     }
-  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado]);
+  }, [id, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita]);
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!Number.isFinite(id) || !hasPendingDataChanges) return;
-    setSaving(true);
-    const serviciosPayload: AtencionServicioLinea[] = lineas.map((l) => ({
-      tarifa_servicio_id: l.tarifa_servicio_id,
-      medico_id: l.medico_id,
-      cop_var: l.cop_var ?? 0,
-      cop_fijo: l.cop_fijo ?? 0,
-      descuento_pct: l.descuento_pct ?? 0,
-      aumento_pct: l.aumento_pct ?? 0,
-      cantidad: l.cantidad ?? 1,
-      precio_sin_igv: l.precio_sin_igv,
-      precio_con_igv: l.precio_con_igv,
-      estado_facturacion: l.estado_facturacion ?? "PENDIENTE",
-    }));
+    const planChanged = pacientePlanId !== lastSavedPlanId;
+    setSavingState("actualizar");
+    const serviciosPayload: AtencionServicioLinea[] =
+      planChanged
+        ? []
+        : lineas.map((l) => ({
+            tarifa_servicio_id: l.tarifa_servicio_id,
+            medico_id: l.medico_id,
+            cop_var: l.cop_var ?? 0,
+            cop_fijo: l.cop_fijo ?? 0,
+            descuento_pct: l.descuento_pct ?? 0,
+            aumento_pct: l.aumento_pct ?? 0,
+            cantidad: l.cantidad ?? 1,
+            precio_sin_igv: l.precio_sin_igv,
+            precio_con_igv: l.precio_con_igv,
+            estado_facturacion: l.estado_facturacion ?? "PENDIENTE",
+          }));
     const payload: AtencionCitaStorePayload = {
       solo_actualizar_datos: true,
       acudio_a_su_cita: acudio,
@@ -388,7 +544,7 @@ export default function AtencionCitaPage() {
       chequeo,
       carencia,
       latencia,
-      monto_a_pagar: Math.round(montoAPagar * 10 ** PRECISION_DECIMAL) / 10 ** PRECISION_DECIMAL,
+      monto_a_pagar: planChanged ? 0 : Math.round(montoAPagar * 10 ** PRECISION_DECIMAL) / 10 ** PRECISION_DECIMAL,
       soat_activo: soatActivo,
       soat_numero_poliza: soatActivo ? (soatNumeroPoliza.trim() || null) : null,
       soat_numero_placa: soatActivo ? (soatNumeroPlaca.trim() || null) : null,
@@ -397,14 +553,19 @@ export default function AtencionCitaPage() {
     try {
       const res = await guardarAtencionCita(id, payload);
       actualizarGuardado(res);
+      if (planChanged) {
+        setLineas([]);
+        setPrecargaServicios([]);
+      }
+      clearDraftForCita(id);
     } catch (e) {
       const err = toApiError(e);
       setError(err.message);
       throw e;
     } finally {
-      setSaving(false);
+      setSavingState(null);
     }
-  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado]);
+  }, [id, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita]);
 
   const pendingChangesMessage = React.useMemo(() => {
     const partes: string[] = [];
@@ -453,7 +614,7 @@ export default function AtencionCitaPage() {
               <input
                 value={nroCuenta || "—"}
                 readOnly
-                className="min-w-0 flex-1 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-base font-semibold tabular-nums text-(--color-text-primary) outline-none sm:w-48 sm:flex-none"
+                className="min-w-0 flex-1 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-base font-semibold tabular-nums text-(--color-text-primary) outline-none sm:w-48 sm:flex-none"
               />
             </div>
           </div>
@@ -466,25 +627,26 @@ export default function AtencionCitaPage() {
               setParentescoSeguro(lastSavedParentesco);
               setTitularNombre(lastSavedTitular);
             }}
-            disabled={!hasPendingDataChanges}
+            disabled={saving || !hasPendingDataChanges}
           >
             Cancelar
           </SecondaryButton>
-          <PrimaryButton onClick={onGuardar} disabled={saving}>
-            {saving ? "Guardando…" : hasPendingDataChanges ? "Actualizar datos" : "Guardar atención"}
+          <PrimaryButton
+            onClick={onActualizarDatos}
+            disabled={saving || !hasPendingDataChanges}
+          >
+            {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
+          </PrimaryButton>
+          <PrimaryButton
+            onClick={onGuardar}
+            disabled={saving || !canGuardarAtencion}
+          >
+            {savingState === "guardar" ? "Guardando…" : "Guardar atención"}
           </PrimaryButton>
         </div>
       </div>
       <p className="text-xs text-(--color-text-secondary)">
-        {hasPendingDataChanges ? (
-          <>
-            Hay cambios en plan, condición o titular, guarde primero los datos con <strong>Actualizar datos</strong> y luego podrá <strong>Guardar atención</strong>.
-          </>
-        ) : (
-          <>
-            Los cambios en plan, condición y titular se guardan al hacer clic en <strong>Actualizar datos</strong>.
-          </>
-        )}
+        <strong>Actualizar datos</strong> guarda solo plan, condición y titular (y limpia servicios si cambió el plan). <strong>Guardar atención</strong> guarda la atención completa con hora, indicadores, SOAT y servicios, y regresa a la agenda.
       </p>
 
       {/* Sección: Datos de la cita */}
@@ -517,12 +679,13 @@ export default function AtencionCitaPage() {
           </div>
           <div>
             <label className="block min-h-5 text-xs leading-normal text-(--color-text-secondary)">
-              <span className="inline-flex cursor-pointer items-center gap-2">
+              <span className={`inline-flex items-center gap-2 ${horaAsistenciaGuardada ? "cursor-default opacity-90" : "cursor-pointer"}`}>
                 <input
                   type="checkbox"
                   checked={acudio}
-                  onChange={(e) => onAcudioChange(e.target.checked)}
-                  className="h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
+                  onChange={(e) => !horaAsistenciaGuardada && onAcudioChange(e.target.checked)}
+                  disabled={horaAsistenciaGuardada}
+                  className="h-4 w-4 shrink-0 rounded border border-(--border-color-default) disabled:cursor-not-allowed"
                 />
                 Hora de atención
               </span>
@@ -722,24 +885,26 @@ export default function AtencionCitaPage() {
               />
               <span className="text-sm text-(--color-text-primary)">Chequeo</span>
             </label>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={carencia}
-                onChange={(e) => setCarencia(e.target.checked)}
-                className="h-4 w-4 rounded border border-(--border-color-default)"
-              />
-              <span className="text-sm text-(--color-text-primary)">Carencia</span>
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={latencia}
-                onChange={(e) => setLatencia(e.target.checked)}
-                className="h-4 w-4 rounded border border-(--border-color-default)"
-              />
-              <span className="text-sm text-(--color-text-primary)">Latencia</span>
-            </label>
+            <div className="inline-flex shrink-0 items-center gap-x-6">
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={carencia}
+                  onChange={(e) => setCarencia(e.target.checked)}
+                  className="h-4 w-4 rounded border border-(--border-color-default)"
+                />
+                <span className="text-sm text-(--color-text-primary)">Carencia</span>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={latencia}
+                  onChange={(e) => setLatencia(e.target.checked)}
+                  className="h-4 w-4 rounded border border-(--border-color-default)"
+                />
+                <span className="text-sm text-(--color-text-primary)">Latencia</span>
+              </label>
+            </div>
           </div>
         </div>
         <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
@@ -748,7 +913,14 @@ export default function AtencionCitaPage() {
               type="checkbox"
               id="soat-activo"
               checked={soatActivo}
-              onChange={(e) => setSoatActivo(e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setSoatActivo(checked);
+                if (!checked) {
+                  setSoatNumeroPoliza("");
+                  setSoatNumeroPlaca("");
+                }
+              }}
               className="h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
             />
             <label htmlFor="soat-activo" className="cursor-pointer text-sm font-semibold text-(--color-text-primary)">SOAT</label>
@@ -796,6 +968,7 @@ export default function AtencionCitaPage() {
           onActualizarDatos={onActualizarDatos}
           pendingChangesMessage={pendingChangesMessage}
           montoAPagar={montoAPagar}
+          getAtencionDraft={getAtencionDraft}
         />
       </div>
     </div>

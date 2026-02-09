@@ -29,7 +29,13 @@ export default function AgendaMedicaMobileList(props: {
     (x.iafa_id ? String(x.iafa_id) : "—");
 
   const hIngLabel = (x: AgendaCita) =>
-    x.estado_atencion === "PENDIENTE" ? "P" : x.estado_atencion === "ATENDIDO" ? "A" : "—";
+    x.estado_atencion === "ATENDIDO" && x.hora_ingreso
+      ? (x.hora_ingreso.length >= 5 ? x.hora_ingreso.slice(0, 5) : x.hora_ingreso)
+      : x.estado_atencion === "PENDIENTE"
+        ? "P"
+        : x.estado_atencion === "ATENDIDO"
+          ? "A"
+          : "—";
 
   return (
     <div className="lg:hidden">

@@ -11,6 +11,7 @@ import {
   type TarifaServicioBusqueda,
   type TarifaServiciosBusquedaMeta,
 } from "../services/atencionCita.service";
+import type { AtencionDraft } from "../types/atencionCita.types";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -32,6 +33,7 @@ type LocationState = {
   tarifaDescripcion?: string | null;
   returnLineas?: unknown[];
   returnPrecarga?: unknown[];
+  atencionDraft?: AtencionDraft | null;
 };
 
 /** Normaliza búsqueda por código: 010101 → 01.01.01 (igual que CRUD servicios). */
@@ -145,6 +147,7 @@ export default function BuscarServiciosPage() {
       state: {
         returnLineas: st.returnLineas,
         returnPrecarga: st.returnPrecarga,
+        atencionDraft: st.atencionDraft,
         scrollToServicios: true,
       },
     });
@@ -160,6 +163,7 @@ export default function BuscarServiciosPage() {
           selectedServicios: [row],
           returnLineas: st.returnLineas,
           returnPrecarga: st.returnPrecarga,
+          atencionDraft: st.atencionDraft,
           scrollToServicios: true,
         },
       });
@@ -177,6 +181,7 @@ export default function BuscarServiciosPage() {
         selectedServicios: selected,
         returnLineas: st.returnLineas,
         returnPrecarga: st.returnPrecarga,
+        atencionDraft: st.atencionDraft,
         scrollToServicios: true,
       },
     });

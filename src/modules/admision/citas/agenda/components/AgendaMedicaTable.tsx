@@ -42,7 +42,14 @@ export default function AgendaMedicaTable(props: {
       header: "H. Ing.",
       headerClassName: "text-center w-20 whitespace-nowrap",
       cellClassName: "px-3 py-2 text-center tabular-nums font-semibold",
-      render: (x) => (x.estado_atencion === "PENDIENTE" ? "P" : x.estado_atencion === "ATENDIDO" ? "A" : "—"),
+      render: (x) =>
+        x.estado_atencion === "ATENDIDO" && x.hora_ingreso
+          ? formatHora(x.hora_ingreso)
+          : x.estado_atencion === "PENDIENTE"
+            ? "P"
+            : x.estado_atencion === "ATENDIDO"
+              ? "A"
+              : "—",
     },
     {
       key: "hc",

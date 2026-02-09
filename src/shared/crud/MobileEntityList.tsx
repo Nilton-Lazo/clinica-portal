@@ -72,19 +72,27 @@ export function MobileEntityList<T>(props: {
         const active = selectedId != null && String(selectedId) === String(id);
 
         return (
-          <button
+          <div
             key={String(id)}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => {
               if (longPressHandledRef.current) return;
               onSelect(row);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (longPressHandledRef.current) return;
+                onSelect(row);
+              }
             }}
             onTouchStart={() => handleTouchStart(row)}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onTouchMove={handleTouchMove}
             className={[
-              "w-full rounded-2xl border border-(--border-color-default) p-4 text-left",
+              "w-full cursor-pointer rounded-2xl border border-(--border-color-default) p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)",
               "transition-transform duration-150 active:scale-[0.99]",
               active ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
             ].join(" ")}
@@ -93,7 +101,7 @@ export function MobileEntityList<T>(props: {
               <div className="min-w-0">{renderMain(row)}</div>
               {renderRight ? renderRight(row) : null}
             </div>
-          </button>
+          </div>
         );
       })}
     </div>

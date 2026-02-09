@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../../shared/ui/buttons";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
@@ -27,11 +27,18 @@ function formatMedicoLabel(m?: { nombres: string; apellido_paterno: string; apel
   return `${m.apellido_paterno} ${m.apellido_materno} ${m.nombres}`.trim();
 }
 
+type LocationStateAtencion = { returnFromAtencion?: boolean; citaId?: number };
+
 export default function AgendaMedicaPage() {
   const vm = useAgendaMedicaContext();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const initRef = React.useRef(false);
+  const [citaIdToSelect, setCitaIdToSelect] = React.useState<number | null>(null);
+  const handledReturnFromAtencionRef = React.useRef(false);
+  const vmRef = React.useRef(vm);
+  vmRef.current = vm;
 
   React.useEffect(() => {
     if (initRef.current) return;
@@ -44,6 +51,28 @@ export default function AgendaMedicaPage() {
     if (esp) vm.setEspecialidadId(Number(esp));
     if (med) vm.setMedicoId(Number(med));
   }, [searchParams, vm]);
+
+  React.useEffect(() => {
+    const state = location.state as LocationStateAtencion | null;
+    if (!state?.returnFromAtencion || state?.citaId == null) {
+      handledReturnFromAtencionRef.current = false;
+      return;
+    }
+    if (handledReturnFromAtencionRef.current) return;
+    handledReturnFromAtencionRef.current = true;
+    navigate(location.pathname, { replace: true, state: {} });
+    vmRef.current.refetchSlotsForNuevaCita();
+    setCitaIdToSelect(state.citaId);
+  }, [location.state, location.pathname, navigate]);
+
+  React.useEffect(() => {
+    if (citaIdToSelect == null || vm.data.data.length === 0) return;
+    const row = vm.data.data.find((c) => c.id === citaIdToSelect);
+    if (row) {
+      vmRef.current.setSelectedCita(row);
+    }
+    setCitaIdToSelect(null);
+  }, [citaIdToSelect, vm.data.data]);
 
   const onPickDate = React.useCallback(
     (d: Date) => {

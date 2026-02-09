@@ -10,6 +10,7 @@ import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import type {
+  AtencionDraft,
   AtencionServicioLineaDisplay,
   PrecargaServicioItem,
 } from "../types/atencionCita.types";
@@ -69,6 +70,8 @@ export type ServiciosSolicitadosSectionProps = {
   onActualizarDatos?: () => Promise<void>;
   pendingChangesMessage?: string;
   montoAPagar: number;
+  /** Devuelve el draft del formulario de atención para preservar al ir a Buscar servicios. */
+  getAtencionDraft?: () => AtencionDraft | null;
 };
 
 export function ServiciosSolicitadosSection({
@@ -87,6 +90,7 @@ export function ServiciosSolicitadosSection({
   onActualizarDatos,
   pendingChangesMessage = "",
   montoAPagar,
+  getAtencionDraft,
 }: ServiciosSolicitadosSectionProps) {
   const navigate = useNavigate();
   const [igvPct, setIgvPct] = React.useState(18);
@@ -95,16 +99,27 @@ export function ServiciosSolicitadosSection({
   const [actualizando, setActualizando] = React.useState(false);
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
 
+  const DRAFT_STORAGE_KEY_PREFIX = "admision:atencionCitaDraft:";
+
   const doNavigateBuscar = React.useCallback(() => {
+    const draft = getAtencionDraft?.() ?? undefined;
+    if (draft && typeof window !== "undefined") {
+      try {
+        window.sessionStorage.setItem(`${DRAFT_STORAGE_KEY_PREFIX}${citaId}`, JSON.stringify(draft));
+      } catch {
+        // ignore
+      }
+    }
     navigate(`/admision/citas/agenda/${citaId}/atencion/buscar-servicios`, {
       state: {
         tarifaId,
         tarifaDescripcion,
         returnLineas: lineas,
         returnPrecarga: precargaServicios,
+        atencionDraft: draft,
       },
     });
-  }, [navigate, citaId, tarifaId, tarifaDescripcion, lineas, precargaServicios]);
+  }, [navigate, citaId, tarifaId, tarifaDescripcion, lineas, precargaServicios, getAtencionDraft]);
 
   const handleBuscarServicio = React.useCallback(() => {
     if (hasPendingDataChanges && onActualizarDatos && pendingChangesMessage) {
@@ -377,7 +392,7 @@ export function ServiciosSolicitadosSection({
       base.push({ key: "aumento", header: "Aumento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => ((x.aumento_pct ?? 0) === 0 ? "—" : `${x.aumento_pct}%`) });
     }
     base.push(
-      { key: "cantidad", header: "Cantidad", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cantidad ?? 1).toFixed(2) },
+      { key: "cantidad", header: "Cantidad", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => String(Math.round(x.cantidad ?? 1)) },
       {
         key: "precio_con_igv",
       header: <span className="whitespace-nowrap">Precio con IGV</span>,
@@ -657,7 +672,7 @@ export function ServiciosSolicitadosSection({
                     {tieneAumento && (
                       <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Aum:</span> <span className="text-(--color-text-primary) font-normal">{(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}</span></span>
                     )}
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cant:</span> <span className="text-(--color-text-primary) font-normal">{(item.cantidad ?? 1).toFixed(2)}</span></span>
+                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cant:</span> <span className="text-(--color-text-primary) font-normal">{Math.round(item.cantidad ?? 1)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Precio c/ IGV:</span> <span className="text-(--color-text-primary) font-normal tabular-nums">S/. {(item.precio_con_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Méd:</span> <span className="text-(--color-text-primary) font-normal">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Usr:</span> <span className="text-(--color-text-primary) font-normal">{item.user_nombre ?? "—"}</span></span>
