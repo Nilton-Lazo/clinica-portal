@@ -15,6 +15,7 @@ import type {
   PrecargaServicioItem,
 } from "../types/atencionCita.types";
 import { toApiError } from "../../../../../shared/api/apiError";
+import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import { ServiciosSolicitadosSection } from "../components/ServiciosSolicitadosSection";
 
 const PARENTESCO_OPTIONS: SelectOption[] = [
@@ -112,6 +113,9 @@ export default function AtencionCitaPage() {
   const [chequeo, setChequeo] = React.useState(false);
   const [carencia, setCarencia] = React.useState(false);
   const [latencia, setLatencia] = React.useState(false);
+  const [soatActivo, setSoatActivo] = React.useState(false);
+  const [soatNumeroPoliza, setSoatNumeroPoliza] = React.useState("");
+  const [soatNumeroPlaca, setSoatNumeroPlaca] = React.useState("");
 
   const formatHoraLocal = () => {
     const d = new Date();
@@ -145,6 +149,9 @@ export default function AtencionCitaPage() {
         setChequeo(Boolean(res.atencion?.chequeo));
         setCarencia(Boolean(res.atencion?.carencia));
         setLatencia(Boolean(res.atencion?.latencia));
+        setSoatActivo(Boolean(res.atencion?.soat_activo));
+        setSoatNumeroPoliza(res.atencion?.soat_numero_poliza ?? "");
+        setSoatNumeroPlaca(res.atencion?.soat_numero_placa ?? "");
         setLineas((res.servicios ?? []).map(mapServicioToDisplay));
       })
       .catch((e) => {
@@ -278,6 +285,10 @@ export default function AtencionCitaPage() {
     else setHoraAsistenciaDisplay("");
   }, []);
 
+  const montoAPagar = React.useMemo(() => {
+    return lineas.reduce((sum, l) => sum + (Number(l.precio_con_igv) || 0), 0);
+  }, [lineas]);
+
   const hasPendingDataChanges =
     pacientePlanId !== lastSavedPlanId ||
     (parentescoSeguro ?? "") !== lastSavedParentesco ||
@@ -298,6 +309,9 @@ export default function AtencionCitaPage() {
     setChequeo(Boolean(res.atencion?.chequeo));
     setCarencia(Boolean(res.atencion?.carencia));
     setLatencia(Boolean(res.atencion?.latencia));
+    setSoatActivo(Boolean(res.atencion?.soat_activo));
+    setSoatNumeroPoliza(res.atencion?.soat_numero_poliza ?? "");
+    setSoatNumeroPlaca(res.atencion?.soat_numero_placa ?? "");
     setLineas((res.servicios ?? []).map(mapServicioToDisplay));
   }, []);
 
@@ -330,6 +344,10 @@ export default function AtencionCitaPage() {
       chequeo,
       carencia,
       latencia,
+      monto_a_pagar: Math.round(montoAPagar * 10 ** PRECISION_DECIMAL) / 10 ** PRECISION_DECIMAL,
+      soat_activo: soatActivo,
+      soat_numero_poliza: soatActivo ? (soatNumeroPoliza.trim() || null) : null,
+      soat_numero_placa: soatActivo ? (soatNumeroPlaca.trim() || null) : null,
       servicios: serviciosPayload,
     };
     try {
@@ -341,7 +359,7 @@ export default function AtencionCitaPage() {
     } finally {
       setSaving(false);
     }
-  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, lineas, actualizarGuardado]);
+  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado]);
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!Number.isFinite(id) || !hasPendingDataChanges) return;
@@ -370,6 +388,10 @@ export default function AtencionCitaPage() {
       chequeo,
       carencia,
       latencia,
+      monto_a_pagar: Math.round(montoAPagar * 10 ** PRECISION_DECIMAL) / 10 ** PRECISION_DECIMAL,
+      soat_activo: soatActivo,
+      soat_numero_poliza: soatActivo ? (soatNumeroPoliza.trim() || null) : null,
+      soat_numero_placa: soatActivo ? (soatNumeroPlaca.trim() || null) : null,
       servicios: serviciosPayload,
     };
     try {
@@ -382,7 +404,7 @@ export default function AtencionCitaPage() {
     } finally {
       setSaving(false);
     }
-  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, lineas, actualizarGuardado]);
+  }, [id, hasPendingDataChanges, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado]);
 
   const pendingChangesMessage = React.useMemo(() => {
     const partes: string[] = [];
@@ -668,78 +690,113 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      {/* Sección: Indicadores de atención */}
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-        <h2 className="text-sm font-semibold text-(--color-text-primary)">Indicadores de atención</h2>
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 lg:flex-nowrap lg:gap-4">
-          <label className="inline-flex cursor-pointer items-center gap-2">
+      {/* Fila: Indicadores de atención (izq) + SOAT (der) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+          <h2 className="text-sm font-semibold text-(--color-text-primary)">Indicadores de atención</h2>
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={controlPrePostNatal}
+                onChange={(e) => setControlPrePostNatal(e.target.checked)}
+                className="h-4 w-4 rounded border border-(--border-color-default)"
+              />
+              <span className="text-sm text-(--color-text-primary)">Control Pre y Post Natal</span>
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={controlNinoSano}
+                onChange={(e) => setControlNinoSano(e.target.checked)}
+                className="h-4 w-4 rounded border border-(--border-color-default)"
+              />
+              <span className="text-sm text-(--color-text-primary)">Control niño sano</span>
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={chequeo}
+                onChange={(e) => setChequeo(e.target.checked)}
+                className="h-4 w-4 rounded border border-(--border-color-default)"
+              />
+              <span className="text-sm text-(--color-text-primary)">Chequeo</span>
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={carencia}
+                onChange={(e) => setCarencia(e.target.checked)}
+                className="h-4 w-4 rounded border border-(--border-color-default)"
+              />
+              <span className="text-sm text-(--color-text-primary)">Carencia</span>
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={latencia}
+                onChange={(e) => setLatencia(e.target.checked)}
+                className="h-4 w-4 rounded border border-(--border-color-default)"
+              />
+              <span className="text-sm text-(--color-text-primary)">Latencia</span>
+            </label>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={controlPrePostNatal}
-              onChange={(e) => setControlPrePostNatal(e.target.checked)}
-              className="h-4 w-4 rounded border border-(--border-color-default)"
+              id="soat-activo"
+              checked={soatActivo}
+              onChange={(e) => setSoatActivo(e.target.checked)}
+              className="h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
             />
-            <span className="text-sm text-(--color-text-primary)">Control Pre y Post Natal</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={controlNinoSano}
-              onChange={(e) => setControlNinoSano(e.target.checked)}
-              className="h-4 w-4 rounded border border-(--border-color-default)"
-            />
-            <span className="text-sm text-(--color-text-primary)">Control niño sano</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={chequeo}
-              onChange={(e) => setChequeo(e.target.checked)}
-              className="h-4 w-4 rounded border border-(--border-color-default)"
-            />
-            <span className="text-sm text-(--color-text-primary)">Chequeo</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={carencia}
-              onChange={(e) => setCarencia(e.target.checked)}
-              className="h-4 w-4 rounded border border-(--border-color-default)"
-            />
-            <span className="text-sm text-(--color-text-primary)">Carencia</span>
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2">
-            <input
-              type="checkbox"
-              checked={latencia}
-              onChange={(e) => setLatencia(e.target.checked)}
-              className="h-4 w-4 rounded border border-(--border-color-default)"
-            />
-            <span className="text-sm text-(--color-text-primary)">Latencia</span>
-          </label>
+            <label htmlFor="soat-activo" className="cursor-pointer text-sm font-semibold text-(--color-text-primary)">SOAT</label>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs text-(--color-text-secondary)">Nº de póliza</label>
+              <input
+                value={soatNumeroPoliza}
+                onChange={(e) => setSoatNumeroPoliza(e.target.value)}
+                disabled={!soatActivo}
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-(--color-text-secondary)">Nº de placa</label>
+              <input
+                value={soatNumeroPlaca}
+                onChange={(e) => setSoatNumeroPlaca(e.target.value)}
+                disabled={!soatActivo}
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Sección: Servicios solicitados */}
       <div ref={serviciosSectionRef}>
-      <ServiciosSolicitadosSection
-        medicoTratanteId={data.programacion?.medico?.id ?? null}
-        medicoTratanteLabel={
-          medicosOptions.find((o) => o.value === String(data.programacion?.medico?.id ?? ""))?.label ?? formatMedico(data.programacion?.medico ?? null)
-        }
-        tarifaId={tarifaId}
-        tarifaDescripcion={tarifaActual}
-        precargaServicios={precargaServicios}
-        onPrecargaChange={setPrecargaServicios}
-        lineas={lineas}
-        onLineasChange={setLineas}
-        medicosOptions={medicosOptions}
-        currentUsername={user?.username ?? ""}
-        citaId={id}
-        hasPendingDataChanges={hasPendingDataChanges}
-        onActualizarDatos={onActualizarDatos}
-        pendingChangesMessage={pendingChangesMessage}
-      />
+        <ServiciosSolicitadosSection
+          medicoTratanteId={data.programacion?.medico?.id ?? null}
+          medicoTratanteLabel={
+            medicosOptions.find((o) => o.value === String(data.programacion?.medico?.id ?? ""))?.label ?? formatMedico(data.programacion?.medico ?? null)
+          }
+          tarifaId={tarifaId}
+          tarifaDescripcion={tarifaActual}
+          precargaServicios={precargaServicios}
+          onPrecargaChange={setPrecargaServicios}
+          lineas={lineas}
+          onLineasChange={setLineas}
+          medicosOptions={medicosOptions}
+          currentUsername={user?.username ?? ""}
+          citaId={id}
+          hasPendingDataChanges={hasPendingDataChanges}
+          onActualizarDatos={onActualizarDatos}
+          pendingChangesMessage={pendingChangesMessage}
+          montoAPagar={montoAPagar}
+        />
       </div>
     </div>
   );

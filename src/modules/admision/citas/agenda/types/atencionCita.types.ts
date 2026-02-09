@@ -51,6 +51,10 @@ export type AtencionCitaData = {
     chequeo: boolean;
     carencia: boolean;
     latencia: boolean;
+    monto_a_pagar: number;
+    soat_activo: boolean;
+    soat_numero_poliza: string | null;
+    soat_numero_placa: string | null;
   } | null;
   servicios: AtencionServicioItem[];
 };
@@ -133,5 +137,9 @@ export type AtencionCitaStorePayload = {
   chequeo?: boolean;
   carencia?: boolean;
   latencia?: boolean;
+  monto_a_pagar?: number;
+  soat_activo?: boolean;
+  soat_numero_poliza?: string | null;
+  soat_numero_placa?: string | null;
   servicios?: AtencionServicioLinea[];
 };

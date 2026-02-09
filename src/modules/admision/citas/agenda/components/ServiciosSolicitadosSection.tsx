@@ -8,6 +8,7 @@ import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
+import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import type {
   AtencionServicioLineaDisplay,
   PrecargaServicioItem,
@@ -23,9 +24,10 @@ function calcularPrecios(
   let subtotal = precioBaseSinIgv * Math.max(0, cantidad);
   if (descuentoPct > 0) subtotal *= 1 - descuentoPct / 100;
   if (aumentoPct > 0) subtotal *= 1 + aumentoPct / 100;
-  const precioSinIgv = Math.round(subtotal * 1000) / 1000;
+  const factor = 10 ** PRECISION_DECIMAL;
+  const precioSinIgv = Math.round(subtotal * factor) / factor;
   const igv = precioSinIgv * (igvPct / 100);
-  const precioConIgv = Math.round((precioSinIgv + igv) * 1000) / 1000;
+  const precioConIgv = Math.round((precioSinIgv + igv) * factor) / factor;
   return { precioSinIgv, precioConIgv };
 }
 
@@ -45,7 +47,7 @@ function PrecioCell({ valor }: { valor: number }) {
     <div className="flex justify-end items-baseline gap-0">
       <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
       <span className="tabular-nums inline-block min-w-18 text-right">
-        {valor.toFixed(3)}
+        {valor.toFixed(PRECISION_DECIMAL)}
       </span>
     </div>
   );
@@ -66,6 +68,7 @@ export type ServiciosSolicitadosSectionProps = {
   hasPendingDataChanges?: boolean;
   onActualizarDatos?: () => Promise<void>;
   pendingChangesMessage?: string;
+  montoAPagar: number;
 };
 
 export function ServiciosSolicitadosSection({
@@ -83,6 +86,7 @@ export function ServiciosSolicitadosSection({
   hasPendingDataChanges = false,
   onActualizarDatos,
   pendingChangesMessage = "",
+  montoAPagar,
 }: ServiciosSolicitadosSectionProps) {
   const navigate = useNavigate();
   const [igvPct, setIgvPct] = React.useState(18);
@@ -433,12 +437,6 @@ export function ServiciosSolicitadosSection({
       <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios solicitados</h2>
 
       <div className="mt-3 flex flex-col gap-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <PrimaryButton onClick={handleBuscarServicio} disabled={!tarifaId}>
-            Buscar servicio
-          </PrimaryButton>
-        </div>
-
         <ConfirmDialog
           open={confirmActualizarOpen}
           title="Actualizar datos"
@@ -449,7 +447,7 @@ export function ServiciosSolicitadosSection({
           onConfirm={onConfirmActualizar}
         />
 
-        {/* Campo médico arriba de tabla precarga */}
+        {/* Campo médico y Buscar servicio en la misma fila */}
         <div className="flex flex-col gap-2">
           <span className="text-xs text-(--color-text-secondary)">Asigne médico del servicio</span>
           <div className="flex flex-wrap items-center gap-3">
@@ -465,6 +463,9 @@ export function ServiciosSolicitadosSection({
                 menuClassName="w-[280px] min-w-[280px]"
               />
             </div>
+            <PrimaryButton onClick={handleBuscarServicio} disabled={!tarifaId}>
+              Buscar servicio
+            </PrimaryButton>
             {selectedPrecarga && (
               <SecondaryButton onClick={() => setSelectedPrecargaIdx(null)}>
                 Deseleccionar
@@ -589,11 +590,11 @@ export function ServiciosSolicitadosSection({
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-(--color-text-secondary)">Precio s/ IGV</span>
-                          <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {p.precio_sin_igv.toFixed(3)}</span>
+                          <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {p.precio_sin_igv.toFixed(PRECISION_DECIMAL)}</span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
-                          <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {p.precio_con_igv.toFixed(3)}</span>
+                          <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {p.precio_con_igv.toFixed(PRECISION_DECIMAL)}</span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-(--color-text-secondary)">Médico</span>
@@ -657,7 +658,7 @@ export function ServiciosSolicitadosSection({
                       <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Aum:</span> <span className="text-(--color-text-primary) font-normal">{(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}</span></span>
                     )}
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cant:</span> <span className="text-(--color-text-primary) font-normal">{(item.cantidad ?? 1).toFixed(2)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Precio c/ IGV:</span> <span className="text-(--color-text-primary) font-normal tabular-nums">S/. {(item.precio_con_igv ?? 0).toFixed(3)}</span></span>
+                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Precio c/ IGV:</span> <span className="text-(--color-text-primary) font-normal tabular-nums">S/. {(item.precio_con_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Méd:</span> <span className="text-(--color-text-primary) font-normal">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Usr:</span> <span className="text-(--color-text-primary) font-normal">{item.user_nombre ?? "—"}</span></span>
                     <span className="whitespace-nowrap">
@@ -679,6 +680,14 @@ export function ServiciosSolicitadosSection({
               )}
               emptyText="No hay servicios cargados."
             />
+          </div>
+          <div className="mt-4 flex justify-end border-t border-(--border-color-default) pt-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar S/.</span>
+              <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
+                {montoAPagar.toFixed(PRECISION_DECIMAL)}
+              </span>
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { useTarifario } from "../hooks/useTarifario";
 import type { TarifaTreeCategoria } from "../types/tarifario.types";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { StatusBadge } from "../../../admision/ficheros/components/StatusBadge";
+import { formatPrecioUnidad } from "../../../../shared/constants/decimalPrecision";
 
 const gestionOptions = [
   { value: "categorias", label: "Categorías" },
@@ -325,14 +326,14 @@ export default function TarifarioPage() {
                     ),
                     headerClassName: "text-right",
                     cellClassName: "px-3 py-2 text-right",
-                    render: (r) => r.precio_sin_igv,
+                    render: (r) => formatPrecioUnidad(r.precio_sin_igv),
                   },
                   {
                     key: "unidad",
                     header: "Unidad",
                     headerClassName: "text-right",
                     cellClassName: "px-3 py-2 text-right",
-                    render: (r) => r.unidad,
+                    render: (r) => formatPrecioUnidad(r.unidad),
                   },
                   {
                     key: "estado",

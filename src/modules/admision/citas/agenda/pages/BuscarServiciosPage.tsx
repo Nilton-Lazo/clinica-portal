@@ -239,7 +239,7 @@ export default function BuscarServiciosPage() {
               <div className="flex justify-end items-baseline gap-0">
                 <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
                 <span className="tabular-nums inline-block min-w-18 text-right">
-                  {finalPrecio.toFixed(2)}
+                  {finalPrecio.toFixed(4)}
                 </span>
               </div>
               {recargo && (
@@ -387,7 +387,7 @@ export default function BuscarServiciosPage() {
                 r.recargo_noche_porcentaje ?? 0
               );
               const precioStr =
-                finalPrecio > 0 ? `S/. ${finalPrecio.toFixed(2)}` : "—";
+                finalPrecio > 0 ? `S/. ${finalPrecio.toFixed(4)}` : "—";
               const recargo = Boolean(r.recargo_noche_activo) && (r.recargo_noche_porcentaje ?? 0) > 0;
               return (
                 <div className="flex items-start gap-2 min-w-0">
