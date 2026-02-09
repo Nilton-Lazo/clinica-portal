@@ -55,6 +55,9 @@ export type AtencionCitaData = {
   servicios: AtencionServicioItem[];
 };
 
+/** Estado de facturación del servicio en la tabla final */
+export type EstadoFacturacionServicio = "PENDIENTE" | "FACTURADO";
+
 export type AtencionServicioItem = {
   id: number;
   tarifa_servicio_id: number;
@@ -72,6 +75,7 @@ export type AtencionServicioItem = {
   cantidad: number;
   precio_sin_igv: number;
   precio_con_igv: number;
+  estado_facturacion?: EstadoFacturacionServicio | string | null;
 };
 
 export type AtencionServicioLinea = {
@@ -84,6 +88,7 @@ export type AtencionServicioLinea = {
   cantidad?: number;
   precio_sin_igv: number;
   precio_con_igv: number;
+  estado_facturacion?: EstadoFacturacionServicio;
 };
 
 /** Línea con datos de visualización (para nuevas líneas antes de guardar) */
@@ -93,6 +98,7 @@ export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
   servicio_descripcion?: string | null;
   medico_codigo?: string | null;
   user_nombre?: string | null;
+  estado_facturacion?: EstadoFacturacionServicio;
 };
 
 /** Ítem en tabla de precarga (antes de "Cargar servicios") */
@@ -110,6 +116,8 @@ export type PrecargaServicioItem = {
   medico_id: number;
   medico_codigo: string;
   medico_nombre: string;
+  /** True si el precio incluye recargo nocturno (mensaje informativo en tabla) */
+  recargo_noche_activo?: boolean;
 };
 
 /** Payload para POST guardar atención */

@@ -51,6 +51,15 @@ export const admisionMeta: Record<string, RouteMeta> = {
             { label: "IGV" },
         ],
     },
+    "/admision/ficheros/parametros/recargo-noche": {
+        title: "Ficheros",
+        subtitle: "Recargo nocturno por tarifario y categoría.",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Ficheros", path: "/admision/ficheros" },
+            { label: "Recargo nocturno" },
+        ],
+    },
 
     "/admision/citas/programacion": {
         title: "Programación medica",

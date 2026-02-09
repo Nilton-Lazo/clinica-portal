@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton, DangerButton } from "../../../../../shared/ui/buttons";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
@@ -88,6 +89,7 @@ export function ServiciosSolicitadosSection({
   const [selectedPrecargaIdx, setSelectedPrecargaIdx] = React.useState<number | null>(null);
   const [confirmActualizarOpen, setConfirmActualizarOpen] = React.useState(false);
   const [actualizando, setActualizando] = React.useState(false);
+  const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
 
   const doNavigateBuscar = React.useCallback(() => {
     navigate(`/admision/citas/agenda/${citaId}/atencion/buscar-servicios`, {
@@ -193,6 +195,7 @@ export function ServiciosSolicitadosSection({
       servicio_descripcion: p.servicio_descripcion,
       medico_codigo: p.medico_codigo,
       user_nombre: currentUsername,
+      estado_facturacion: "PENDIENTE",
     }));
     onLineasChange([...lineas, ...nuevas]);
     onPrecargaChange([]);
@@ -222,13 +225,20 @@ export function ServiciosSolicitadosSection({
       header: "Descripción de servicio",
       headerClassName: "text-left align-middle",
       cellClassName: "px-3 py-2 max-w-[220px] align-middle",
-      render: (x) => <span className="block wrap-break-word whitespace-normal text-left">{x.servicio_descripcion || "—"}</span>,
+      render: (x) => (
+        <span className="block wrap-break-word whitespace-normal text-left">
+          {x.servicio_descripcion || "—"}
+          {x.recargo_noche_activo && (
+            <span className="block mt-0.5 text-xs text-(--color-primary) font-medium">Se activó recargo de noche</span>
+          )}
+        </span>
+      ),
     },
     {
       key: "cop_var",
       header: "Copago variable",
       headerClassName: "text-center w-28 align-middle",
-      cellClassName: "px-2 py-2 align-middle",
+      cellClassName: "px-2 py-2 text-center align-middle",
       render: (x) => (
         <input
           type="text"
@@ -236,7 +246,7 @@ export function ServiciosSolicitadosSection({
           value={x.cop_var === 0 ? "" : String(x.cop_var)}
           onChange={(e) => updatePrecarga(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
         />
       ),
     },
@@ -244,7 +254,7 @@ export function ServiciosSolicitadosSection({
       key: "cop_fijo",
       header: "Copago fijo",
       headerClassName: "text-center w-28 align-middle",
-      cellClassName: "px-2 py-2 align-middle",
+      cellClassName: "px-2 py-2 text-center align-middle",
       render: (x) => (
         <input
           type="text"
@@ -252,7 +262,7 @@ export function ServiciosSolicitadosSection({
           value={x.cop_fijo === 0 ? "" : String(x.cop_fijo)}
           onChange={(e) => updatePrecarga(x._idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
         />
       ),
     },
@@ -260,7 +270,7 @@ export function ServiciosSolicitadosSection({
       key: "descuento",
       header: "Descuento",
       headerClassName: "text-center w-24 align-middle",
-      cellClassName: "px-2 py-2 align-middle",
+      cellClassName: "px-2 py-2 text-center align-middle",
       render: (x) => (
         <input
           type="text"
@@ -268,7 +278,7 @@ export function ServiciosSolicitadosSection({
           value={x.descuento_pct === 0 ? "" : String(x.descuento_pct)}
           onChange={(e) => updatePrecarga(x._idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
         />
       ),
     },
@@ -276,23 +286,28 @@ export function ServiciosSolicitadosSection({
       key: "aumento",
       header: "Aumento",
       headerClassName: "text-center w-24 align-middle",
-      cellClassName: "px-2 py-2 align-middle",
-      render: (x) => (
-        <input
-          type="text"
-          placeholder=""
-          value={x.aumento_pct === 0 ? "" : String(x.aumento_pct)}
-          onChange={(e) => updatePrecarga(x._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
-          onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
-        />
-      ),
+      cellClassName: "px-2 py-2 text-center align-middle",
+      render: (x) =>
+        x.recargo_noche_activo ? (
+          <span className="inline-block w-full text-center tabular-nums text-sm text-(--color-text-primary)">
+            {x.aumento_pct === 0 ? "—" : `${x.aumento_pct}%`}
+          </span>
+        ) : (
+          <input
+            type="text"
+            placeholder=""
+            value={x.aumento_pct === 0 ? "" : String(x.aumento_pct)}
+            onChange={(e) => updatePrecarga(x._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
+            onClick={(ev) => ev.stopPropagation()}
+            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+          />
+        ),
     },
     {
       key: "cantidad",
       header: "Cantidad",
       headerClassName: "text-center w-24 align-middle",
-      cellClassName: "px-2 py-2 align-middle",
+      cellClassName: "px-2 py-2 text-center align-middle",
       render: (x) => (
         <input
           type="number"
@@ -301,7 +316,7 @@ export function ServiciosSolicitadosSection({
           value={x.cantidad}
           onChange={(e) => updatePrecarga(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
         />
       ),
     },
@@ -352,10 +367,10 @@ export function ServiciosSolicitadosSection({
       },
       { key: "cop_var", header: "Copago variable", headerClassName: "text-center w-28 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cop_var ?? 0).toFixed(2) },
       { key: "cop_fijo", header: "Copago fijo", headerClassName: "text-center w-28 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cop_fijo ?? 0).toFixed(2) },
-      { key: "descuento", header: "Descuento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.descuento_pct ?? 0).toFixed(2) },
+      { key: "descuento", header: "Descuento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => ((x.descuento_pct ?? 0) === 0 ? "—" : `${x.descuento_pct}%`) },
     ];
     if (tieneAumento) {
-      base.push({ key: "aumento", header: "Aumento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.aumento_pct ?? 0).toFixed(2) });
+      base.push({ key: "aumento", header: "Aumento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => ((x.aumento_pct ?? 0) === 0 ? "—" : `${x.aumento_pct}%`) });
     }
     base.push(
       { key: "cantidad", header: "Cantidad", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cantidad ?? 1).toFixed(2) },
@@ -372,6 +387,13 @@ export function ServiciosSolicitadosSection({
     },
       { key: "medico", header: "Médico", headerClassName: "text-center w-20 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
       { key: "usuario", header: "Usuario", headerClassName: "text-center w-32 align-middle", cellClassName: "px-3 py-2 text-center align-middle", render: (x) => x.user_nombre ?? "—" },
+      {
+        key: "estado",
+        header: "Estado",
+        headerClassName: "text-center w-28 align-middle",
+        cellClassName: "px-3 py-2 text-center align-middle",
+        render: (x) => <EstadoFacturacionBadge estado={x.estado_facturacion} />,
+      },
       {
         key: "actions",
         header: "",
@@ -394,7 +416,17 @@ export function ServiciosSolicitadosSection({
   }, [tieneAumento, medicosOptions, handleRemoveLinea]);
 
   const precargaRows = precargaServicios.map((p, i) => ({ ...p, _idx: i }));
-  const finalRows = lineas.map((l, i) => ({ ...l, _idx: i }));
+  const finalRows = React.useMemo(() => {
+    const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
+    if (!estadoFacturacionFilter) return withIdx;
+    return withIdx.filter((l) => (l.estado_facturacion ?? "PENDIENTE") === estadoFacturacionFilter);
+  }, [lineas, estadoFacturacionFilter]);
+
+  const estadoFacturacionOptions: SelectOption[] = [
+    { value: "", label: "Todos" },
+    { value: "PENDIENTE", label: "Pendiente" },
+    { value: "FACTURADO", label: "Facturado" },
+  ];
 
   return (
     <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
@@ -501,7 +533,7 @@ export function ServiciosSolicitadosSection({
                             value={p.cop_var === 0 ? "" : String(p.cop_var)}
                             onChange={(e) => updatePrecarga(idx, { cop_var: parseFloat(e.target.value) || 0 })}
                             onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -512,7 +544,7 @@ export function ServiciosSolicitadosSection({
                             value={p.cop_fijo === 0 ? "" : String(p.cop_fijo)}
                             onChange={(e) => updatePrecarga(idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
                             onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -523,19 +555,25 @@ export function ServiciosSolicitadosSection({
                             value={p.descuento_pct === 0 ? "" : String(p.descuento_pct)}
                             onChange={(e) => updatePrecarga(idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
                             onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-(--color-text-secondary)">Aumento</span>
-                          <input
-                            type="text"
-                            placeholder=""
-                            value={p.aumento_pct === 0 ? "" : String(p.aumento_pct)}
-                            onChange={(e) => updatePrecarga(idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
-                            onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
-                          />
+                          {p.recargo_noche_activo ? (
+                            <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-primary)">
+                              {p.aumento_pct === 0 ? "—" : `${p.aumento_pct}%`}
+                            </span>
+                          ) : (
+                            <input
+                              type="text"
+                              placeholder=""
+                              value={p.aumento_pct === 0 ? "" : String(p.aumento_pct)}
+                              onChange={(e) => updatePrecarga(idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
+                              onClick={(ev) => ev.stopPropagation()}
+                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            />
+                          )}
                         </div>
                         <div className="flex flex-col gap-1">
                           <span className="text-(--color-text-secondary)">Cantidad</span>
@@ -546,7 +584,7 @@ export function ServiciosSolicitadosSection({
                             value={p.cantidad}
                             onChange={(e) => updatePrecarga(idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                             onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                           />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -572,7 +610,20 @@ export function ServiciosSolicitadosSection({
 
         {/* Tabla final */}
         <div className="flex flex-col gap-2 rounded-2xl bg-(--color-surface) p-4">
-          <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios finales</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios finales</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-(--color-text-secondary)">Estado:</span>
+              <SelectMenu
+                value={estadoFacturacionFilter}
+                onChange={setEstadoFacturacionFilter}
+                options={estadoFacturacionOptions}
+                ariaLabel="Filtrar por estado"
+                buttonClassName="h-9 min-w-[120px]"
+                menuClassName="min-w-[120px]"
+              />
+            </div>
+          </div>
           <div className="hidden lg:block">
             <DataTable
               rows={finalRows}
@@ -601,14 +652,17 @@ export function ServiciosSolicitadosSection({
                   <div className="mt-1 text-xs flex flex-wrap gap-x-2 gap-y-0.5">
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cop. var:</span> <span className="text-(--color-text-primary) font-normal">{(item.cop_var ?? 0).toFixed(2)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cop. fijo:</span> <span className="text-(--color-text-primary) font-normal">{(item.cop_fijo ?? 0).toFixed(2)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Dscto:</span> <span className="text-(--color-text-primary) font-normal">{(item.descuento_pct ?? 0).toFixed(2)}</span></span>
+                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Dscto:</span> <span className="text-(--color-text-primary) font-normal">{(item.descuento_pct ?? 0) === 0 ? "—" : `${item.descuento_pct}%`}</span></span>
                     {tieneAumento && (
-                      <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Aum:</span> <span className="text-(--color-text-primary) font-normal">{(item.aumento_pct ?? 0).toFixed(2)}</span></span>
+                      <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Aum:</span> <span className="text-(--color-text-primary) font-normal">{(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}</span></span>
                     )}
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cant:</span> <span className="text-(--color-text-primary) font-normal">{(item.cantidad ?? 1).toFixed(2)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Precio c/ IGV:</span> <span className="text-(--color-text-primary) font-normal tabular-nums">S/. {(item.precio_con_igv ?? 0).toFixed(3)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Méd:</span> <span className="text-(--color-text-primary) font-normal">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span></span>
                     <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Usr:</span> <span className="text-(--color-text-primary) font-normal">{item.user_nombre ?? "—"}</span></span>
+                    <span className="whitespace-nowrap">
+                      <EstadoFacturacionBadge estado={item.estado_facturacion} />
+                    </span>
                   </div>
                 </div>
               )}

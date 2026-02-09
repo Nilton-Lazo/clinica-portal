@@ -29,6 +29,10 @@ export type TarifaServicioBusqueda = {
   subcategoria_id: number;
   subcategoria_codigo: string;
   subcategoria_nombre: string;
+  /** Si la búsqueda se hizo con hora y la categoría tiene recargo nocturno activo a esa hora */
+  recargo_noche_activo?: boolean;
+  /** Porcentaje de recargo nocturno (sobre precio sin IGV) cuando recargo_noche_activo es true */
+  recargo_noche_porcentaje?: number;
 };
 
 export type TarifaServiciosBusquedaMeta = {
@@ -54,6 +58,8 @@ export async function buscarServiciosTarifa(
     categoria_id?: number;
     subcategoria_id?: number;
     status?: string;
+    /** Hora de la cita (HH:mm o HH:mm:ss) para aplicar reglas de recargo nocturno */
+    hora?: string;
   }
 ): Promise<{ data: TarifaServicioBusqueda[]; meta: TarifaServiciosBusquedaMeta }> {
   const sp = new URLSearchParams();

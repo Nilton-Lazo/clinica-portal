@@ -75,7 +75,7 @@ export default function ParametrosIgvPage() {
             type="number"
             min={0}
             max={100}
-            step={0.01}
+            step={1}
             value={igv}
             onChange={(e) => setIgv(e.target.value)}
             className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"

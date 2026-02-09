@@ -32,6 +32,7 @@ import ContratantesPage from "../../modules/admision/ficheros/pages/Contratantes
 import TarifasPage from "../../modules/admision/ficheros/pages/TarifasPage";
 import TiposClientesPage from "../../modules/admision/ficheros/pages/TiposClientesPage";
 import ParametrosIgvPage from "../../modules/admision/ficheros/pages/ParametrosIgvPage";
+import RecargoNochePage from "../../modules/admision/ficheros/pages/RecargoNochePage";
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
@@ -96,6 +97,7 @@ export const router = createBrowserRouter([
                       { path: "tarifas", element: <TarifasPage /> },
                       { path: "tipos-clientes", element: <TiposClientesPage /> },
                       { path: "parametros/igv", element: <ParametrosIgvPage /> },
+                      { path: "parametros/recargo-noche", element: <RecargoNochePage /> },
                     ],
                   },
 

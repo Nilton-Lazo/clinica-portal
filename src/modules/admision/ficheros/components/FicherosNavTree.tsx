@@ -29,6 +29,7 @@ const groups: Group[] = [
     label: "Parámetros",
     items: [
       { label: "IGV", to: "/admision/ficheros/parametros/igv" },
+      { label: "Recargo nocturno", to: "/admision/ficheros/parametros/recargo-noche" },
     ],
   },
 ];

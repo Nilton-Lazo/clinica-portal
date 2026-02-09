@@ -48,6 +48,23 @@ function normalizeCodigoQuery(raw: string): string {
   return compact;
 }
 
+/** Hora actual en HH:mm para aplicar recargos según hora real (no la de la cita). */
+function getHoraActual(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Precio sin IGV con recargo aplicado si aplica. */
+function precioConRecargo(
+  precioSinIgv: string | number | null | undefined,
+  recargoActivo: boolean,
+  recargoPct: number
+): number {
+  const base = parseFloat(String(precioSinIgv ?? 0)) || 0;
+  if (!recargoActivo || recargoPct <= 0) return base;
+  return base * (1 + recargoPct / 100);
+}
+
 export default function BuscarServiciosPage() {
   const { citaId } = useParams<"citaId">();
   const navigate = useNavigate();
@@ -90,11 +107,13 @@ export default function BuscarServiciosPage() {
     if (!tarifaId) return;
     setLoading(true);
     const searchQ = qNormalized.trim() || undefined;
+    const horaReal = getHoraActual();
     buscarServiciosTarifa(tarifaId, {
       page,
       per_page: perPage,
       q: searchQ,
       status: "ACTIVO",
+      hora: horaReal,
     })
       .then((res) => {
         setData(res.data ?? []);
@@ -207,13 +226,27 @@ export default function BuscarServiciosPage() {
         headerClassName: "text-right w-32 min-w-[7rem]",
         cellClassName: "px-3 py-2 text-right whitespace-nowrap",
         render: (x) => {
-          if (x.precio_sin_igv == null || x.precio_sin_igv === "") return "—";
+          const finalPrecio = precioConRecargo(
+            x.precio_sin_igv,
+            Boolean(x.recargo_noche_activo),
+            x.recargo_noche_porcentaje ?? 0
+          );
+          if (finalPrecio === 0 && (x.precio_sin_igv == null || x.precio_sin_igv === ""))
+            return "—";
+          const recargo = Boolean(x.recargo_noche_activo) && (x.recargo_noche_porcentaje ?? 0) > 0;
           return (
-            <div className="flex justify-end items-baseline gap-0">
-              <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
-              <span className="tabular-nums inline-block min-w-18 text-right">
-                {x.precio_sin_igv}
-              </span>
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="flex justify-end items-baseline gap-0">
+                <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
+                <span className="tabular-nums inline-block min-w-18 text-right">
+                  {finalPrecio.toFixed(2)}
+                </span>
+              </div>
+              {recargo && (
+                <span className="text-xs text-(--color-primary)">
+                  Recargo {(x.recargo_noche_porcentaje ?? 0)}%
+                </span>
+              )}
             </div>
           );
         },
@@ -348,10 +381,14 @@ export default function BuscarServiciosPage() {
               multiSelect ? toggleSelect(r.id) : handleDoubleClick(r)
             }
             renderMain={(r) => {
+              const finalPrecio = precioConRecargo(
+                r.precio_sin_igv,
+                Boolean(r.recargo_noche_activo),
+                r.recargo_noche_porcentaje ?? 0
+              );
               const precioStr =
-                r.precio_sin_igv != null && r.precio_sin_igv !== ""
-                  ? `S/. ${r.precio_sin_igv}`
-                  : "—";
+                finalPrecio > 0 ? `S/. ${finalPrecio.toFixed(2)}` : "—";
+              const recargo = Boolean(r.recargo_noche_activo) && (r.recargo_noche_porcentaje ?? 0) > 0;
               return (
                 <div className="flex items-start gap-2 min-w-0">
                   {multiSelect && (
@@ -376,6 +413,7 @@ export default function BuscarServiciosPage() {
                       </span>
                       <span className="whitespace-nowrap">
                         Precio sin IGV: {precioStr}
+                        {recargo ? ` (Recargo ${r.recargo_noche_porcentaje ?? 0}%)` : ""}
                         {r.nomenclador != null && r.nomenclador !== ""
                           ? " ·"
                           : ""}

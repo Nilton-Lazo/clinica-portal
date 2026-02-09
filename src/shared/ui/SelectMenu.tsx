@@ -167,11 +167,11 @@ export function SelectMenu(props: {
 
       <div
         className={[
-          "absolute left-0 mt-2 z-50",
+          "absolute left-0 right-0 mt-2 z-50",
           "rounded-xl border border-(--border-color-default) bg-(--color-surface) shadow-lg",
           "origin-top transition-all duration-150",
           open ? "opacity-100 translate-y-0 scale-100" : "pointer-events-none opacity-0 -translate-y-1 scale-[0.98]",
-          menuClassName ?? "min-w-full w-max",
+          menuClassName ?? "w-full min-w-0",
           "max-w-[calc(100vw-2rem)]",
         ].join(" ")}
         role="listbox"

@@ -36,6 +36,10 @@ function formatMedico(p: NonNullable<AtencionCitaData["programacion"]>["medico"]
 }
 
 function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLineaDisplay {
+  const estado_facturacion =
+    item.estado_facturacion === "FACTURADO" || item.estado_facturacion === "PENDIENTE"
+      ? item.estado_facturacion
+      : "PENDIENTE";
   return {
     id: item.id,
     tarifa_servicio_id: item.tarifa_servicio_id,
@@ -51,6 +55,7 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
     servicio_descripcion: item.servicio_descripcion,
     medico_codigo: item.medico_codigo,
     user_nombre: item.user_nombre,
+    estado_facturacion,
   };
 }
 
@@ -212,7 +217,9 @@ export default function AtencionCitaPage() {
       const nuevas: PrecargaServicioItem[] = servs.map((s) => {
         const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
         const base = esPrecioDirecto(tarifaDesc) ? precioBase : precioBase;
-        const { precioSinIgv, precioConIgv } = calcularPrecios(base, 1, 0, 0, igvPct);
+        const recargoNoche = Boolean(s.recargo_noche_activo);
+        const aumentoPct = recargoNoche ? (s.recargo_noche_porcentaje ?? 0) : 0;
+        const { precioSinIgv, precioConIgv } = calcularPrecios(base, 1, 0, aumentoPct, igvPct);
         return {
           tarifa_servicio_id: s.id,
           servicio_codigo: s.codigo ?? "",
@@ -220,13 +227,14 @@ export default function AtencionCitaPage() {
           cop_var: 0,
           cop_fijo: 0,
           descuento_pct: 0,
-          aumento_pct: 0,
+          aumento_pct: aumentoPct,
           cantidad: 1,
           precio_sin_igv: precioSinIgv,
           precio_con_igv: precioConIgv,
           medico_id: medicoId,
           medico_codigo: codigoMedico || medicoNombre,
           medico_nombre: medicoNombre,
+          recargo_noche_activo: recargoNoche,
         };
       });
       setPrecargaServicios((prev) => [...(restorePrecarga ?? prev), ...nuevas]);
@@ -307,6 +315,7 @@ export default function AtencionCitaPage() {
       cantidad: l.cantidad ?? 1,
       precio_sin_igv: l.precio_sin_igv,
       precio_con_igv: l.precio_con_igv,
+      estado_facturacion: l.estado_facturacion ?? "PENDIENTE",
     }));
 
     const payload: AtencionCitaStorePayload = {
@@ -347,6 +356,7 @@ export default function AtencionCitaPage() {
       cantidad: l.cantidad ?? 1,
       precio_sin_igv: l.precio_sin_igv,
       precio_con_igv: l.precio_con_igv,
+      estado_facturacion: l.estado_facturacion ?? "PENDIENTE",
     }));
     const payload: AtencionCitaStorePayload = {
       solo_actualizar_datos: true,
