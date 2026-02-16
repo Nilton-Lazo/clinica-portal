@@ -1,6 +1,7 @@
 import { api } from "../../../../shared/api";
 import type {
   PaginatedResponse,
+  PropagacionResultado,
   TarifaBase,
   TarifaBaseTree,
   TarifaCategoria,
@@ -132,8 +133,8 @@ export async function getNextCategoriaCodigo(tarifaId: number): Promise<{ codigo
 export async function createCategoria(
   tarifaId: number,
   payload: { descripcion: string; estado?: RecordStatus }
-): Promise<TarifaCategoria> {
-  const res = await api.post<{ data: TarifaCategoria }>(
+): Promise<{ data: TarifaCategoria; propagacion?: PropagacionResultado }> {
+  const res = await api.post<{ data: TarifaCategoria; propagacion?: PropagacionResultado }>(
     `/facturacion/tarifario/tarifas/${tarifaId}/categorias`,
     payload
   );
@@ -214,8 +215,8 @@ export async function getNextSubcategoriaCodigo(
 export async function createSubcategoria(
   tarifaId: number,
   payload: { categoria_id: number; descripcion: string; estado?: RecordStatus }
-): Promise<TarifaSubcategoria> {
-  const res = await api.post<{ data: TarifaSubcategoria }>(
+): Promise<{ data: TarifaSubcategoria; propagacion?: PropagacionResultado }> {
+  const res = await api.post<{ data: TarifaSubcategoria; propagacion?: PropagacionResultado }>(
     `/facturacion/tarifario/tarifas/${tarifaId}/subcategorias`,
     payload
   );
@@ -296,8 +297,8 @@ export async function createServicio(
     grupo_codigo?: string | null;
     estado?: RecordStatus;
   }
-): Promise<TarifaServicioCrud> {
-  const res = await api.post<{ data: TarifaServicioCrud }>(
+): Promise<{ data: TarifaServicioCrud; propagacion?: PropagacionResultado }> {
+  const res = await api.post<{ data: TarifaServicioCrud; propagacion?: PropagacionResultado }>(
     `/facturacion/tarifario/tarifas/${tarifaId}/servicios-crud`,
     payload
   );

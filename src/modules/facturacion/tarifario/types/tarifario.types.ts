@@ -153,3 +153,21 @@ export type TarifaCloneResult = {
 };
 
 export type Notice = { type: "success" | "error"; text: string } | null;
+
+export type PropagacionResultado = {
+  propagados: number;
+  omitidos: number;
+  creados_con_codigo_diferente: number;
+  detalle: {
+    creados: Array<{ tipo: string; tarifa_descripcion: string; mensaje: string }>;
+    omitidos: Array<{ tipo: string; tarifa_descripcion: string; mensaje: string }>;
+    creados_con_codigo_diferente: Array<{
+      tipo: string;
+      tarifa_descripcion: string;
+      mensaje: string;
+      codigo_base: string;
+      codigo_usado: string;
+    }>;
+  };
+  tiene_alertas: boolean;
+};

@@ -13,6 +13,7 @@ import type {
   GrupoServicioLookup,
   Notice,
   PaginatedResponse,
+  PropagacionResultado,
   RecordStatus,
   TarifaCategoria,
   TarifaCategoriaLookup,
@@ -48,6 +49,22 @@ function isApiError(e: unknown): e is ApiError {
   if (!e || typeof e !== "object") return false;
   const x = e as Record<string, unknown>;
   return typeof x.kind === "string" && typeof x.message === "string";
+}
+
+function mensajePropagacion(prop: PropagacionResultado | undefined): string | null {
+  if (!prop || !prop.tiene_alertas) return null;
+  const parts: string[] = [];
+  if (prop.omitidos > 0) {
+    const det = prop.detalle.omitidos.map((o) => `${o.tarifa_descripcion}: ${o.mensaje}`).join("; ");
+    parts.push(`Omitidos (${prop.omitidos}): ${det}`);
+  }
+  if (prop.creados_con_codigo_diferente > 0) {
+    const det = prop.detalle.creados_con_codigo_diferente
+      .map((o) => `${o.tarifa_descripcion}: ${o.mensaje}`)
+      .join("; ");
+    parts.push(`Código diferente (${prop.creados_con_codigo_diferente}): ${det}`);
+  }
+  return parts.length > 0 ? parts.join(". ") : null;
 }
 
 function normalizeCodigoQuery(raw: string): string {
@@ -279,8 +296,11 @@ function useCategoriasCrud(tarifaId: number | null) {
     setSaving(true);
     try {
       if (mode === "new") {
-        await createCategoria(tarifaId, { descripcion: descripcion.trim(), estado });
-        setNotice({ type: "success", text: "Categoría creada." });
+        const res = await createCategoria(tarifaId, { descripcion: descripcion.trim(), estado });
+        let text = "Categoría creada.";
+        const propMsg = mensajePropagacion(res.propagacion);
+        if (propMsg) text += ` Aviso: ${propMsg}`;
+        setNotice({ type: "success", text });
         setPage(1);
         await refresh({ page: 1 });
         resetToNew();
@@ -614,12 +634,15 @@ function useSubcategoriasCrud(tarifaId: number | null) {
     setSaving(true);
     try {
       if (mode === "new") {
-        await createSubcategoria(tarifaId, {
+        const res = await createSubcategoria(tarifaId, {
           categoria_id: categoriaId!,
           descripcion: descripcion.trim(),
           estado,
         });
-        setNotice({ type: "success", text: "Subcategoría creada." });
+        let text = "Subcategoría creada.";
+        const propMsg = mensajePropagacion(res.propagacion);
+        if (propMsg) text += ` Aviso: ${propMsg}`;
+        setNotice({ type: "success", text });
         setPage(1);
         await refresh({ page: 1 });
         resetToNew();
@@ -1033,7 +1056,7 @@ function useServiciosCrud(tarifaId: number | null) {
     setSaving(true);
     try {
       if (mode === "new") {
-        await createServicio(tarifaId, {
+        const res = await createServicio(tarifaId, {
           categoria_id: categoriaId!,
           subcategoria_id: subcategoriaId!,
           descripcion: descripcion.trim(),
@@ -1043,7 +1066,10 @@ function useServiciosCrud(tarifaId: number | null) {
           grupo_codigo: grupoCodigo ?? undefined,
           estado,
         });
-        setNotice({ type: "success", text: "Servicio creado." });
+        let text = "Servicio creado.";
+        const propMsg = mensajePropagacion(res.propagacion);
+        if (propMsg) text += ` Aviso: ${propMsg}`;
+        setNotice({ type: "success", text });
         setPage(1);
         await refresh({ page: 1 });
         resetToNew();
