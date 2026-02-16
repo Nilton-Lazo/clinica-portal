@@ -1819,50 +1819,56 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
               </button>
             </div>
           </div>
-          {/* Fila 2: Filtros por clasificación */}
-          <div className="flex flex-wrap items-center gap-3 border-t border-(--border-color-default) pt-4">
-            <span className="text-xs font-medium uppercase tracking-wide text-(--color-text-secondary) shrink-0">
+          {/* Fila 2: Todos los filtros se ajustan al ancho de su contenido */}
+          <div className="flex flex-wrap items-stretch gap-3 border-t border-(--border-color-default) pt-4">
+            <span className="flex items-center text-xs font-medium uppercase tracking-wide text-(--color-text-secondary) shrink-0">
               Filtrar por
             </span>
-            <SelectMenu
-              value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
-              onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
-              options={[
-                { value: "", label: "Todas las categorías" },
-                ...vm.categorias.map((c) => ({
-                  value: String(c.id),
-                  label: `${c.codigo} - ${c.descripcion}`,
-                })),
-              ]}
-              ariaLabel="Categoría"
-              buttonClassName="h-10 min-w-[200px]"
-              menuClassName="min-w-[220px]"
-            />
-            <SelectMenu
-              value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
-              onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
-              options={[
-                { value: "", label: "Todas las subcategorías" },
-                ...vm.subcategoriasFilter.map((s) => ({
-                  value: String(s.id),
-                  label: `${s.codigo} - ${s.descripcion}`,
-                })),
-              ]}
-              ariaLabel="Subcategoría"
-              buttonClassName="h-10 min-w-[200px]"
-              menuClassName="min-w-[220px]"
-            />
-            <SelectMenu
-              value={vm.filterGrupoCodigo ?? ""}
-              onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
-              options={[
-                { value: "", label: "Todos los grupos" },
-                ...vm.grupos.map((g) => ({ value: g.codigo, label: g.descripcion })),
-              ]}
-              ariaLabel="Grupo"
-              buttonClassName="h-10 min-w-[160px]"
-              menuClassName="min-w-[180px]"
-            />
+            <div className="w-full min-w-[120px] shrink-0 max-w-full sm:w-fit">
+              <SelectMenu
+                value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
+                onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
+                options={[
+                  { value: "", label: "Todas las categorías" },
+                  ...vm.categorias.map((c) => ({
+                    value: String(c.id),
+                    label: `${c.codigo} - ${c.descripcion}`,
+                  })),
+                ]}
+                ariaLabel="Categoría"
+                buttonClassName="h-10 w-full min-w-[120px] sm:w-fit"
+                menuClassName="w-full"
+              />
+            </div>
+            <div className="w-full min-w-[120px] shrink-0 max-w-full sm:w-fit">
+              <SelectMenu
+                value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
+                onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
+                options={[
+                  { value: "", label: "Todas las subcategorías" },
+                  ...vm.subcategoriasFilter.map((s) => ({
+                    value: String(s.id),
+                    label: `${s.codigo} - ${s.descripcion}`,
+                  })),
+                ]}
+                ariaLabel="Subcategoría"
+                buttonClassName="h-10 w-full min-w-[120px] sm:w-fit"
+                menuClassName="w-full"
+              />
+            </div>
+            <div className="w-full min-w-[120px] shrink-0 max-w-full sm:w-fit">
+              <SelectMenu
+                value={vm.filterGrupoCodigo ?? ""}
+                onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
+                options={[
+                  { value: "", label: "Todos los grupos" },
+                  ...vm.grupos.map((g) => ({ value: g.codigo, label: g.descripcion })),
+                ]}
+                ariaLabel="Grupo"
+                buttonClassName="h-10 w-full min-w-[120px] sm:w-fit"
+                menuClassName="w-full"
+              />
+            </div>
           </div>
         </div>
       </div>
