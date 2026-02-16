@@ -10,6 +10,7 @@ import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../shared/api/apiError";
 import type {
+  GrupoServicioLookup,
   Notice,
   PaginatedResponse,
   RecordStatus,
@@ -33,6 +34,7 @@ import {
   listServiciosCrud,
   listSubcategorias,
   lookupCategorias,
+  lookupGruposServicio,
   lookupSubcategorias,
   updateCategoria,
   updateServicio,
@@ -760,6 +762,7 @@ function useServiciosCrud(tarifaId: number | null) {
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [filterCategoriaId, setFilterCategoriaId] = React.useState<number | null>(null);
   const [filterSubcategoriaId, setFilterSubcategoriaId] = React.useState<number | null>(null);
+  const [filterGrupoCodigo, setFilterGrupoCodigo] = React.useState<string | null>(null);
   const qDebounced = useDebouncedValue(q, 350);
   const qNormalized = React.useMemo(
     () => normalizeCodigoQuery(qDebounced),
@@ -777,10 +780,12 @@ function useServiciosCrud(tarifaId: number | null) {
   const [nomenclador, setNomenclador] = React.useState("");
   const [precio, setPrecio] = React.useState("");
   const [unidad, setUnidad] = React.useState("");
+  const [grupoCodigo, setGrupoCodigo] = React.useState<string | null>(null);
 
   const [categorias, setCategorias] = React.useState<TarifaCategoriaLookup[]>([]);
   const [subcategorias, setSubcategorias] = React.useState<TarifaSubcategoriaLookup[]>([]);
   const [subcategoriasFilter, setSubcategoriasFilter] = React.useState<TarifaSubcategoriaLookup[]>([]);
+  const [grupos, setGrupos] = React.useState<GrupoServicioLookup[]>([]);
 
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = React.useState(false);
   const originalRef = React.useRef<{
@@ -792,7 +797,12 @@ function useServiciosCrud(tarifaId: number | null) {
     nomenclador: string;
     precio: string;
     unidad: string;
+    grupoCodigo: string | null;
   } | null>(null);
+
+  React.useEffect(() => {
+    lookupGruposServicio().then(setGrupos).catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     if (!tarifaId) return;
@@ -871,9 +881,10 @@ function useServiciosCrud(tarifaId: number | null) {
       o.subcategoriaId !== subcategoriaId ||
       o.nomenclador !== nomenclador.trim() ||
       o.precio !== precio.trim() ||
-      o.unidad !== unidad.trim()
+      o.unidad !== unidad.trim() ||
+      o.grupoCodigo !== grupoCodigo
     );
-  }, [descripcion, estado, categoriaId, subcategoriaId, nomenclador, precio, unidad, mode, isValid]);
+  }, [descripcion, estado, categoriaId, subcategoriaId, nomenclador, precio, unidad, grupoCodigo, mode, isValid]);
 
   const refresh = React.useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -888,6 +899,7 @@ function useServiciosCrud(tarifaId: number | null) {
           status: statusFilter === "ALL" ? undefined : statusFilter,
           categoria_id: filterCategoriaId ?? undefined,
           subcategoria_id: filterSubcategoriaId ?? undefined,
+          grupo_codigo: filterGrupoCodigo ?? undefined,
         });
         setData(res);
         return res;
@@ -899,7 +911,7 @@ function useServiciosCrud(tarifaId: number | null) {
         setLoading(false);
       }
     },
-    [tarifaId, page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId]
+    [tarifaId, page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, filterGrupoCodigo]
   );
 
   const prevFiltersRef = React.useRef<
@@ -909,6 +921,7 @@ function useServiciosCrud(tarifaId: number | null) {
       perPage: number;
       categoriaId: number | null;
       subcategoriaId: number | null;
+      grupoCodigo: string | null;
     } | null
   >(null);
   React.useEffect(() => {
@@ -919,6 +932,7 @@ function useServiciosCrud(tarifaId: number | null) {
       perPage,
       categoriaId: filterCategoriaId,
       subcategoriaId: filterSubcategoriaId,
+      grupoCodigo: filterGrupoCodigo,
     };
     const changed =
       !prev ||
@@ -926,14 +940,15 @@ function useServiciosCrud(tarifaId: number | null) {
       prev.status !== next.status ||
       prev.perPage !== next.perPage ||
       prev.categoriaId !== next.categoriaId ||
-      prev.subcategoriaId !== next.subcategoriaId;
+      prev.subcategoriaId !== next.subcategoriaId ||
+      prev.grupoCodigo !== next.grupoCodigo;
     prevFiltersRef.current = next;
     if (changed && page !== 1) {
       setPage(1);
       return;
     }
     void refresh();
-  }, [page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, refresh]);
+  }, [page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, filterGrupoCodigo, refresh]);
 
   const resetToNew = React.useCallback(() => {
     setMode("new");
@@ -946,6 +961,7 @@ function useServiciosCrud(tarifaId: number | null) {
     setNomenclador("");
     setPrecio("");
     setUnidad("");
+    setGrupoCodigo(null);
     originalRef.current = null;
     setNotice(null);
   }, []);
@@ -961,6 +977,7 @@ function useServiciosCrud(tarifaId: number | null) {
     setNomenclador(x.nomenclador ?? "");
     setPrecio(x.precio_sin_igv);
     setUnidad(x.unidad);
+    setGrupoCodigo(x.grupo_codigo ?? null);
     originalRef.current = {
       codigo: x.codigo,
       descripcion: x.descripcion,
@@ -970,6 +987,7 @@ function useServiciosCrud(tarifaId: number | null) {
       nomenclador: x.nomenclador ?? "",
       precio: x.precio_sin_igv,
       unidad: x.unidad,
+      grupoCodigo: x.grupo_codigo ?? null,
     };
     setNotice(null);
   }, []);
@@ -992,6 +1010,7 @@ function useServiciosCrud(tarifaId: number | null) {
     setNomenclador(o.nomenclador);
     setPrecio(o.precio);
     setUnidad(o.unidad);
+    setGrupoCodigo(o.grupoCodigo);
     setNotice(null);
   }, [mode, resetToNew, selected]);
 
@@ -1021,6 +1040,7 @@ function useServiciosCrud(tarifaId: number | null) {
           nomenclador: nomenclador.trim() ? nomenclador.trim() : null,
           precio_sin_igv: Number(precio),
           unidad: Number(unidad),
+          grupo_codigo: grupoCodigo ?? undefined,
           estado,
         });
         setNotice({ type: "success", text: "Servicio creado." });
@@ -1033,6 +1053,7 @@ function useServiciosCrud(tarifaId: number | null) {
           nomenclador: nomenclador.trim() ? nomenclador.trim() : null,
           precio_sin_igv: Number(precio),
           unidad: Number(unidad),
+          grupo_codigo: grupoCodigo ?? undefined,
           estado,
         });
         if (statusFilter === "ACTIVO" && res.estado !== "ACTIVO") {
@@ -1063,6 +1084,7 @@ function useServiciosCrud(tarifaId: number | null) {
     nomenclador,
     precio,
     unidad,
+    grupoCodigo,
     estado,
     mode,
     selected,
@@ -1150,12 +1172,17 @@ function useServiciosCrud(tarifaId: number | null) {
     setFilterCategoriaId,
     filterSubcategoriaId,
     setFilterSubcategoriaId,
+    filterGrupoCodigo,
+    setFilterGrupoCodigo,
     nomenclador,
     setNomenclador,
     precio,
     setPrecio,
     unidad,
     setUnidad,
+    grupoCodigo,
+    setGrupoCodigo,
+    grupos,
     isValid,
     isDirty,
     canDeactivate,
@@ -1752,74 +1779,91 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
         onBack={() => navigate("/facturacion/tarifario")}
         tarifaLabel={tarifaLabel}
       />
-      <div className="w-full">
-        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-          <input
-            value={vm.q}
-            onChange={(e) => vm.setQ(e.target.value)}
-            placeholder="Buscar por código o descripción"
-            className={[
-              "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
-              "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
-              "basis-full lg:basis-auto lg:flex-1 min-w-65",
-            ].join(" ")}
-          />
-
-          <SelectMenu
-            value={String(vm.statusFilter)}
-            onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
-            options={statusOptions}
-            ariaLabel="Filtrar por estado"
-            buttonClassName="w-full sm:w-auto min-w-[160px]"
-            menuClassName="min-w-[120px]"
-          />
-
-          <SelectMenu
-            value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
-            onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
-            options={[
-              { value: "", label: "Todas las categorías" },
-              ...vm.categorias.map((c) => ({
-                value: String(c.id),
-                label: `${c.codigo} - ${c.descripcion}`,
-              })),
-            ]}
-            ariaLabel="Categoría filtro"
-            buttonClassName="w-full sm:w-auto min-w-[220px]"
-            menuClassName="min-w-[200px]"
-          />
-
-          <SelectMenu
-            value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
-            onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
-            options={[
-              { value: "", label: "Todas las subcategorías" },
-              ...vm.subcategoriasFilter.map((s) => ({
-                value: String(s.id),
-                label: `${s.codigo} - ${s.descripcion}`,
-              })),
-            ]}
-            ariaLabel="Subcategoría filtro"
-            buttonClassName="w-full sm:w-auto min-w-[220px]"
-            menuClassName="min-w-[200px]"
-          />
-
-          <SelectMenu
-            value={String(vm.perPage)}
-            onChange={(v) => vm.setPerPage(Number(v))}
-            options={perPageOptions}
-            ariaLabel="Registros por página"
-            buttonClassName="w-full sm:w-auto min-w-[96px]"
-            menuClassName="min-w-[90px]"
-          />
-
-          <button
-            type="button"
-            className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
-            onClick={handleNew}
-          >
-            Nuevo
-          </button>
+      <div className="w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div className="flex flex-col gap-4">
+          {/* Fila 1: Búsqueda, estado, paginación y acción principal */}
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              value={vm.q}
+              onChange={(e) => vm.setQ(e.target.value)}
+              placeholder="Buscar por código o descripción"
+              className={[
+                "h-10 rounded-lg border border-(--border-color-default) bg-(--color-base) px-3",
+                "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+                "min-w-[200px] flex-1 basis-full sm:basis-0",
+              ].join(" ")}
+            />
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <SelectMenu
+                value={String(vm.statusFilter)}
+                onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
+                options={statusOptions}
+                ariaLabel="Filtrar por estado"
+                buttonClassName="h-10 min-w-[120px]"
+                menuClassName="min-w-[120px]"
+              />
+              <SelectMenu
+                value={String(vm.perPage)}
+                onChange={(v) => vm.setPerPage(Number(v))}
+                options={perPageOptions}
+                ariaLabel="Registros por página"
+                buttonClassName="h-10 min-w-[80px]"
+                menuClassName="min-w-[80px]"
+              />
+              <button
+                type="button"
+                className="h-10 shrink-0 rounded-lg px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-colors hover:opacity-90"
+                onClick={handleNew}
+              >
+                Nuevo
+              </button>
+            </div>
+          </div>
+          {/* Fila 2: Filtros por clasificación */}
+          <div className="flex flex-wrap items-center gap-3 border-t border-(--border-color-default) pt-4">
+            <span className="text-xs font-medium uppercase tracking-wide text-(--color-text-secondary) shrink-0">
+              Filtrar por
+            </span>
+            <SelectMenu
+              value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
+              onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
+              options={[
+                { value: "", label: "Todas las categorías" },
+                ...vm.categorias.map((c) => ({
+                  value: String(c.id),
+                  label: `${c.codigo} - ${c.descripcion}`,
+                })),
+              ]}
+              ariaLabel="Categoría"
+              buttonClassName="h-10 min-w-[200px]"
+              menuClassName="min-w-[220px]"
+            />
+            <SelectMenu
+              value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
+              onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
+              options={[
+                { value: "", label: "Todas las subcategorías" },
+                ...vm.subcategoriasFilter.map((s) => ({
+                  value: String(s.id),
+                  label: `${s.codigo} - ${s.descripcion}`,
+                })),
+              ]}
+              ariaLabel="Subcategoría"
+              buttonClassName="h-10 min-w-[200px]"
+              menuClassName="min-w-[220px]"
+            />
+            <SelectMenu
+              value={vm.filterGrupoCodigo ?? ""}
+              onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
+              options={[
+                { value: "", label: "Todos los grupos" },
+                ...vm.grupos.map((g) => ({ value: g.codigo, label: g.descripcion })),
+              ]}
+              ariaLabel="Grupo"
+              buttonClassName="h-10 min-w-[160px]"
+              menuClassName="min-w-[180px]"
+            />
+          </div>
         </div>
       </div>
 
@@ -1990,6 +2034,23 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                       className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
                     />
                   </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-(--color-text-primary)">Grupo</label>
+                <div className="mt-1">
+                  <SelectMenu
+                    value={vm.grupoCodigo ?? ""}
+                    onChange={(v) => vm.setGrupoCodigo(v ? v : null)}
+                    options={[
+                      { value: "", label: "Sin grupo" },
+                      ...vm.grupos.map((g) => ({ value: g.codigo, label: g.descripcion })),
+                    ]}
+                    ariaLabel="Grupo del servicio"
+                    buttonClassName="w-full"
+                    menuClassName="min-w-[260px]"
+                  />
+                </div>
               </div>
             </div>
 

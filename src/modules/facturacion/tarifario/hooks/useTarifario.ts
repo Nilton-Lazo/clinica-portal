@@ -12,7 +12,7 @@ import {
   cloneTarifaFromBase,
   getTarifaBaseTree,
   listTarifaServicios,
-  listTarifasOperativas,
+  listTarifasParaGestionTarifario,
 } from "../services/tarifario.service";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../shared/api/apiError";
@@ -121,7 +121,7 @@ export function useTarifario() {
   useEffect(() => {
     let alive = true;
     setTarifasLoading(true);
-    listTarifasOperativas()
+    listTarifasParaGestionTarifario()
       .then((items) => {
         if (!alive) return;
         setTarifas(items);

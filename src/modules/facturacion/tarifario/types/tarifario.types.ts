@@ -9,6 +9,7 @@ export type TarifaOperativa = {
   descripcion_tarifa: string;
   iafa_id: number | null;
   estado: RecordStatus;
+  tarifa_base?: boolean;
 };
 
 export type TarifaBase = {
@@ -77,6 +78,13 @@ export type TarifaSubcategoriaLookup = {
   estado: RecordStatus;
 };
 
+export type GrupoServicioLookup = {
+  id: number;
+  codigo: string;
+  descripcion: string;
+  abrev: string | null;
+};
+
 export type TarifaServicioCrud = {
   id: number;
   tarifa_id: number;
@@ -88,6 +96,9 @@ export type TarifaServicioCrud = {
   descripcion: string;
   precio_sin_igv: string;
   unidad: string;
+  grupo_codigo: string | null;
+  grupo_descripcion: string | null;
+  grupo_abrev: string | null;
   estado: RecordStatus;
 };
 

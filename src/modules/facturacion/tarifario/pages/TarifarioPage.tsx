@@ -151,8 +151,17 @@ export default function TarifarioPage() {
   const tarifaOptions = React.useMemo(() => {
     return vm.tarifas.map((t) => ({
       value: String(t.id),
-      label: `${t.codigo} - ${t.descripcion_tarifa}`,
+      label: `${t.codigo} - ${t.descripcion_tarifa}${t.tarifa_base ? " (Base)" : ""}`,
     }));
+  }, [vm.tarifas]);
+
+  const cloneTarifaOptions = React.useMemo(() => {
+    return vm.tarifas
+      .filter((t) => !t.tarifa_base)
+      .map((t) => ({
+        value: String(t.id),
+        label: `${t.codigo} - ${t.descripcion_tarifa}`,
+      }));
   }, [vm.tarifas]);
 
   const selectedTarifaStr = vm.tarifaId ? String(vm.tarifaId) : "";
@@ -433,7 +442,7 @@ export default function TarifarioPage() {
               <SelectMenu
                 value={selectedCloneTarifaStr}
                 onChange={(v) => vm.setCloneTarifaId(v ? Number(v) : null)}
-                options={tarifaOptions}
+                options={cloneTarifaOptions}
                 ariaLabel="Tarifa destino"
                 buttonClassName="w-full"
                 menuClassName="min-w-full"

@@ -5,6 +5,7 @@ import type {
   TarifaBaseTree,
   TarifaCategoria,
   TarifaCategoriaLookup,
+  GrupoServicioLookup,
   TarifaOperativa,
   TarifaServicioCrud,
   TarifaServicioListItem,
@@ -28,6 +29,14 @@ function qs(params: Record<string, string | number | null | undefined>): string 
 export async function listTarifasOperativas(q?: string): Promise<TarifaOperativa[]> {
   const res = await api.get<{ data: TarifaOperativa[] }>(
     `/facturacion/tarifario/tarifas/operativas${qs({ q })}`
+  );
+  return res.data ?? [];
+}
+
+/** Todas las tarifas activas incluyendo el base. Solo para Facturación → Tarifario. */
+export async function listTarifasParaGestionTarifario(q?: string): Promise<TarifaOperativa[]> {
+  const res = await api.get<{ data: TarifaOperativa[] }>(
+    `/facturacion/tarifario/tarifas/para-gestion-tarifario${qs({ q })}`
   );
   return res.data ?? [];
 }
@@ -77,6 +86,13 @@ export async function cloneTarifaFromBase(
     payload
   );
   return res.data;
+}
+
+export async function lookupGruposServicio(): Promise<GrupoServicioLookup[]> {
+  const res = await api.get<{ data: GrupoServicioLookup[] }>(
+    "/facturacion/tarifario/grupos-servicio"
+  );
+  return res.data ?? [];
 }
 
 export async function listCategorias(
@@ -237,6 +253,7 @@ export async function listServiciosCrud(
     status?: RecordStatus;
     categoria_id?: number;
     subcategoria_id?: number;
+    grupo_codigo?: string | null;
   }
 ): Promise<PaginatedResponse<TarifaServicioCrud>> {
   const res = await api.get<PaginatedResponse<TarifaServicioCrud>>(
@@ -247,6 +264,7 @@ export async function listServiciosCrud(
       status: query.status,
       categoria_id: query.categoria_id,
       subcategoria_id: query.subcategoria_id,
+      grupo_codigo: query.grupo_codigo ?? undefined,
     })}`
   );
   return res;
@@ -275,6 +293,7 @@ export async function createServicio(
     nomenclador?: string | null;
     precio_sin_igv: number;
     unidad: number;
+    grupo_codigo?: string | null;
     estado?: RecordStatus;
   }
 ): Promise<TarifaServicioCrud> {
@@ -293,6 +312,7 @@ export async function updateServicio(
     nomenclador?: string | null;
     precio_sin_igv: number;
     unidad: number;
+    grupo_codigo?: string | null;
     estado: RecordStatus;
   }
 ): Promise<TarifaServicioCrud> {
