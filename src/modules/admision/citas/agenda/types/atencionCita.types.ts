@@ -71,6 +71,9 @@ export type AtencionServicioItem = {
   medico_codigo: string | null;
   medico_nombre: string | null;
   user_id: number | null;
+  /** Username para mostrar en la tabla (ej. admin, user). */
+  user_username?: string | null;
+  /** Nombre completo para mostrar encima de la tabla. */
   user_nombre: string | null;
   cop_var: number;
   cop_fijo: number;
@@ -101,8 +104,13 @@ export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
   servicio_codigo?: string | null;
   servicio_descripcion?: string | null;
   medico_codigo?: string | null;
+  /** Username en tabla (admin, user, etc.). */
+  user_username?: string | null;
+  /** Nombre completo para encabezado. */
   user_nombre?: string | null;
   estado_facturacion?: EstadoFacturacionServicio;
+  /** Solo visual: si el precio incluye recargo nocturno (mensaje en tabla) */
+  recargo_noche_activo?: boolean;
 };
 
 /** Ítem en tabla de precarga (antes de "Cargar servicios") */
@@ -140,7 +148,6 @@ export type AtencionDraft = {
   soatNumeroPoliza: string;
   soatNumeroPlaca: string;
   lineas: AtencionServicioLineaDisplay[];
-  precargaServicios: PrecargaServicioItem[];
 };
 
 /** Payload para POST guardar atención */

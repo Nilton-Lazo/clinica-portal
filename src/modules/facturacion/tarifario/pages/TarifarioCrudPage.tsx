@@ -2084,6 +2084,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   />
                 </div>
               </div>
+
             </div>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">

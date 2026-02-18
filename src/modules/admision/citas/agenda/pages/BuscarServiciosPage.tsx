@@ -8,10 +8,12 @@ import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons
 import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
 import {
   buscarServiciosTarifa,
+  getIgvPorcentaje,
   type TarifaServicioBusqueda,
   type TarifaServiciosBusquedaMeta,
 } from "../services/atencionCita.service";
 import type { AtencionDraft } from "../types/atencionCita.types";
+import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -32,7 +34,6 @@ type LocationState = {
   tarifaId?: number | null;
   tarifaDescripcion?: string | null;
   returnLineas?: unknown[];
-  returnPrecarga?: unknown[];
   atencionDraft?: AtencionDraft | null;
 };
 
@@ -101,9 +102,15 @@ export default function BuscarServiciosPage() {
   }, []);
 
   const [multiSelect, setMultiSelect] = React.useState(false);
-  const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set());
+  /** Ítems seleccionados (por id) para que persistan al filtrar o cambiar de página. */
+  const [selectedItems, setSelectedItems] = React.useState<Map<number, TarifaServicioBusqueda>>(new Map());
+  const [igvPct, setIgvPct] = React.useState(18);
 
   const isLgUp = useIsLgUp();
+
+  React.useEffect(() => {
+    getIgvPorcentaje().then(setIgvPct).catch(() => {});
+  }, []);
 
   const refresh = React.useCallback(() => {
     if (!tarifaId) return;
@@ -146,7 +153,6 @@ export default function BuscarServiciosPage() {
       replace: true,
       state: {
         returnLineas: st.returnLineas,
-        returnPrecarga: st.returnPrecarga,
         atencionDraft: st.atencionDraft,
         scrollToServicios: true,
       },
@@ -162,7 +168,6 @@ export default function BuscarServiciosPage() {
         state: {
           selectedServicios: [row],
           returnLineas: st.returnLineas,
-          returnPrecarga: st.returnPrecarga,
           atencionDraft: st.atencionDraft,
           scrollToServicios: true,
         },
@@ -172,33 +177,32 @@ export default function BuscarServiciosPage() {
   );
 
   const handleAgregarSeleccionados = React.useCallback(() => {
-    if (selectedIds.size === 0) return;
-    const selected = data.filter((r) => selectedIds.has(r.id));
+    if (selectedItems.size === 0) return;
+    const selected = Array.from(selectedItems.values());
     const st = state as LocationState;
     navigate(`/admision/citas/agenda/${citaId}/atencion`, {
       replace: true,
       state: {
         selectedServicios: selected,
         returnLineas: st.returnLineas,
-        returnPrecarga: st.returnPrecarga,
         atencionDraft: st.atencionDraft,
         scrollToServicios: true,
       },
     });
-  }, [navigate, citaId, selectedIds, data, state]);
+  }, [navigate, citaId, selectedItems, state]);
 
-  const toggleSelect = React.useCallback((id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const toggleSelect = React.useCallback((row: TarifaServicioBusqueda) => {
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
+      if (next.has(row.id)) next.delete(row.id);
+      else next.set(row.id, row);
       return next;
     });
   }, []);
 
   const handleRowSelect = React.useCallback(
     (row: TarifaServicioBusqueda) => {
-      if (multiSelect) toggleSelect(row.id);
+      if (multiSelect) toggleSelect(row);
     },
     [multiSelect, toggleSelect]
   );
@@ -244,7 +248,7 @@ export default function BuscarServiciosPage() {
               <div className="flex justify-end items-baseline gap-0">
                 <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
                 <span className="tabular-nums inline-block min-w-18 text-right">
-                  {finalPrecio.toFixed(4)}
+                  {finalPrecio.toFixed(PRECISION_DECIMAL)}
                 </span>
               </div>
               {recargo && (
@@ -252,6 +256,30 @@ export default function BuscarServiciosPage() {
                   Recargo {(x.recargo_noche_porcentaje ?? 0)}%
                 </span>
               )}
+            </div>
+          );
+        },
+      },
+      {
+        key: "precio_con_igv",
+        header: <span className="whitespace-nowrap">Precio con IGV</span>,
+        headerClassName: "text-right w-32 min-w-[7rem]",
+        cellClassName: "px-3 py-2 text-right whitespace-nowrap",
+        render: (x) => {
+          const finalPrecioSinIgv = precioConRecargo(
+            x.precio_sin_igv,
+            Boolean(x.recargo_noche_activo),
+            x.recargo_noche_porcentaje ?? 0
+          );
+          const precioConIgv = finalPrecioSinIgv * (1 + igvPct / 100);
+          if (finalPrecioSinIgv === 0 && (x.precio_sin_igv == null || x.precio_sin_igv === ""))
+            return "—";
+          return (
+            <div className="flex justify-end items-baseline gap-0">
+              <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
+              <span className="tabular-nums inline-block min-w-18 text-right">
+                {precioConIgv.toFixed(PRECISION_DECIMAL)}
+              </span>
             </div>
           );
         },
@@ -273,8 +301,8 @@ export default function BuscarServiciosPage() {
         render: (x) => (
           <input
             type="checkbox"
-            checked={selectedIds.has(x.id)}
-            onChange={() => toggleSelect(x.id)}
+            checked={selectedItems.has(x.id)}
+            onChange={() => toggleSelect(x)}
             className="h-4 w-4 rounded border border-(--border-color-default)"
             onClick={(e) => e.stopPropagation()}
           />
@@ -282,11 +310,11 @@ export default function BuscarServiciosPage() {
       });
     }
     return base;
-  }, [multiSelect, selectedIds, toggleSelect]);
+  }, [multiSelect, selectedItems, toggleSelect, igvPct]);
 
   const rowsWithCheck = React.useMemo(
-    () => data.map((r) => ({ ...r, _checked: selectedIds.has(r.id) })),
-    [data, selectedIds]
+    () => data.map((r) => ({ ...r, _checked: selectedItems.has(r.id) })),
+    [data, selectedItems]
   );
 
   if (!citaId || !tarifaId) {
@@ -316,9 +344,9 @@ export default function BuscarServiciosPage() {
             <>
               <PrimaryButton
                 onClick={handleAgregarSeleccionados}
-                disabled={selectedIds.size === 0}
+                disabled={selectedItems.size === 0}
               >
-                Agregar seleccionados ({selectedIds.size})
+                Agregar seleccionados ({selectedItems.size})
               </PrimaryButton>
               <SecondaryButton onClick={() => setMultiSelect(false)}>
                 Cancelar selección
@@ -383,7 +411,7 @@ export default function BuscarServiciosPage() {
             selectedId={null}
             getRowId={(r) => r.id}
             onSelect={(r) =>
-              multiSelect ? toggleSelect(r.id) : handleDoubleClick(r)
+              multiSelect ? toggleSelect(r) : handleDoubleClick(r)
             }
             renderMain={(r) => {
               const finalPrecio = precioConRecargo(
@@ -399,8 +427,8 @@ export default function BuscarServiciosPage() {
                   {multiSelect && (
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(r.id)}
-                      onChange={() => toggleSelect(r.id)}
+                      checked={selectedItems.has(r.id)}
+                      onChange={() => toggleSelect(r)}
                       onClick={(e) => e.stopPropagation()}
                       className="mt-0.5 h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
                     />

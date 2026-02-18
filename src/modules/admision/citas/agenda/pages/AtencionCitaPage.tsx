@@ -13,7 +13,6 @@ import type {
   AtencionServicioItem,
   AtencionServicioLinea,
   AtencionServicioLineaDisplay,
-  PrecargaServicioItem,
 } from "../types/atencionCita.types";
 import { toApiError } from "../../../../../shared/api/apiError";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
@@ -56,6 +55,7 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
     servicio_codigo: item.servicio_codigo ?? null,
     servicio_descripcion: item.servicio_descripcion,
     medico_codigo: item.medico_codigo,
+    user_username: item.user_username ?? null,
     user_nombre: item.user_nombre,
     estado_facturacion,
   };
@@ -67,6 +67,14 @@ function esPrecioDirecto(tarifaDescripcion: string | null): boolean {
   if (!tarifaDescripcion) return false;
   const n = tarifaDescripcion.trim();
   return TARIFAS_PRECIO_DIRECTO.some((t) => t.toLowerCase() === n.toLowerCase());
+}
+
+/** Nombre completo del usuario para mostrar en servicios (usa name de la tabla users, o apellidos + nombres). */
+function userNombreCompleto(user: { name?: string | null; apellido_paterno?: string; apellido_materno?: string | null; nombres?: string; username?: string } | null | undefined): string {
+  if (!user) return "";
+  if (user.name && user.name.trim() !== "") return user.name.trim();
+  const full = [user.apellido_paterno ?? "", user.apellido_materno ?? "", user.nombres ?? ""].join(" ").trim();
+  return full || (user.username ?? "");
 }
 
 function calcularPrecios(
@@ -99,7 +107,6 @@ export default function AtencionCitaPage() {
   const saving = savingState !== null;
 
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
-  const [precargaServicios, setPrecargaServicios] = React.useState<PrecargaServicioItem[]>([]);
   const [medicosOptions, setMedicosOptions] = React.useState<SelectOption[]>([]);
 
   const [acudio, setAcudio] = React.useState(false);
@@ -190,7 +197,6 @@ export default function AtencionCitaPage() {
               setSoatNumeroPoliza(draft.soatNumeroPoliza ?? "");
               setSoatNumeroPlaca(draft.soatNumeroPlaca ?? "");
               if (draft.lineas != null) setLineas(draft.lineas);
-              if (draft.precargaServicios != null) setPrecargaServicios(draft.precargaServicios);
             } catch {
               window.sessionStorage.removeItem(draftStorageKey);
             }
@@ -245,7 +251,6 @@ export default function AtencionCitaPage() {
       soatNumeroPoliza,
       soatNumeroPlaca,
       lineas,
-      precargaServicios,
     };
   }, [
     acudio,
@@ -262,7 +267,6 @@ export default function AtencionCitaPage() {
     soatNumeroPoliza,
     soatNumeroPlaca,
     lineas,
-    precargaServicios,
   ]);
 
   const serviciosSectionRef = React.useRef<HTMLDivElement | null>(null);
@@ -272,16 +276,13 @@ export default function AtencionCitaPage() {
     const st = (location.state ?? {}) as {
       selectedServicios?: TarifaServicioBusqueda[];
       returnLineas?: AtencionServicioLineaDisplay[];
-      returnPrecarga?: PrecargaServicioItem[];
       scrollToServicios?: boolean;
     };
     const servs = st.selectedServicios;
     const restoreLineas = st.returnLineas;
-    const restorePrecarga = st.returnPrecarga;
     const scrollTo = st.scrollToServicios;
     const stateSinDraft = () => ({
       returnLineas: st.returnLineas,
-      returnPrecarga: st.returnPrecarga,
       scrollToServicios: st.scrollToServicios,
       selectedServicios: st.selectedServicios,
     });
@@ -294,7 +295,6 @@ export default function AtencionCitaPage() {
     }
 
     if (restoreLineas != null) setLineas(restoreLineas);
-    if (restorePrecarga != null) setPrecargaServicios(restorePrecarga);
 
     if (!servs?.length || !data) return;
     const key = servs.map((s) => s.id).join(",");
@@ -309,7 +309,7 @@ export default function AtencionCitaPage() {
       const labelMedico = medicoOpt?.label ?? "";
       const codigoMedico = labelMedico.includes(" · ") ? labelMedico.split(" · ")[0]?.trim() ?? "" : labelMedico.split(/\s+/)[0] ?? "";
       const tarifaDesc = tarifaActual;
-      const nuevas: PrecargaServicioItem[] = servs.map((s) => {
+      const nuevas: AtencionServicioLineaDisplay[] = servs.map((s) => {
         const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
         const base = esPrecioDirecto(tarifaDesc) ? precioBase : precioBase;
         const recargoNoche = Boolean(s.recargo_noche_activo);
@@ -328,12 +328,13 @@ export default function AtencionCitaPage() {
           precio_con_igv: precioConIgv,
           medico_id: medicoId,
           medico_codigo: codigoMedico || medicoNombre,
-          medico_nombre: medicoNombre,
+          user_username: user?.username ?? "",
+          user_nombre: userNombreCompleto(user),
+          estado_facturacion: "PENDIENTE",
           recargo_noche_activo: recargoNoche,
         };
       });
-      setPrecargaServicios((prev) => [...(restorePrecarga ?? prev), ...nuevas]);
-      if (restoreLineas != null) setLineas(restoreLineas);
+      setLineas((prev) => [...(restoreLineas ?? prev), ...nuevas]);
       processedServiciosRef.current = null;
     });
   }, [location.state, location.pathname, navigate, data, medicosOptions, tarifaActual, user]);
@@ -553,10 +554,7 @@ export default function AtencionCitaPage() {
     try {
       const res = await guardarAtencionCita(id, payload);
       actualizarGuardado(res);
-      if (planChanged) {
-        setLineas([]);
-        setPrecargaServicios([]);
-      }
+      if (planChanged) setLineas([]);
       clearDraftForCita(id);
     } catch (e) {
       const err = toApiError(e);
@@ -600,10 +598,10 @@ export default function AtencionCitaPage() {
   const nroCuenta = cita.cuenta ?? data.atencion?.nro_cuenta ?? "";
 
   return (
-    <div className="flex w-full min-w-0 flex-col space-y-4">
+    <div className="flex w-full min-w-0 flex-col space-y-4 lg:space-y-2">
       {/* Barra superior: motivo y N° de cuenta destacados, botones */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="w-full min-w-0 rounded-2xl border border-(--border-color-default) bg-(--color-panel-options-bg) px-4 py-3 sm:w-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:gap-2">
+        <div className="w-full min-w-0 rounded-2xl border border-(--border-color-default) bg-(--color-panel-options-bg) px-4 py-3 lg:px-3 lg:py-2 sm:w-auto">
           {/* En móvil: dos filas (flex-col). En escritorio (sm+): una fila, contenedor al ancho del contenido */}
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             {cita.motivo ? (
@@ -645,142 +643,145 @@ export default function AtencionCitaPage() {
           </PrimaryButton>
         </div>
       </div>
-      <p className="text-xs text-(--color-text-secondary)">
+      <p className="text-xs text-(--color-text-secondary) lg:mb-0">
         <strong>Actualizar datos</strong> guarda solo plan, condición y titular (y limpia servicios si cambió el plan). <strong>Guardar atención</strong> guarda la atención completa con hora, indicadores, SOAT y servicios, y regresa a la agenda.
       </p>
 
-      {/* Sección: Datos de la cita */}
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-        <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos de la cita</h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">Fecha</label>
-            <input
-              value={fechaDisplay}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">Hora aproximada</label>
-            <input
-              value={cita.hora ?? "—"}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">N° de orden</label>
-            <input
-              value={String(cita.orden)}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="block min-h-5 text-xs leading-normal text-(--color-text-secondary)">
-              <span className={`inline-flex items-center gap-2 ${horaAsistenciaGuardada ? "cursor-default opacity-90" : "cursor-pointer"}`}>
-                <input
-                  type="checkbox"
-                  checked={acudio}
-                  onChange={(e) => !horaAsistenciaGuardada && onAcudioChange(e.target.checked)}
-                  disabled={horaAsistenciaGuardada}
-                  className="h-4 w-4 shrink-0 rounded border border-(--border-color-default) disabled:cursor-not-allowed"
-                />
-                Hora de atención
-              </span>
-            </label>
-            <input
-              value={acudio ? horaAsistenciaDisplay : ""}
-              readOnly
-              placeholder=""
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm tabular-nums text-(--color-text-primary) outline-none"
-            />
+      {/* En escritorio: Datos de la cita y Servicio y médico en una fila */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
+        {/* Sección: Datos de la cita */}
+        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
+          <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos de la cita</h2>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-2 lg:gap-2">
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">Fecha</label>
+              <input
+                value={fechaDisplay}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">Hora aproximada</label>
+              <input
+                value={cita.hora ?? "—"}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">N° de orden</label>
+              <input
+                value={String(cita.orden)}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block min-h-5 text-xs leading-normal text-(--color-text-secondary)">
+                <span className={`inline-flex items-center gap-2 ${horaAsistenciaGuardada ? "cursor-default opacity-90" : "cursor-pointer"}`}>
+                  <input
+                    type="checkbox"
+                    checked={acudio}
+                    onChange={(e) => !horaAsistenciaGuardada && onAcudioChange(e.target.checked)}
+                    disabled={horaAsistenciaGuardada}
+                    className="h-4 w-4 shrink-0 rounded border border-(--border-color-default) disabled:cursor-not-allowed"
+                  />
+                  Hora de atención
+                </span>
+              </label>
+              <input
+                value={acudio ? horaAsistenciaDisplay : ""}
+                readOnly
+                placeholder=""
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm tabular-nums text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Sección: Servicio y médico */}
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-        <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicio y médico</h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">Servicio solicitado</label>
-            <input
-              value={programacion?.especialidad?.descripcion ?? "—"}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">Médico tratante</label>
-            <input
-              value={formatMedico(programacion?.medico ?? null)}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">N° de Historia Clínica</label>
-            <input
-              value={paciente.numero_documento ?? paciente.nr ?? "—"}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">Consultorio</label>
-            <input
-              value={programacion?.consultorio ? `${programacion.consultorio.abreviatura} · ${programacion.consultorio.descripcion}` : "—"}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">Tarifario asignado</label>
-            <input
-              value={tarifaActual ?? "—"}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-(--color-text-secondary)">N° de Referencia</label>
-            <input
-              value={paciente.nr ?? "—"}
-              readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
-            />
+        {/* Sección: Servicio y médico */}
+        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
+          <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicio y médico</h2>
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-3 lg:gap-2">
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">Servicio solicitado</label>
+              <input
+                value={programacion?.especialidad?.descripcion ?? "—"}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">Médico tratante</label>
+              <input
+                value={formatMedico(programacion?.medico ?? null)}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">N° de Historia Clínica</label>
+              <input
+                value={paciente.numero_documento ?? paciente.nr ?? "—"}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">Consultorio</label>
+              <input
+                value={programacion?.consultorio ? `${programacion.consultorio.abreviatura} · ${programacion.consultorio.descripcion}` : "—"}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">Tarifario asignado</label>
+              <input
+                value={tarifaActual ?? "—"}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-(--color-text-secondary)">N° de Referencia</label>
+              <input
+                value={paciente.nr ?? "—"}
+                readOnly
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Sección: Datos del paciente (editables: plan, parentesco, titular) */}
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
         <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos del paciente</h2>
-        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-4 lg:gap-3">
           <div>
             <label className="text-xs font-medium text-(--color-text-primary)">Seleccione el plan</label>
-            <div className="mt-1">
+            <div className="mt-1 lg:mt-0.5">
               <SelectMenu
                 value={pacientePlanId != null ? String(pacientePlanId) : ""}
                 onChange={(v) => setPacientePlanId(v ? Number(v) : null)}
                 options={planOptions}
                 ariaLabel="Plan"
-                buttonClassName="w-full"
+                buttonClassName="w-full lg:h-8 lg:rounded-lg"
                 menuClassName="min-w-full"
               />
             </div>
           </div>
           <div>
             <label className="text-xs text-(--color-text-secondary)">Condición</label>
-            <div className="mt-1">
+            <div className="mt-1 lg:mt-0.5">
               <SelectMenu
                 value={parentescoSeguro}
                 onChange={setParentescoSeguro}
                 options={[{ value: "", label: "Seleccione condición" }, ...PARENTESCO_OPTIONS]}
                 ariaLabel="Parentesco seguro"
-                buttonClassName="w-full"
+                buttonClassName="w-full lg:h-8 lg:rounded-lg"
                 menuClassName="min-w-full"
               />
             </div>
@@ -791,7 +792,7 @@ export default function AtencionCitaPage() {
               value={titularNombre}
               onChange={(e) => setTitularNombre(e.target.value)}
               readOnly={parentescoSeguro.trim().toUpperCase() === "TITULAR"}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-70 disabled:cursor-not-allowed"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-70 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div>
@@ -799,7 +800,7 @@ export default function AtencionCitaPage() {
             <input
               value={cita.autorizacion_siteds ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div>
@@ -807,7 +808,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.apellidos_nombres}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div>
@@ -815,7 +816,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.sexo ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div>
@@ -823,7 +824,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.edad != null ? String(paciente.edad) : "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div>
@@ -831,7 +832,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.celular ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div className="sm:col-span-2">
@@ -839,7 +840,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.email ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
           <div className="sm:col-span-2">
@@ -847,45 +848,47 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.telefono ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
             />
           </div>
         </div>
       </div>
 
       {/* Fila: Indicadores de atención (izq) + SOAT (der) */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
+        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <h2 className="text-sm font-semibold text-(--color-text-primary)">Indicadores de atención</h2>
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={controlPrePostNatal}
-                onChange={(e) => setControlPrePostNatal(e.target.checked)}
-                className="h-4 w-4 rounded border border-(--border-color-default)"
-              />
-              <span className="text-sm text-(--color-text-primary)">Control Pre y Post Natal</span>
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={controlNinoSano}
-                onChange={(e) => setControlNinoSano(e.target.checked)}
-                className="h-4 w-4 rounded border border-(--border-color-default)"
-              />
-              <span className="text-sm text-(--color-text-primary)">Control niño sano</span>
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={chequeo}
-                onChange={(e) => setChequeo(e.target.checked)}
-                className="h-4 w-4 rounded border border-(--border-color-default)"
-              />
-              <span className="text-sm text-(--color-text-primary)">Chequeo</span>
-            </label>
-            <div className="inline-flex shrink-0 items-center gap-x-6">
+          <div className="mt-4 flex flex-col gap-3 lg:mt-2 lg:gap-2">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:gap-x-4">
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={controlPrePostNatal}
+                  onChange={(e) => setControlPrePostNatal(e.target.checked)}
+                  className="h-4 w-4 rounded border border-(--border-color-default)"
+                />
+                <span className="text-sm text-(--color-text-primary)">Control Pre y Post Natal</span>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={controlNinoSano}
+                  onChange={(e) => setControlNinoSano(e.target.checked)}
+                  className="h-4 w-4 rounded border border-(--border-color-default)"
+                />
+                <span className="text-sm text-(--color-text-primary)">Control niño sano</span>
+              </label>
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={chequeo}
+                  onChange={(e) => setChequeo(e.target.checked)}
+                  className="h-4 w-4 rounded border border-(--border-color-default)"
+                />
+                <span className="text-sm text-(--color-text-primary)">Chequeo</span>
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:gap-x-4">
               <label className="inline-flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
@@ -907,7 +910,7 @@ export default function AtencionCitaPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -925,14 +928,14 @@ export default function AtencionCitaPage() {
             />
             <label htmlFor="soat-activo" className="cursor-pointer text-sm font-semibold text-(--color-text-primary)">SOAT</label>
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:gap-3">
             <div>
               <label className="block text-xs text-(--color-text-secondary)">Nº de póliza</label>
               <input
                 value={soatNumeroPoliza}
                 onChange={(e) => setSoatNumeroPoliza(e.target.value)}
                 disabled={!soatActivo}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed"
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
               />
             </div>
             <div>
@@ -941,7 +944,7 @@ export default function AtencionCitaPage() {
                 value={soatNumeroPlaca}
                 onChange={(e) => setSoatNumeroPlaca(e.target.value)}
                 disabled={!soatActivo}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed"
+                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
               />
             </div>
           </div>
@@ -957,8 +960,6 @@ export default function AtencionCitaPage() {
           }
           tarifaId={tarifaId}
           tarifaDescripcion={tarifaActual}
-          precargaServicios={precargaServicios}
-          onPrecargaChange={setPrecargaServicios}
           lineas={lineas}
           onLineasChange={setLineas}
           medicosOptions={medicosOptions}

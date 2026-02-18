@@ -12,7 +12,6 @@ import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecis
 import type {
   AtencionDraft,
   AtencionServicioLineaDisplay,
-  PrecargaServicioItem,
 } from "../types/atencionCita.types";
 
 function calcularPrecios(
@@ -45,9 +44,9 @@ function getMedicoCodigo(medicoId: number | undefined, medicoCodigo: string | nu
 
 function PrecioCell({ valor }: { valor: number }) {
   return (
-    <div className="flex justify-end items-baseline gap-0">
-      <span className="inline-block w-10 shrink-0 text-right tabular-nums">S/. </span>
-      <span className="tabular-nums inline-block min-w-18 text-right">
+    <div className="flex justify-end items-baseline gap-0 text-xs">
+      <span className="inline-block w-8 shrink-0 text-right tabular-nums">S/. </span>
+      <span className="tabular-nums inline-block min-w-14 text-right">
         {valor.toFixed(PRECISION_DECIMAL)}
       </span>
     </div>
@@ -59,8 +58,6 @@ export type ServiciosSolicitadosSectionProps = {
   medicoTratanteLabel: string;
   tarifaId: number | null;
   tarifaDescripcion: string | null;
-  precargaServicios: PrecargaServicioItem[];
-  onPrecargaChange: (items: PrecargaServicioItem[]) => void;
   lineas: AtencionServicioLineaDisplay[];
   onLineasChange: (lineas: AtencionServicioLineaDisplay[]) => void;
   medicosOptions: SelectOption[];
@@ -79,8 +76,6 @@ export function ServiciosSolicitadosSection({
   medicoTratanteLabel,
   tarifaId,
   tarifaDescripcion,
-  precargaServicios,
-  onPrecargaChange,
   lineas,
   onLineasChange,
   medicosOptions,
@@ -94,10 +89,13 @@ export function ServiciosSolicitadosSection({
 }: ServiciosSolicitadosSectionProps) {
   const navigate = useNavigate();
   const [igvPct, setIgvPct] = React.useState(18);
-  const [selectedPrecargaIdx, setSelectedPrecargaIdx] = React.useState<number | null>(null);
+  const [selectedLineaIdx, setSelectedLineaIdx] = React.useState<number | null>(null);
   const [confirmActualizarOpen, setConfirmActualizarOpen] = React.useState(false);
   const [actualizando, setActualizando] = React.useState(false);
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
+  /** Mensaje temporal (5 s) al cambiar médico de un servicio. Se reemplaza si se cambia otro antes. */
+  const [medicoChangedMessage, setMedicoChangedMessage] = React.useState<{ servicioDesc: string; medicoNombre: string } | null>(null);
+  const medicoChangedTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const DRAFT_STORAGE_KEY_PREFIX = "admision:atencionCitaDraft:";
 
@@ -115,11 +113,10 @@ export function ServiciosSolicitadosSection({
         tarifaId,
         tarifaDescripcion,
         returnLineas: lineas,
-        returnPrecarga: precargaServicios,
         atencionDraft: draft,
       },
     });
-  }, [navigate, citaId, tarifaId, tarifaDescripcion, lineas, precargaServicios, getAtencionDraft]);
+  }, [navigate, citaId, tarifaId, tarifaDescripcion, lineas, getAtencionDraft]);
 
   const handleBuscarServicio = React.useCallback(() => {
     if (hasPendingDataChanges && onActualizarDatos && pendingChangesMessage) {
@@ -150,38 +147,51 @@ export function ServiciosSolicitadosSection({
     getIgvPorcentaje().then(setIgvPct).catch(() => {});
   }, []);
 
-  const medicoOptionsForPrecarga = React.useMemo(() => {
+  const medicoOptionsForLinea = React.useMemo(() => {
     return medicosOptions.length ? medicosOptions : [{ value: "", label: "Seleccione médico" }];
   }, [medicosOptions]);
 
-  const selectedPrecarga = selectedPrecargaIdx != null ? precargaServicios[selectedPrecargaIdx] : null;
+  const selectedLinea = selectedLineaIdx != null ? lineas[selectedLineaIdx] : null;
 
-  const handleMedicoChange = React.useCallback(
+  const handleMedicoChangeForLinea = React.useCallback(
     (value: string) => {
-      if (selectedPrecargaIdx == null) return;
+      if (selectedLineaIdx == null) return;
       const id = value ? Number(value) : medicoTratanteId ?? 0;
       const opt = medicosOptions.find((o) => o.value === (value || String(medicoTratanteId ?? "")));
       const raw = opt?.label ?? "";
       const codigo = raw.includes(" · ") ? raw.split(" · ")[0]?.trim() ?? "" : raw.split(/\s+/)[0] ?? "";
-      const nombre = (raw.includes(" · ") ? raw.split(" · ").slice(1).join(" · ").trim() : raw.split(/\s+/).slice(1).join(" ").trim()) || medicoTratanteLabel;
-      onPrecargaChange(
-        precargaServicios.map((p, i) =>
-          i === selectedPrecargaIdx
-            ? { ...p, medico_id: id, medico_codigo: codigo, medico_nombre: nombre }
-            : p
+      const medicoNombreCompleto = raw.includes(" · ") ? raw.split(" · ").slice(1).join(" · ").trim() : raw.trim() || codigo;
+      const linea = lineas[selectedLineaIdx];
+      const servicioDesc = (linea?.servicio_descripcion ?? "").trim() || (linea?.servicio_codigo ?? "Servicio");
+      const servicioCorto = servicioDesc.length > 40 ? servicioDesc.slice(0, 37) + "…" : servicioDesc;
+
+      onLineasChange(
+        lineas.map((item, i) =>
+          i === selectedLineaIdx ? { ...item, medico_id: id, medico_codigo: codigo } : item
         )
       );
+
+      if (medicoChangedTimeoutRef.current) clearTimeout(medicoChangedTimeoutRef.current);
+      setMedicoChangedMessage({ servicioDesc: servicioCorto, medicoNombre: medicoNombreCompleto });
+      medicoChangedTimeoutRef.current = setTimeout(() => {
+        setMedicoChangedMessage(null);
+        medicoChangedTimeoutRef.current = null;
+      }, 10000);
     },
-    [selectedPrecargaIdx, precargaServicios, medicosOptions, medicoTratanteId, medicoTratanteLabel, onPrecargaChange]
+    [selectedLineaIdx, lineas, medicosOptions, medicoTratanteId, onLineasChange]
   );
 
-  const updatePrecarga = React.useCallback(
-    (idx: number, upd: Partial<PrecargaServicioItem>) => {
-      const p = precargaServicios[idx];
+  React.useEffect(() => () => {
+    if (medicoChangedTimeoutRef.current) clearTimeout(medicoChangedTimeoutRef.current);
+  }, []);
+
+  const updateLinea = React.useCallback(
+    (idx: number, upd: Partial<AtencionServicioLineaDisplay>) => {
+      const p = lineas[idx];
       if (!p) return;
       const factorDesc = Math.max(0.01, 1 - (p.descuento_pct ?? 0) / 100);
       const factorAum = 1 + (p.aumento_pct ?? 0) / 100;
-      const precioBase = p.precio_sin_igv / Math.max(0.001, p.cantidad) / factorDesc / factorAum;
+      const precioBase = (p.precio_sin_igv ?? 0) / Math.max(0.001, p.cantidad ?? 1) / factorDesc / factorAum;
       const next = { ...p, ...upd };
       if ("cantidad" in upd || "descuento_pct" in upd || "aumento_pct" in upd) {
         const { precioSinIgv, precioConIgv } = calcularPrecios(
@@ -194,61 +204,32 @@ export function ServiciosSolicitadosSection({
         next.precio_sin_igv = precioSinIgv;
         next.precio_con_igv = precioConIgv;
       }
-      onPrecargaChange(precargaServicios.map((item, i) => (i === idx ? next : item)));
+      onLineasChange(lineas.map((item, i) => (i === idx ? next : item)));
     },
-    [precargaServicios, onPrecargaChange, igvPct]
+    [lineas, onLineasChange, igvPct]
   );
-
-  const handleCargarServicios = React.useCallback(() => {
-    const nuevas: AtencionServicioLineaDisplay[] = precargaServicios.map((p) => ({
-      tarifa_servicio_id: p.tarifa_servicio_id,
-      medico_id: p.medico_id,
-      cop_var: p.cop_var,
-      cop_fijo: p.cop_fijo,
-      descuento_pct: p.descuento_pct,
-      aumento_pct: p.aumento_pct,
-      cantidad: p.cantidad,
-      precio_sin_igv: p.precio_sin_igv,
-      precio_con_igv: p.precio_con_igv,
-      servicio_codigo: p.servicio_codigo,
-      servicio_descripcion: p.servicio_descripcion,
-      medico_codigo: p.medico_codigo,
-      user_nombre: currentUsername,
-      estado_facturacion: "PENDIENTE",
-    }));
-    onLineasChange([...lineas, ...nuevas]);
-    onPrecargaChange([]);
-    setSelectedPrecargaIdx(null);
-  }, [precargaServicios, lineas, onLineasChange, onPrecargaChange, currentUsername]);
 
   const handleRemoveLinea = React.useCallback(
     (idx: number) => {
       onLineasChange(lineas.filter((_, i) => i !== idx));
+      if (selectedLineaIdx === idx) setSelectedLineaIdx(null);
+      else if (selectedLineaIdx != null && selectedLineaIdx > idx) setSelectedLineaIdx(selectedLineaIdx - 1);
     },
-    [lineas, onLineasChange]
+    [lineas, onLineasChange, selectedLineaIdx]
   );
 
-  const handleRemovePrecarga = React.useCallback(
-    (idx: number) => {
-      onPrecargaChange(precargaServicios.filter((_, i) => i !== idx));
-      if (selectedPrecargaIdx === idx) setSelectedPrecargaIdx(null);
-      else if (selectedPrecargaIdx != null && selectedPrecargaIdx > idx) setSelectedPrecargaIdx(selectedPrecargaIdx - 1);
-    },
-    [precargaServicios, onPrecargaChange, selectedPrecargaIdx]
-  );
-
-  const precargaColumns: DataTableColumn<PrecargaServicioItem & { _idx: number }>[] = [
-    { key: "codigo", header: "Código", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => x.servicio_codigo || "—" },
+  const finalColumns: DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>[] = React.useMemo(() => [
+    { key: "codigo", header: "Código", headerClassName: "text-xs py-1.5 text-center w-24 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center tabular-nums align-middle", render: (x) => x.servicio_codigo ?? "—" },
     {
       key: "descripcion",
       header: "Descripción de servicio",
-      headerClassName: "text-left align-middle",
-      cellClassName: "px-3 py-2 max-w-[220px] align-middle",
+      headerClassName: "text-xs py-1.5 text-left align-middle",
+      cellClassName: "text-xs px-2 py-1.5 max-w-[200px] align-middle",
       render: (x) => (
-        <span className="block wrap-break-word whitespace-normal text-left">
-          {x.servicio_descripcion || "—"}
+        <span className="block wrap-break-word whitespace-normal text-left leading-snug">
+          {x.servicio_descripcion ?? "—"}
           {x.recargo_noche_activo && (
-            <span className="block mt-0.5 text-xs text-(--color-primary) font-medium">Se activó recargo de noche</span>
+            <span className="block mt-0.5 text-[10px] text-(--color-primary) font-medium">Se activó recargo de noche</span>
           )}
         </span>
       ),
@@ -256,185 +237,131 @@ export function ServiciosSolicitadosSection({
     {
       key: "cop_var",
       header: "Copago variable",
-      headerClassName: "text-center w-28 align-middle",
-      cellClassName: "px-2 py-2 text-center align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-28 align-middle",
+      cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
         <input
           type="text"
           placeholder=""
-          value={x.cop_var === 0 ? "" : String(x.cop_var)}
-          onChange={(e) => updatePrecarga(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
+          value={(x.cop_var ?? 0) === 0 ? "" : String(x.cop_var)}
+          onChange={(e) => updateLinea(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
         />
       ),
     },
     {
       key: "cop_fijo",
       header: "Copago fijo",
-      headerClassName: "text-center w-28 align-middle",
-      cellClassName: "px-2 py-2 text-center align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-28 align-middle",
+      cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
         <input
           type="text"
           placeholder=""
-          value={x.cop_fijo === 0 ? "" : String(x.cop_fijo)}
-          onChange={(e) => updatePrecarga(x._idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
+          value={(x.cop_fijo ?? 0) === 0 ? "" : String(x.cop_fijo)}
+          onChange={(e) => updateLinea(x._idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
         />
       ),
     },
     {
       key: "descuento",
       header: "Descuento",
-      headerClassName: "text-center w-24 align-middle",
-      cellClassName: "px-2 py-2 text-center align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
+      cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
         <input
           type="text"
           placeholder=""
-          value={x.descuento_pct === 0 ? "" : String(x.descuento_pct)}
-          onChange={(e) => updatePrecarga(x._idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
+          value={(x.descuento_pct ?? 0) === 0 ? "" : String(x.descuento_pct)}
+          onChange={(e) => updateLinea(x._idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
         />
       ),
     },
     {
       key: "aumento",
       header: "Aumento",
-      headerClassName: "text-center w-24 align-middle",
-      cellClassName: "px-2 py-2 text-center align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
+      cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) =>
         x.recargo_noche_activo ? (
-          <span className="inline-block w-full text-center tabular-nums text-sm text-(--color-text-primary)">
-            {x.aumento_pct === 0 ? "—" : `${x.aumento_pct}%`}
+          <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-primary)">
+            {(x.aumento_pct ?? 0) === 0 ? "—" : `${x.aumento_pct}%`}
           </span>
         ) : (
           <input
             type="text"
             placeholder=""
-            value={x.aumento_pct === 0 ? "" : String(x.aumento_pct)}
-            onChange={(e) => updatePrecarga(x._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
+            value={(x.aumento_pct ?? 0) === 0 ? "" : String(x.aumento_pct)}
+            onChange={(e) => updateLinea(x._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
             onClick={(ev) => ev.stopPropagation()}
-            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
           />
         ),
     },
     {
       key: "cantidad",
       header: "Cantidad",
-      headerClassName: "text-center w-24 align-middle",
-      cellClassName: "px-2 py-2 text-center align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
+      cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
         <input
           type="number"
           min={1}
           step={1}
-          value={x.cantidad}
-          onChange={(e) => updatePrecarga(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+          value={x.cantidad ?? 1}
+          onChange={(e) => updateLinea(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
         />
       ),
     },
     {
       key: "precio_sin_igv",
       header: <span className="whitespace-nowrap">Precio sin IGV</span>,
-      headerClassName: "text-right w-32 min-w-[7rem] align-middle",
-      cellClassName: "px-3 py-2 text-right whitespace-nowrap align-middle",
-      render: (x) => <PrecioCell valor={x.precio_sin_igv} />,
+      headerClassName: "text-xs py-1.5 text-right w-28 min-w-[6rem] align-middle",
+      cellClassName: "text-xs px-2 py-1.5 text-right whitespace-nowrap align-middle",
+      render: (x) => <PrecioCell valor={x.precio_sin_igv ?? 0} />,
     },
     {
       key: "precio_con_igv",
       header: <span className="whitespace-nowrap">Precio con IGV</span>,
-      headerClassName: "text-right w-32 min-w-[7rem] align-middle",
-      cellClassName: "px-3 py-2 text-right whitespace-nowrap align-middle",
-      render: (x) => <PrecioCell valor={x.precio_con_igv} />,
+      headerClassName: "text-xs py-1.5 text-right w-28 min-w-[6rem] align-middle",
+      cellClassName: "text-xs px-2 py-1.5 text-right whitespace-nowrap align-middle",
+      render: (x) => <PrecioCell valor={x.precio_con_igv ?? 0} />,
+    },
+    { key: "medico", header: "Médico", headerClassName: "text-xs py-1.5 text-center w-20 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center tabular-nums align-middle", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
+    { key: "usuario", header: "Usuario", headerClassName: "text-xs py-1.5 text-center w-28 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center align-middle", render: (x) => (x.user_username ?? x.user_nombre ?? "—") },
+    {
+      key: "estado",
+      header: "Estado",
+      headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
+      cellClassName: "text-xs px-2 py-1.5 text-center align-middle",
+      render: (x) => <EstadoFacturacionBadge estado={x.estado_facturacion} size="sm" />,
     },
     {
-      key: "actions_precarga",
+      key: "actions",
       header: "",
-      headerClassName: "w-14 align-middle",
-      cellClassName: "px-2 py-2 text-center align-middle",
+      headerClassName: "text-xs py-1.5 w-12 align-middle",
+      cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
         <div onClick={(e) => e.stopPropagation()} title="Eliminar">
           <DangerButton
             type="button"
-            onClick={() => handleRemovePrecarga(x._idx)}
-            className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
+            onClick={() => handleRemoveLinea(x._idx)}
+            className="h-6! min-h-6! min-w-6! w-6! p-0! flex items-center justify-center shrink-0 rounded"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </DangerButton>
         </div>
       ),
     },
-  ];
+  ], [medicosOptions, updateLinea, handleRemoveLinea]);
 
-  const tieneAumento = lineas.some((l) => (l.aumento_pct ?? 0) !== 0);
-
-  const finalColumns: DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>[] = React.useMemo(() => {
-    const base: DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>[] = [
-      { key: "codigo", header: "Código", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => x.servicio_codigo ?? "—" },
-      {
-        key: "descripcion",
-        header: "Descripción de servicio",
-        headerClassName: "text-left align-middle",
-        cellClassName: "px-3 py-2 max-w-[220px] align-middle",
-        render: (x) => <span className="block wrap-break-word whitespace-normal text-left">{x.servicio_descripcion ?? "—"}</span>,
-      },
-      { key: "cop_var", header: "Copago variable", headerClassName: "text-center w-28 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cop_var ?? 0).toFixed(2) },
-      { key: "cop_fijo", header: "Copago fijo", headerClassName: "text-center w-28 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => (x.cop_fijo ?? 0).toFixed(2) },
-      { key: "descuento", header: "Descuento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => ((x.descuento_pct ?? 0) === 0 ? "—" : `${x.descuento_pct}%`) },
-    ];
-    if (tieneAumento) {
-      base.push({ key: "aumento", header: "Aumento", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => ((x.aumento_pct ?? 0) === 0 ? "—" : `${x.aumento_pct}%`) });
-    }
-    base.push(
-      { key: "cantidad", header: "Cantidad", headerClassName: "text-center w-24 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => String(Math.round(x.cantidad ?? 1)) },
-      {
-        key: "precio_con_igv",
-      header: <span className="whitespace-nowrap">Precio con IGV</span>,
-      headerClassName: "text-center w-32 min-w-[7rem] align-middle",
-      cellClassName: "px-3 py-2 text-center whitespace-nowrap align-middle",
-      render: (x) => (
-        <div className="flex justify-center">
-          <PrecioCell valor={x.precio_con_igv ?? 0} />
-        </div>
-      ),
-    },
-      { key: "medico", header: "Médico", headerClassName: "text-center w-20 align-middle", cellClassName: "px-3 py-2 text-center tabular-nums align-middle", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
-      { key: "usuario", header: "Usuario", headerClassName: "text-center w-32 align-middle", cellClassName: "px-3 py-2 text-center align-middle", render: (x) => x.user_nombre ?? "—" },
-      {
-        key: "estado",
-        header: "Estado",
-        headerClassName: "text-center w-28 align-middle",
-        cellClassName: "px-3 py-2 text-center align-middle",
-        render: (x) => <EstadoFacturacionBadge estado={x.estado_facturacion} />,
-      },
-      {
-        key: "actions",
-        header: "",
-        headerClassName: "w-14 align-middle",
-        cellClassName: "px-2 py-2 text-center align-middle",
-        render: (x) => (
-          <div onClick={(e) => e.stopPropagation()} title="Eliminar">
-            <DangerButton
-              type="button"
-              onClick={() => handleRemoveLinea(x._idx)}
-              className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
-            >
-              <Trash2 className="h-4 w-4" />
-            </DangerButton>
-          </div>
-        ),
-      },
-    );
-    return base;
-  }, [tieneAumento, medicosOptions, handleRemoveLinea]);
-
-  const precargaRows = precargaServicios.map((p, i) => ({ ...p, _idx: i }));
   const finalRows = React.useMemo(() => {
     const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
     if (!estadoFacturacionFilter) return withIdx;
@@ -447,11 +374,23 @@ export function ServiciosSolicitadosSection({
     { value: "FACTURADO", label: "Facturado" },
   ];
 
+  /** Nombre completo del médico de la fila seleccionada (para mostrar encima de la tabla). */
+  const selectedMedicoNombreCompleto = React.useMemo(() => {
+    if (!selectedLinea?.medico_id) return null;
+    const opt = medicosOptions.find((o) => o.value === String(selectedLinea.medico_id));
+    const label = opt?.label ?? "";
+    const part = label.includes(" · ") ? label.split(" · ").slice(1).join(" · ").trim() : label.trim();
+    return part || null;
+  }, [selectedLinea?.medico_id, medicosOptions]);
+
+  /** Nombre de usuario de la fila seleccionada (para mostrar encima de la tabla). */
+  const selectedUsuarioNombre = selectedLinea?.user_nombre ?? null;
+
   return (
     <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
       <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios solicitados</h2>
 
-      <div className="mt-3 flex flex-col gap-6">
+      <div className="mt-3 flex flex-col gap-3">
         <ConfirmDialog
           open={confirmActualizarOpen}
           title="Actualizar datos"
@@ -462,17 +401,19 @@ export function ServiciosSolicitadosSection({
           onConfirm={onConfirmActualizar}
         />
 
-        {/* Campo médico y Buscar servicio en la misma fila */}
+        {/* Campo médico (aplica a la fila seleccionada) y Buscar servicio */}
         <div className="flex flex-col gap-2">
-          <span className="text-xs text-(--color-text-secondary)">Asigne médico del servicio</span>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="w-[280px] min-w-[280px]">
+          <span className="text-xs text-(--color-text-secondary)">
+            {selectedLineaIdx != null ? "Asigne médico a la fila seleccionada" : "Asigne médico del servicio (seleccione una fila en la tabla)"}
+          </span>
+          <div className="flex flex-wrap items-center gap-3 gap-y-2">
+            <div className="w-full min-w-0 sm:w-[280px] sm:min-w-[200px]">
               <SelectMenu
-                value={selectedPrecarga ? (selectedPrecarga.medico_id ? String(selectedPrecarga.medico_id) : "") : (medicoTratanteId ? String(medicoTratanteId) : "")}
+                value={selectedLinea ? (selectedLinea.medico_id ? String(selectedLinea.medico_id) : "") : (medicoTratanteId ? String(medicoTratanteId) : "")}
                 onChange={(value) => {
-                  if (selectedPrecargaIdx != null) handleMedicoChange(value);
+                  if (selectedLineaIdx != null) handleMedicoChangeForLinea(value);
                 }}
-                options={medicoOptionsForPrecarga}
+                options={medicoOptionsForLinea}
                 ariaLabel="Médico"
                 buttonClassName="h-10 rounded-xl w-full"
                 menuClassName="w-[280px] min-w-[280px]"
@@ -481,163 +422,49 @@ export function ServiciosSolicitadosSection({
             <PrimaryButton onClick={handleBuscarServicio} disabled={!tarifaId}>
               Buscar servicio
             </PrimaryButton>
-            {selectedPrecarga && (
-              <SecondaryButton onClick={() => setSelectedPrecargaIdx(null)}>
+            {selectedLinea != null && (
+              <SecondaryButton onClick={() => setSelectedLineaIdx(null)}>
                 Deseleccionar
               </SecondaryButton>
             )}
-          </div>
-        </div>
-
-        {/* Tabla precarga */}
-        <div className="flex flex-col gap-2 rounded-2xl bg-(--color-panel-options-bg) p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios a precargar</h3>
-            {precargaServicios.length > 0 && (
-              <PrimaryButton onClick={handleCargarServicios}>Cargar servicios</PrimaryButton>
-            )}
-          </div>
-          <div className="hidden lg:block">
-            <DataTable
-              rows={precargaRows}
-              columns={precargaColumns}
-              loading={false}
-              selectedId={selectedPrecargaIdx != null ? `p-${selectedPrecargaIdx}` : null}
-              getRowId={(x) => `p-${x._idx}`}
-              onSelect={(x) => setSelectedPrecargaIdx(x._idx)}
-              emptyText="No hay servicios precargados."
-            />
-          </div>
-          <div className="lg:hidden">
-            {precargaServicios.length === 0 ? (
-              <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
-                No hay servicios precargados.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {precargaServicios.map((p, idx) => (
-                  <div
-                    key={`p-${idx}`}
-                    onClick={() => setSelectedPrecargaIdx(idx)}
-                    className={`rounded-2xl border border-(--border-color-default) p-4 ${
-                      selectedPrecargaIdx === idx ? "bg-(--color-surface-hover)" : "bg-(--color-surface)"
-                    }`}
-                  >
-                    <div className="flex flex-col gap-3 text-left">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <span className="font-semibold tabular-nums text-(--color-primary)">{p.servicio_codigo || "—"}</span>
-                          <span className="text-(--color-text-primary)"> · </span>
-                          <span className="text-sm text-(--color-text-primary)">{p.servicio_descripcion || "—"}</span>
-                        </div>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <DangerButton
-                            type="button"
-                            onClick={() => handleRemovePrecarga(idx)}
-                            className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </DangerButton>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Copago var</span>
-                          <input
-                            type="text"
-                            placeholder=""
-                            value={p.cop_var === 0 ? "" : String(p.cop_var)}
-                            onChange={(e) => updatePrecarga(idx, { cop_var: parseFloat(e.target.value) || 0 })}
-                            onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Copago fijo</span>
-                          <input
-                            type="text"
-                            placeholder=""
-                            value={p.cop_fijo === 0 ? "" : String(p.cop_fijo)}
-                            onChange={(e) => updatePrecarga(idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
-                            onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Descuento</span>
-                          <input
-                            type="text"
-                            placeholder=""
-                            value={p.descuento_pct === 0 ? "" : String(p.descuento_pct)}
-                            onChange={(e) => updatePrecarga(idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
-                            onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Aumento</span>
-                          {p.recargo_noche_activo ? (
-                            <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-primary)">
-                              {p.aumento_pct === 0 ? "—" : `${p.aumento_pct}%`}
-                            </span>
-                          ) : (
-                            <input
-                              type="text"
-                              placeholder=""
-                              value={p.aumento_pct === 0 ? "" : String(p.aumento_pct)}
-                              onChange={(e) => updatePrecarga(idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
-                              onClick={(ev) => ev.stopPropagation()}
-                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                            />
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Cantidad</span>
-                          <input
-                            type="number"
-                            min={1}
-                            step={1}
-                            value={p.cantidad}
-                            onChange={(e) => updatePrecarga(idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                            onClick={(ev) => ev.stopPropagation()}
-                            className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Precio s/ IGV</span>
-                          <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {p.precio_sin_igv.toFixed(PRECISION_DECIMAL)}</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
-                          <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {p.precio_con_igv.toFixed(PRECISION_DECIMAL)}</span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-(--color-text-secondary)">Médico</span>
-                          <span className="h-9 flex items-center text-(--color-text-primary)">{getMedicoCodigo(p.medico_id, p.medico_codigo, medicosOptions)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            {medicoChangedMessage != null && (
+              <div
+                className="min-w-0 flex-1 basis-full sm:basis-auto sm:flex-initial rounded-xl border border-(--color-primary) bg-(--color-primary)/10 px-3 py-2 text-sm text-(--color-text-primary)"
+                role="status"
+                aria-live="polite"
+              >
+                Servicio <span className="font-bold">{medicoChangedMessage.servicioDesc}</span> cambiado con médico <span className="font-bold">{medicoChangedMessage.medicoNombre}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Tabla final */}
-        <div className="flex flex-col gap-2 rounded-2xl bg-(--color-surface) p-4">
+        {/* Servicios finales: título, tabla y monto (sin subcontenedor) */}
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios finales</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-(--color-text-secondary)">Estado:</span>
-              <SelectMenu
-                value={estadoFacturacionFilter}
-                onChange={setEstadoFacturacionFilter}
-                options={estadoFacturacionOptions}
-                ariaLabel="Filtrar por estado"
-                buttonClassName="h-9 min-w-[120px]"
-                menuClassName="min-w-[120px]"
-              />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {selectedLineaIdx != null && (
+                <>
+                  <span className="text-sm text-(--color-text-primary)">
+                    <span className="font-medium text-(--color-text-secondary)">Médico:</span> {selectedMedicoNombreCompleto ?? "—"}
+                  </span>
+                  <span className="text-sm text-(--color-text-primary)">
+                    <span className="font-medium text-(--color-text-secondary)">Usuario:</span> {selectedUsuarioNombre?.trim() || "—"}
+                  </span>
+                </>
+              )}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-(--color-text-secondary)">Estado:</span>
+                <SelectMenu
+                  value={estadoFacturacionFilter}
+                  onChange={setEstadoFacturacionFilter}
+                  options={estadoFacturacionOptions}
+                  ariaLabel="Filtrar por estado"
+                  buttonClassName="h-9 min-w-[120px]"
+                  menuClassName="min-w-[120px]"
+                />
+              </div>
             </div>
           </div>
           <div className="hidden lg:block">
@@ -645,56 +472,136 @@ export function ServiciosSolicitadosSection({
               rows={finalRows}
               columns={finalColumns}
               loading={false}
-              selectedId={null}
-              getRowId={(x) => x.id ?? `f-${x._idx}`}
-              onSelect={() => {}}
-              emptyText="No hay servicios cargados."
+              selectedId={selectedLineaIdx != null ? `f-${selectedLineaIdx}` : null}
+              getRowId={(x) => `f-${x._idx}`}
+              onSelect={(x) => setSelectedLineaIdx(x._idx)}
+              emptyText="No hay servicios. Use «Buscar servicio» para agregar."
             />
           </div>
           <div className="lg:hidden">
-            <MobileEntityList
-              rows={finalRows}
-              loading={false}
-              selectedId={null}
-              getRowId={(x) => x.id ?? `f-${x._idx}`}
-              onSelect={() => {}}
-              renderMain={(item) => (
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-(--color-text-primary)">
-                    <span className="tabular-nums">{item.servicio_codigo ?? "—"}</span>
-                    <span className="text-(--color-text-primary)"> · </span>
-                    <span>{item.servicio_descripcion ?? "—"}</span>
-                  </div>
-                  <div className="mt-1 text-xs flex flex-wrap gap-x-2 gap-y-0.5">
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cop. var:</span> <span className="text-(--color-text-primary) font-normal">{(item.cop_var ?? 0).toFixed(2)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cop. fijo:</span> <span className="text-(--color-text-primary) font-normal">{(item.cop_fijo ?? 0).toFixed(2)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Dscto:</span> <span className="text-(--color-text-primary) font-normal">{(item.descuento_pct ?? 0) === 0 ? "—" : `${item.descuento_pct}%`}</span></span>
-                    {tieneAumento && (
-                      <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Aum:</span> <span className="text-(--color-text-primary) font-normal">{(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}</span></span>
-                    )}
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Cant:</span> <span className="text-(--color-text-primary) font-normal">{Math.round(item.cantidad ?? 1)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Precio c/ IGV:</span> <span className="text-(--color-text-primary) font-normal tabular-nums">S/. {(item.precio_con_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Méd:</span> <span className="text-(--color-text-primary) font-normal">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span></span>
-                    <span className="whitespace-nowrap"><span className="font-semibold text-(--color-text-secondary)">Usr:</span> <span className="text-(--color-text-primary) font-normal">{item.user_nombre ?? "—"}</span></span>
-                    <span className="whitespace-nowrap">
-                      <EstadoFacturacionBadge estado={item.estado_facturacion} />
-                    </span>
-                  </div>
-                </div>
-              )}
-              renderRight={(item) => (
-                <div onClick={(e) => e.stopPropagation()}>
-                  <DangerButton
-                    type="button"
-                    onClick={() => handleRemoveLinea(item._idx)}
-                    className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </DangerButton>
-                </div>
-              )}
-              emptyText="No hay servicios cargados."
-            />
+            {finalRows.length === 0 ? (
+              <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
+                No hay servicios. Use «Buscar servicio» para agregar.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {finalRows.map((item) => (
+                    <div
+                      key={item.id ?? `f-${item._idx}`}
+                      onClick={() => setSelectedLineaIdx(item._idx)}
+                      className={`rounded-2xl border border-(--border-color-default) p-4 ${
+                        selectedLineaIdx === item._idx ? "bg-(--color-surface-hover)" : "bg-(--color-surface)"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 text-left">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold tabular-nums text-(--color-primary)">{item.servicio_codigo ?? "—"}</span>
+                            <span className="text-(--color-text-primary)"> · </span>
+                            <span className="text-sm text-(--color-text-primary)">{item.servicio_descripcion ?? "—"}</span>
+                            {item.recargo_noche_activo && (
+                              <span className="block mt-0.5 text-xs text-(--color-primary) font-medium">Se activó recargo de noche</span>
+                            )}
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <DangerButton
+                              type="button"
+                              onClick={() => handleRemoveLinea(item._idx)}
+                              className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </DangerButton>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Copago var</span>
+                            <input
+                              type="text"
+                              placeholder=""
+                              value={(item.cop_var ?? 0) === 0 ? "" : String(item.cop_var)}
+                              onChange={(e) => updateLinea(item._idx, { cop_var: parseFloat(e.target.value) || 0 })}
+                              onClick={(ev) => ev.stopPropagation()}
+                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Copago fijo</span>
+                            <input
+                              type="text"
+                              placeholder=""
+                              value={(item.cop_fijo ?? 0) === 0 ? "" : String(item.cop_fijo)}
+                              onChange={(e) => updateLinea(item._idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
+                              onClick={(ev) => ev.stopPropagation()}
+                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Descuento</span>
+                            <input
+                              type="text"
+                              placeholder=""
+                              value={(item.descuento_pct ?? 0) === 0 ? "" : String(item.descuento_pct)}
+                              onChange={(e) => updateLinea(item._idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
+                              onClick={(ev) => ev.stopPropagation()}
+                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Aumento</span>
+                            {item.recargo_noche_activo ? (
+                              <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-primary)">
+                                {(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}
+                              </span>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder=""
+                                value={(item.aumento_pct ?? 0) === 0 ? "" : String(item.aumento_pct)}
+                                onChange={(e) => updateLinea(item._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
+                                onClick={(ev) => ev.stopPropagation()}
+                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                              />
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Cantidad</span>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={item.cantidad ?? 1}
+                              onChange={(e) => updateLinea(item._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                              onClick={(ev) => ev.stopPropagation()}
+                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Precio s/ IGV</span>
+                            <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {(item.precio_sin_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
+                            <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {(item.precio_con_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Médico</span>
+                            <span className="h-9 flex items-center text-(--color-text-primary)">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Usuario</span>
+                            <span className="h-9 flex items-center text-(--color-text-primary)">{item.user_username ?? item.user_nombre ?? "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Estado</span>
+                            <span className="h-9 flex items-center"><EstadoFacturacionBadge estado={item.estado_facturacion} /></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="mt-4 flex justify-end border-t border-(--border-color-default) pt-4">
             <div className="flex items-center gap-2">
