@@ -247,7 +247,7 @@ export default function AgendaMedicaNuevaCitaPage() {
                   Selecciona un paciente para completar los datos.
                 </div>
               </div>
-              <PrimaryButton onClick={onBuscarPaciente}>Buscar historia clínica</PrimaryButton>
+              <PrimaryButton onClick={onBuscarPaciente}>Buscar paciente</PrimaryButton>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4">

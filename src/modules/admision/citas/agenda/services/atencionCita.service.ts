@@ -29,9 +29,8 @@ export type TarifaServicioBusqueda = {
   subcategoria_id: number;
   subcategoria_codigo: string;
   subcategoria_nombre: string;
-  /** Si la búsqueda se hizo con hora y la categoría tiene recargo nocturno activo a esa hora */
+  desea_liberar_precio?: boolean;
   recargo_noche_activo?: boolean;
-  /** Porcentaje de recargo nocturno (sobre precio sin IGV) cuando recargo_noche_activo es true */
   recargo_noche_porcentaje?: number;
 };
 

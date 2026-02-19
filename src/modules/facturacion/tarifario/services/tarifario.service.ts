@@ -295,6 +295,7 @@ export async function createServicio(
     precio_sin_igv: number;
     unidad: number;
     grupo_codigo?: string | null;
+    desea_liberar_precio?: boolean;
     estado?: RecordStatus;
   }
 ): Promise<{ data: TarifaServicioCrud; propagacion?: PropagacionResultado }> {
@@ -314,6 +315,7 @@ export async function updateServicio(
     precio_sin_igv: number;
     unidad: number;
     grupo_codigo?: string | null;
+    desea_liberar_precio?: boolean;
     estado: RecordStatus;
   }
 ): Promise<TarifaServicioCrud> {

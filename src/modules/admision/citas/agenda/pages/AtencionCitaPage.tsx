@@ -54,6 +54,7 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
     precio_con_igv: item.precio_con_igv,
     servicio_codigo: item.servicio_codigo ?? null,
     servicio_descripcion: item.servicio_descripcion,
+    desea_liberar_precio: item.desea_liberar_precio ?? false,
     medico_codigo: item.medico_codigo,
     user_username: item.user_username ?? null,
     user_nombre: item.user_nombre,
@@ -163,7 +164,9 @@ export default function AtencionCitaPage() {
         setTitularNombre(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
         setAcudio(Boolean(res.atencion?.hora_asistencia));
         setHoraAsistenciaDisplay(res.atencion?.hora_asistencia?.slice(0, 5) ?? "");
-        const planId = res.atencion?.paciente_plan_id ?? (res.planes[0]?.id ?? null);
+        const planId =
+          res.atencion?.paciente_plan_id ??
+          (res.planes.find((p) => p.iafa_id != null && p.iafa_id === res.cita.iafa_id)?.id ?? res.planes[0]?.id ?? null);
         setPacientePlanId(planId);
         setLastSavedPlanId(planId);
         setLastSavedParentesco(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
@@ -234,6 +237,16 @@ export default function AtencionCitaPage() {
     const plan = data.planes.find((p) => p.id === pacientePlanId);
     return plan?.tarifa_id ?? null;
   }, [data?.planes, pacientePlanId]);
+
+  const soatDeshabilitado = React.useMemo(() => esPrecioDirecto(tarifaActual), [tarifaActual]);
+
+  React.useEffect(() => {
+    if (soatDeshabilitado && (soatActivo || soatNumeroPoliza.trim() || soatNumeroPlaca.trim())) {
+      setSoatActivo(false);
+      setSoatNumeroPoliza("");
+      setSoatNumeroPlaca("");
+    }
+  }, [soatDeshabilitado]);
 
   const getAtencionDraft = React.useCallback((): AtencionDraft => {
     return {
@@ -319,6 +332,7 @@ export default function AtencionCitaPage() {
           tarifa_servicio_id: s.id,
           servicio_codigo: s.codigo ?? "",
           servicio_descripcion: s.descripcion ?? "",
+          desea_liberar_precio: s.desea_liberar_precio ?? false,
           cop_var: 0,
           cop_fijo: 0,
           descuento_pct: 0,
@@ -643,9 +657,6 @@ export default function AtencionCitaPage() {
           </PrimaryButton>
         </div>
       </div>
-      <p className="text-xs text-(--color-text-secondary) lg:mb-0">
-        <strong>Actualizar datos</strong> guarda solo plan, condición y titular (y limpia servicios si cambió el plan). <strong>Guardar atención</strong> guarda la atención completa con hora, indicadores, SOAT y servicios, y regresa a la agenda.
-      </p>
 
       {/* En escritorio: Datos de la cita y Servicio y médico en una fila */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
@@ -910,7 +921,10 @@ export default function AtencionCitaPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
+        <div
+          className={`rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3 ${soatDeshabilitado ? "opacity-60 pointer-events-none" : ""}`}
+          aria-disabled={soatDeshabilitado}
+        >
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -924,9 +938,12 @@ export default function AtencionCitaPage() {
                   setSoatNumeroPlaca("");
                 }
               }}
-              className="h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
+              disabled={soatDeshabilitado}
+              className="h-4 w-4 shrink-0 rounded border border-(--border-color-default) disabled:cursor-not-allowed"
             />
-            <label htmlFor="soat-activo" className="cursor-pointer text-sm font-semibold text-(--color-text-primary)">SOAT</label>
+            <label htmlFor="soat-activo" className={`text-sm font-semibold text-(--color-text-primary) ${soatDeshabilitado ? "cursor-not-allowed" : "cursor-pointer"}`}>
+              SOAT
+            </label>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:gap-3">
             <div>
@@ -934,7 +951,7 @@ export default function AtencionCitaPage() {
               <input
                 value={soatNumeroPoliza}
                 onChange={(e) => setSoatNumeroPoliza(e.target.value)}
-                disabled={!soatActivo}
+                disabled={soatDeshabilitado || !soatActivo}
                 className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
               />
             </div>
@@ -943,7 +960,7 @@ export default function AtencionCitaPage() {
               <input
                 value={soatNumeroPlaca}
                 onChange={(e) => setSoatNumeroPlaca(e.target.value)}
-                disabled={!soatActivo}
+                disabled={soatDeshabilitado || !soatActivo}
                 className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
               />
             </div>

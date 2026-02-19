@@ -99,6 +99,7 @@ export type TarifaServicioCrud = {
   grupo_codigo: string | null;
   grupo_descripcion: string | null;
   grupo_abrev: string | null;
+  desea_liberar_precio: boolean;
   estado: RecordStatus;
 };
 

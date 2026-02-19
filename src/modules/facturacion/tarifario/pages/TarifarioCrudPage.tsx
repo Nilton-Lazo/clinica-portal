@@ -804,6 +804,7 @@ function useServiciosCrud(tarifaId: number | null) {
   const [precio, setPrecio] = React.useState("");
   const [unidad, setUnidad] = React.useState("");
   const [grupoCodigo, setGrupoCodigo] = React.useState<string | null>(null);
+  const [deseaLiberarPrecio, setDeseaLiberarPrecio] = React.useState(false);
 
   const [categorias, setCategorias] = React.useState<TarifaCategoriaLookup[]>([]);
   const [subcategorias, setSubcategorias] = React.useState<TarifaSubcategoriaLookup[]>([]);
@@ -821,6 +822,7 @@ function useServiciosCrud(tarifaId: number | null) {
     precio: string;
     unidad: string;
     grupoCodigo: string | null;
+    deseaLiberarPrecio: boolean;
   } | null>(null);
 
   React.useEffect(() => {
@@ -886,10 +888,11 @@ function useServiciosCrud(tarifaId: number | null) {
     const d = descripcion.trim();
     const p = Number(precio);
     const u = Number(unidad);
+    
     if (!categoriaId || !subcategoriaId) return false;
     if (!d) return false;
     if (!Number.isFinite(p) || p < 0) return false;
-    if (!Number.isFinite(u) || u <= 0) return false;
+    if (!Number.isFinite(u) || u < 0) return false; // Cambiado de u <= 0 a u < 0
     if (mode === "new" && !codigo.trim()) return false;
     return true;
   }, [descripcion, precio, unidad, categoriaId, subcategoriaId, codigo, mode]);
@@ -897,17 +900,29 @@ function useServiciosCrud(tarifaId: number | null) {
   const isDirty = React.useMemo(() => {
     const o = originalRef.current;
     if (!o) return mode === "new" ? isValid : false;
-    return (
-      o.descripcion !== descripcion.trim() ||
-      o.estado !== estado ||
-      o.categoriaId !== categoriaId ||
-      o.subcategoriaId !== subcategoriaId ||
-      o.nomenclador !== nomenclador.trim() ||
-      o.precio !== precio.trim() ||
-      o.unidad !== unidad.trim() ||
-      o.grupoCodigo !== grupoCodigo
-    );
-  }, [descripcion, estado, categoriaId, subcategoriaId, nomenclador, precio, unidad, grupoCodigo, mode, isValid]);
+    
+    // Normalizar valores para comparación consistente
+    const descripcionActual = descripcion.trim();
+    const nomencladorActual = nomenclador.trim();
+    const precioActual = precio.trim();
+    const unidadActual = unidad.trim();
+    
+    const comparaciones = {
+      descripcion: o.descripcion !== descripcionActual,
+      estado: o.estado !== estado,
+      categoriaId: o.categoriaId !== categoriaId,
+      subcategoriaId: o.subcategoriaId !== subcategoriaId,
+      nomenclador: o.nomenclador !== nomencladorActual,
+      precio: o.precio !== precioActual,
+      unidad: o.unidad !== unidadActual,
+      grupoCodigo: o.grupoCodigo !== grupoCodigo,
+      deseaLiberarPrecio: o.deseaLiberarPrecio !== deseaLiberarPrecio,
+    };
+    
+    const resultado = Object.values(comparaciones).some(Boolean);
+    
+    return resultado;
+  }, [descripcion, estado, categoriaId, subcategoriaId, nomenclador, precio, unidad, grupoCodigo, deseaLiberarPrecio, mode, isValid]);
 
   const refresh = React.useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -985,11 +1000,14 @@ function useServiciosCrud(tarifaId: number | null) {
     setPrecio("");
     setUnidad("");
     setGrupoCodigo(null);
+    setDeseaLiberarPrecio(false);
     originalRef.current = null;
     setNotice(null);
   }, []);
 
   const loadForEdit = React.useCallback((x: TarifaServicioCrud) => {
+    console.log('loadForEdit - Datos del backend:', x);
+    
     setMode("edit");
     setSelected(x);
     setCodigo(x.codigo);
@@ -998,9 +1016,23 @@ function useServiciosCrud(tarifaId: number | null) {
     setCategoriaId(x.categoria_id);
     setSubcategoriaId(x.subcategoria_id);
     setNomenclador(x.nomenclador ?? "");
-    setPrecio(x.precio_sin_igv);
-    setUnidad(x.unidad);
+    
+    // Normalizar el precio y unidad para asegurar consistencia
+    const precioNormalizado = x.precio_sin_igv.trim();
+    const unidadNormalizada = x.unidad.trim();
+    
+    console.log('loadForEdit - Valores normalizados:', {
+      precioOriginal: x.precio_sin_igv,
+      precioNormalizado,
+      unidadOriginal: x.unidad,
+      unidadNormalizada
+    });
+    
+    setPrecio(precioNormalizado);
+    setUnidad(unidadNormalizada);
     setGrupoCodigo(x.grupo_codigo ?? null);
+    setDeseaLiberarPrecio(x.desea_liberar_precio ?? false);
+    
     originalRef.current = {
       codigo: x.codigo,
       descripcion: x.descripcion,
@@ -1008,10 +1040,13 @@ function useServiciosCrud(tarifaId: number | null) {
       categoriaId: x.categoria_id,
       subcategoriaId: x.subcategoria_id,
       nomenclador: x.nomenclador ?? "",
-      precio: x.precio_sin_igv,
-      unidad: x.unidad,
+      precio: precioNormalizado,
+      unidad: unidadNormalizada,
       grupoCodigo: x.grupo_codigo ?? null,
+      deseaLiberarPrecio: x.desea_liberar_precio ?? false,
     };
+    
+    console.log('loadForEdit - originalRef.current:', originalRef.current);
     setNotice(null);
   }, []);
 
@@ -1034,6 +1069,7 @@ function useServiciosCrud(tarifaId: number | null) {
     setPrecio(o.precio);
     setUnidad(o.unidad);
     setGrupoCodigo(o.grupoCodigo);
+    setDeseaLiberarPrecio(o.deseaLiberarPrecio);
     setNotice(null);
   }, [mode, resetToNew, selected]);
 
@@ -1064,6 +1100,7 @@ function useServiciosCrud(tarifaId: number | null) {
           precio_sin_igv: Number(precio),
           unidad: Number(unidad),
           grupo_codigo: grupoCodigo ?? undefined,
+          desea_liberar_precio: deseaLiberarPrecio,
           estado,
         });
         let text = "Servicio creado.";
@@ -1080,6 +1117,7 @@ function useServiciosCrud(tarifaId: number | null) {
           precio_sin_igv: Number(precio),
           unidad: Number(unidad),
           grupo_codigo: grupoCodigo ?? undefined,
+          desea_liberar_precio: deseaLiberarPrecio,
           estado,
         });
         if (statusFilter === "ACTIVO" && res.estado !== "ACTIVO") {
@@ -1111,6 +1149,7 @@ function useServiciosCrud(tarifaId: number | null) {
     precio,
     unidad,
     grupoCodigo,
+    deseaLiberarPrecio,
     estado,
     mode,
     selected,
@@ -1208,6 +1247,8 @@ function useServiciosCrud(tarifaId: number | null) {
     setUnidad,
     grupoCodigo,
     setGrupoCodigo,
+    deseaLiberarPrecio,
+    setDeseaLiberarPrecio,
     grupos,
     isValid,
     isDirty,
@@ -1816,7 +1857,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
               className={[
                 "h-10 rounded-lg border border-(--border-color-default) bg-(--color-base) px-3",
                 "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
-                "min-w-[200px] flex-1 basis-full sm:basis-0",
+                "min-w-50 flex-1 basis-full sm:basis-0",
               ].join(" ")}
             />
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1850,7 +1891,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
             <span className="flex items-center text-xs font-medium uppercase tracking-wide text-(--color-text-secondary) shrink-0">
               Filtrar por
             </span>
-            <div className="w-full min-w-[120px] shrink-0 max-w-full sm:w-fit">
+            <div className="w-full min-w-30 shrink-0 max-w-full sm:w-fit">
               <SelectMenu
                 value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
                 onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
@@ -1866,7 +1907,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 menuClassName="w-full"
               />
             </div>
-            <div className="w-full min-w-[120px] shrink-0 max-w-full sm:w-fit">
+            <div className="w-full min-w-30 shrink-0 max-w-full sm:w-fit">
               <SelectMenu
                 value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
                 onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
@@ -1882,7 +1923,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 menuClassName="w-full"
               />
             </div>
-            <div className="w-full min-w-[120px] shrink-0 max-w-full sm:w-fit">
+            <div className="w-full min-w-30 shrink-0 max-w-full sm:w-fit">
               <SelectMenu
                 value={vm.filterGrupoCodigo ?? ""}
                 onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
@@ -2084,6 +2125,16 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   />
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 text-sm text-(--color-text-primary) select-none">
+                <input
+                  type="checkbox"
+                  checked={vm.deseaLiberarPrecio}
+                  onChange={(e) => vm.setDeseaLiberarPrecio(e.target.checked)}
+                  className="h-4 w-4 rounded border border-(--border-color-default) accent-(--color-primary)"
+                />
+                Desea liberar el precio del servicio
+              </label>
 
             </div>
 

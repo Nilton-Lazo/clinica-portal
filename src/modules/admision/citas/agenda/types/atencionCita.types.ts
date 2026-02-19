@@ -1,4 +1,3 @@
-/** Respuesta de GET /admision/citas/agenda-medica/:id/atencion */
 export type AtencionCitaData = {
   cita: {
     id: number;
@@ -10,6 +9,7 @@ export type AtencionCitaData = {
     autorizacion_siteds: string | null;
     cuenta: string | null;
     estado_atencion: string;
+    iafa_id: number | null;
   };
   programacion: {
     id: number;
@@ -33,6 +33,7 @@ export type AtencionCitaData = {
   planes: Array<{
     id: number;
     tipo_cliente_id: number;
+    iafa_id: number | null;
     descripcion: string;
     tarifa_id: number | null;
     tarifa_codigo: string | null;
@@ -59,7 +60,6 @@ export type AtencionCitaData = {
   servicios: AtencionServicioItem[];
 };
 
-/** Estado de facturación del servicio en la tabla final */
 export type EstadoFacturacionServicio = "PENDIENTE" | "FACTURADO";
 
 export type AtencionServicioItem = {
@@ -67,13 +67,12 @@ export type AtencionServicioItem = {
   tarifa_servicio_id: number;
   servicio_codigo?: string | null;
   servicio_descripcion: string | null;
+  desea_liberar_precio?: boolean;
   medico_id: number;
   medico_codigo: string | null;
   medico_nombre: string | null;
   user_id: number | null;
-  /** Username para mostrar en la tabla (ej. admin, user). */
   user_username?: string | null;
-  /** Nombre completo para mostrar encima de la tabla. */
   user_nombre: string | null;
   cop_var: number;
   cop_fijo: number;
@@ -98,22 +97,18 @@ export type AtencionServicioLinea = {
   estado_facturacion?: EstadoFacturacionServicio;
 };
 
-/** Línea con datos de visualización (para nuevas líneas antes de guardar) */
 export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
   id?: number;
   servicio_codigo?: string | null;
   servicio_descripcion?: string | null;
+  desea_liberar_precio?: boolean;
   medico_codigo?: string | null;
-  /** Username en tabla (admin, user, etc.). */
   user_username?: string | null;
-  /** Nombre completo para encabezado. */
   user_nombre?: string | null;
   estado_facturacion?: EstadoFacturacionServicio;
-  /** Solo visual: si el precio incluye recargo nocturno (mensaje en tabla) */
   recargo_noche_activo?: boolean;
 };
 
-/** Ítem en tabla de precarga (antes de "Cargar servicios") */
 export type PrecargaServicioItem = {
   tarifa_servicio_id: number;
   servicio_codigo: string;
@@ -128,11 +123,9 @@ export type PrecargaServicioItem = {
   medico_id: number;
   medico_codigo: string;
   medico_nombre: string;
-  /** True si el precio incluye recargo nocturno (mensaje informativo en tabla) */
   recargo_noche_activo?: boolean;
 };
 
-/** Draft del formulario de atención para preservar al navegar (ej. a Buscar servicios). */
 export type AtencionDraft = {
   acudio: boolean;
   horaAsistenciaDisplay: string;
@@ -150,7 +143,6 @@ export type AtencionDraft = {
   lineas: AtencionServicioLineaDisplay[];
 };
 
-/** Payload para POST guardar atención */
 export type AtencionCitaStorePayload = {
   solo_actualizar_datos?: boolean;
   acudio_a_su_cita?: boolean;

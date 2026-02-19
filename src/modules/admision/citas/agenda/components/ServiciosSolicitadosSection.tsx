@@ -6,7 +6,6 @@ import { PrimaryButton, SecondaryButton, DangerButton } from "../../../../../sha
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import type {
@@ -73,13 +72,11 @@ export type ServiciosSolicitadosSectionProps = {
 
 export function ServiciosSolicitadosSection({
   medicoTratanteId,
-  medicoTratanteLabel,
   tarifaId,
   tarifaDescripcion,
   lineas,
   onLineasChange,
   medicosOptions,
-  currentUsername,
   citaId,
   hasPendingDataChanges = false,
   onActualizarDatos,
@@ -93,7 +90,8 @@ export function ServiciosSolicitadosSection({
   const [confirmActualizarOpen, setConfirmActualizarOpen] = React.useState(false);
   const [actualizando, setActualizando] = React.useState(false);
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
-  /** Mensaje temporal (5 s) al cambiar médico de un servicio. Se reemplaza si se cambia otro antes. */
+  const [precioSinIgvEditing, setPrecioSinIgvEditing] = React.useState<{ idx: number; value: string } | null>(null);
+
   const [medicoChangedMessage, setMedicoChangedMessage] = React.useState<{ servicioDesc: string; medicoNombre: string } | null>(null);
   const medicoChangedTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -189,20 +187,30 @@ export function ServiciosSolicitadosSection({
     (idx: number, upd: Partial<AtencionServicioLineaDisplay>) => {
       const p = lineas[idx];
       if (!p) return;
-      const factorDesc = Math.max(0.01, 1 - (p.descuento_pct ?? 0) / 100);
-      const factorAum = 1 + (p.aumento_pct ?? 0) / 100;
-      const precioBase = (p.precio_sin_igv ?? 0) / Math.max(0.001, p.cantidad ?? 1) / factorDesc / factorAum;
       const next = { ...p, ...upd };
-      if ("cantidad" in upd || "descuento_pct" in upd || "aumento_pct" in upd) {
-        const { precioSinIgv, precioConIgv } = calcularPrecios(
-          precioBase,
-          next.cantidad ?? 1,
-          next.descuento_pct ?? 0,
-          next.aumento_pct ?? 0,
-          igvPct
-        );
-        next.precio_sin_igv = precioSinIgv;
-        next.precio_con_igv = precioConIgv;
+      const puedeLiberarPrecio = Boolean(p.desea_liberar_precio);
+
+      if (puedeLiberarPrecio && "precio_sin_igv" in upd && typeof upd.precio_sin_igv === "number") {
+        const nuevoSinIgv = Math.max(0, upd.precio_sin_igv);
+        const factor = 10 ** PRECISION_DECIMAL;
+        next.precio_sin_igv = Math.round(nuevoSinIgv * factor) / factor;
+        const igv = next.precio_sin_igv * (igvPct / 100);
+        next.precio_con_igv = Math.round((next.precio_sin_igv + igv) * factor) / factor;
+      } else if (!puedeLiberarPrecio || !("precio_sin_igv" in upd)) {
+        const factorDesc = Math.max(0.01, 1 - (p.descuento_pct ?? 0) / 100);
+        const factorAum = 1 + (p.aumento_pct ?? 0) / 100;
+        const precioBase = (p.precio_sin_igv ?? 0) / Math.max(0.001, p.cantidad ?? 1) / factorDesc / factorAum;
+        if ("cantidad" in upd || "descuento_pct" in upd || "aumento_pct" in upd) {
+          const { precioSinIgv, precioConIgv } = calcularPrecios(
+            precioBase,
+            next.cantidad ?? 1,
+            next.descuento_pct ?? 0,
+            next.aumento_pct ?? 0,
+            igvPct
+          );
+          next.precio_sin_igv = precioSinIgv;
+          next.precio_con_igv = precioConIgv;
+        }
       }
       onLineasChange(lineas.map((item, i) => (i === idx ? next : item)));
     },
@@ -325,7 +333,39 @@ export function ServiciosSolicitadosSection({
       header: <span className="whitespace-nowrap">Precio sin IGV</span>,
       headerClassName: "text-xs py-1.5 text-right w-28 min-w-[6rem] align-middle",
       cellClassName: "text-xs px-2 py-1.5 text-right whitespace-nowrap align-middle",
-      render: (x) => <PrecioCell valor={x.precio_sin_igv ?? 0} />,
+      render: (x) =>
+        x.desea_liberar_precio ? (
+          <div className="flex justify-end items-baseline gap-0 text-xs">
+            <span className="inline-block w-8 shrink-0 text-right tabular-nums">S/. </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_sin_igv ?? 0)}
+              onFocus={(e) => {
+                e.target.select?.();
+                setPrecioSinIgvEditing({ idx: x._idx, value: String(x.precio_sin_igv ?? 0) });
+              }}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/,/g, ".");
+                setPrecioSinIgvEditing({ idx: x._idx, value: raw });
+                const parsed = parseFloat(raw);
+                if (raw.trim() === "" || (Number.isFinite(parsed) && parsed >= 0)) {
+                  updateLinea(x._idx, { precio_sin_igv: parsed || 0 });
+                }
+              }}
+              onBlur={() => {
+                const raw = precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_sin_igv ?? 0);
+                const v = parseFloat(raw) || 0;
+                updateLinea(x._idx, { precio_sin_igv: v });
+                setPrecioSinIgvEditing(null);
+              }}
+              onClick={(ev) => ev.stopPropagation()}
+              className="min-w-14 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 py-0.5 text-right text-xs tabular-nums outline-none focus:ring-1 focus:ring-(--color-primary)"
+            />
+          </div>
+        ) : (
+          <PrecioCell valor={x.precio_sin_igv ?? 0} />
+        ),
     },
     {
       key: "precio_con_igv",
@@ -360,7 +400,7 @@ export function ServiciosSolicitadosSection({
         </div>
       ),
     },
-  ], [medicosOptions, updateLinea, handleRemoveLinea]);
+  ], [medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing]);
 
   const finalRows = React.useMemo(() => {
     const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
@@ -578,7 +618,32 @@ export function ServiciosSolicitadosSection({
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Precio s/ IGV</span>
-                            <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {(item.precio_sin_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span>
+                            {item.desea_liberar_precio ? (
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_sin_igv ?? 0)}
+                                onFocus={() => setPrecioSinIgvEditing({ idx: item._idx, value: String(item.precio_sin_igv ?? 0) })}
+                                onChange={(e) => {
+                                  const raw = e.target.value.replace(/,/g, ".");
+                                  setPrecioSinIgvEditing({ idx: item._idx, value: raw });
+                                  const parsed = parseFloat(raw);
+                                  if (raw.trim() === "" || (Number.isFinite(parsed) && parsed >= 0)) {
+                                    updateLinea(item._idx, { precio_sin_igv: parsed || 0 });
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const raw = precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_sin_igv ?? 0);
+                                  const v = parseFloat(raw) || 0;
+                                  updateLinea(item._idx, { precio_sin_igv: v });
+                                  setPrecioSinIgvEditing(null);
+                                }}
+                                onClick={(ev) => ev.stopPropagation()}
+                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-right outline-none focus:ring-2 focus:ring-(--color-primary)"
+                              />
+                            ) : (
+                              <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {(item.precio_sin_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span>
+                            )}
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Precio c/ IGV</span>

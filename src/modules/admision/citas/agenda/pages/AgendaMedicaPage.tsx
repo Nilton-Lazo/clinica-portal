@@ -222,7 +222,7 @@ export default function AgendaMedicaPage() {
                   />
                 </div>
                 <PrimaryButton onClick={onNuevaCita} disabled={!vm.programacion || vm.slotsLoading}>
-                  Generar cita
+                  Agendar cita
                 </PrimaryButton>
               </div>
             </div>
