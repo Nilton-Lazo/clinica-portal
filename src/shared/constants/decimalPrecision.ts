@@ -10,15 +10,29 @@ export function formatPrecioUnidad(value: string | number | null | undefined): s
 }
 
 /**
- * Formato compacto para mostrar cantidades con decimales: quita ceros finales.
- * 150.0000 → "150", 141.6200 → "141.62", 103.0508 → "103.0508"
- * Sin impacto en cálculos; solo para presentación en tablas e inputs de solo lectura.
+ * Redondea un número a la precisión decimal estándar (4 decimales).
+ * Útil para normalizar valores antes de guardar o calcular.
+ */
+export function roundToPrecision(value: number, decimals: number = PRECISION_DECIMAL): number {
+  if (!Number.isFinite(value)) return 0;
+  const f = 10 ** decimals;
+  return Math.round(value * f) / f;
+}
+
+/**
+ * Formato compacto para mostrar números con hasta 4 decimales:
+ * - Quita solo ceros finales: 100.000 → "100", 54.6700 → "54.67".
+ * - Mantiene ceros significativos: 54.0806 → "54.0806".
+ * - No trunca: 77.7242 se muestra como "77.7242".
+ * Se redondea internamente a maxDecimals para evitar ruido de punto flotante.
  */
 export function formatDecimalDisplay(
   value: number | null | undefined,
   maxDecimals: number = PRECISION_DECIMAL
 ): string {
   if (value == null || !Number.isFinite(value)) return "—";
-  const s = value.toFixed(maxDecimals);
+  const f = 10 ** maxDecimals;
+  const rounded = Math.round(Number(value) * f) / f;
+  const s = rounded.toFixed(maxDecimals);
   return s.replace(/\.?0+$/, "");
 }

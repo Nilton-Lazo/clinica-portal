@@ -37,6 +37,8 @@ type LocationState = {
   tarifaEsPrecioDirecto?: boolean;
   returnLineas?: unknown[];
   atencionDraft?: AtencionDraft | null;
+  /** Copago variable por defecto (%) para no perderlo al volver. */
+  copVarDefault?: number;
 };
 
 /** Normaliza búsqueda por código: 010101 → 01.01.01 (igual que CRUD servicios). */
@@ -173,6 +175,7 @@ export default function BuscarServiciosPage() {
           selectedServicios: [row],
           returnLineas: st.returnLineas,
           atencionDraft: st.atencionDraft,
+          copVarDefault: st.copVarDefault,
           scrollToServicios: true,
         },
       });
@@ -190,6 +193,7 @@ export default function BuscarServiciosPage() {
         selectedServicios: selected,
         returnLineas: st.returnLineas,
         atencionDraft: st.atencionDraft,
+        copVarDefault: st.copVarDefault,
         scrollToServicios: true,
       },
     });

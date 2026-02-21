@@ -7,7 +7,7 @@ import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
-import { PRECISION_DECIMAL, formatDecimalDisplay } from "../../../../../shared/constants/decimalPrecision";
+import { PRECISION_DECIMAL, formatDecimalDisplay, roundToPrecision } from "../../../../../shared/constants/decimalPrecision";
 import type {
   AtencionDraft,
   AtencionServicioLineaDisplay,
@@ -38,6 +38,37 @@ function copagoFijoConIgvToSinIgv(copFijoConIgv: number, igvPct: number): number
   if (copFijoConIgv <= 0) return 0;
   const factor = 10 ** 4;
   return Math.round((copFijoConIgv / (1 + igvPct / 100)) * factor) / factor;
+}
+
+const FACTOR_REDONDO = 10 ** 4;
+
+/**
+ * Parte que paga el paciente por una línea (con IGV), para monto a pagar.
+ * La línea guarda precio_sin_igv y precio_con_igv como TOTAL de la línea (no unitario).
+ * - Tarifa precio directo (Particular/Privado): paciente paga todo el importe con IGV.
+ * - Categoría Consultas Médicas (50): paciente paga copago fijo (ya con IGV).
+ * - Resto: paciente paga (100 - cop_var)% del importe sin IGV, convertido a con IGV.
+ */
+function pacientePagaConIgv(
+  line: AtencionServicioLineaDisplay,
+  igvPct: number,
+  tarifaEsPrecioDirecto: boolean
+): number {
+  const importeSinIgv = (line.precio_sin_igv ?? 0) as number;
+  const importeConIgv = (line.precio_con_igv ?? 0) as number;
+
+  if (tarifaEsPrecioDirecto) {
+    return Math.round(importeConIgv * FACTOR_REDONDO) / FACTOR_REDONDO;
+  }
+  const esCat50 = (line.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
+  if (esCat50) {
+    const copFijo = (line.cop_fijo ?? 0) as number;
+    return copFijo > 0 ? Math.round(copFijo * FACTOR_REDONDO) / FACTOR_REDONDO : 0;
+  }
+  const copVar = (line.cop_var ?? 0) as number;
+  const pacienteSinIgv = Math.round(importeSinIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO;
+  const pacienteConIgv = Math.round(pacienteSinIgv * (1 + igvPct / 100) * FACTOR_REDONDO) / FACTOR_REDONDO;
+  return pacienteConIgv;
 }
 
 function getMedicoCodigo(medicoId: number | undefined, medicoCodigo: string | null | undefined, medicosOptions: SelectOption[]): string {
@@ -78,7 +109,11 @@ export type ServiciosSolicitadosSectionProps = {
   hasPendingDataChanges?: boolean;
   onActualizarDatos?: () => Promise<void>;
   pendingChangesMessage?: string;
-  montoAPagar: number;
+  /** Notifica al padre el monto a pagar calculado (suma de lo que paga el paciente, con IGV). */
+  onMontoAPagarChange?: (monto: number) => void;
+  /** Copago variable por defecto para nuevos servicios (%). */
+  copVarDefault?: number;
+  onCopVarDefaultChange?: (value: number) => void;
   /** Devuelve el draft del formulario de atención para preservar al ir a Buscar servicios. */
   getAtencionDraft?: () => AtencionDraft | null;
 };
@@ -95,7 +130,9 @@ export function ServiciosSolicitadosSection({
   hasPendingDataChanges = false,
   onActualizarDatos,
   pendingChangesMessage = "",
-  montoAPagar,
+  onMontoAPagarChange,
+  copVarDefault = 0,
+  onCopVarDefaultChange,
   getAtencionDraft,
 }: ServiciosSolicitadosSectionProps) {
   const navigate = useNavigate();
@@ -128,9 +165,10 @@ export function ServiciosSolicitadosSection({
         tarifaEsPrecioDirecto,
         returnLineas: lineas,
         atencionDraft: draft,
+        copVarDefault,
       },
     });
-  }, [navigate, citaId, tarifaId, tarifaDescripcion, tarifaEsPrecioDirecto, lineas, getAtencionDraft]);
+  }, [navigate, citaId, tarifaId, tarifaDescripcion, tarifaEsPrecioDirecto, lineas, getAtencionDraft, copVarDefault]);
 
   const handleBuscarServicio = React.useCallback(() => {
     if (hasPendingDataChanges && onActualizarDatos && pendingChangesMessage) {
@@ -282,7 +320,6 @@ export function ServiciosSolicitadosSection({
         return (
           <input
             type="text"
-            placeholder="%"
             value={(x.cop_var ?? 0) === 0 ? "" : String(x.cop_var)}
             onChange={(e) => updateLinea(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
             onClick={(ev) => ev.stopPropagation()}
@@ -316,12 +353,11 @@ export function ServiciosSolicitadosSection({
         const isEditing = copFijoEditing?.idx === x._idx;
         const displayValue = isEditing ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
         return (
-          <div className="inline-flex items-baseline gap-0">
-            <span className="w-8 shrink-0 text-right text-xs tabular-nums">S/. </span>
+          <div className="inline-flex items-baseline gap-0 text-xs">
+            <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
             <input
               type="text"
               inputMode="decimal"
-              placeholder="0.00"
               value={displayValue}
               onFocus={(e) => {
                 e.target.select?.();
@@ -375,17 +411,27 @@ export function ServiciosSolicitadosSection({
       header: "Cantidad",
       headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
-      render: (x) => (
-        <input
-          type="number"
-          min={1}
-          step={1}
-          value={x.cantidad ?? 1}
-          onChange={(e) => updateLinea(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-          onClick={(ev) => ev.stopPropagation()}
-          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
-        />
-      ),
+      render: (x) => {
+        const rawCant = x.cantidad ?? 1;
+        const cant = Number.isFinite(rawCant) && rawCant > 0 ? rawCant : 1;
+        return (
+          <input
+            type="number"
+            min={0.0001}
+            step={0.0001}
+            inputMode="decimal"
+            value={cant}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/,/g, ".");
+              const parsed = parseFloat(raw);
+              const next = Number.isFinite(parsed) && parsed > 0 ? roundToPrecision(parsed) : 1;
+              updateLinea(x._idx, { cantidad: next });
+            }}
+            onClick={(ev) => ev.stopPropagation()}
+            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+          />
+        );
+      },
     },
     {
       key: "precio_sin_igv",
@@ -467,6 +513,20 @@ export function ServiciosSolicitadosSection({
     return withIdx.filter((l) => (l.estado_facturacion ?? "PENDIENTE") === estadoFacturacionFilter);
   }, [lineas, estadoFacturacionFilter]);
 
+  /** Monto a pagar = suma de lo que paga el paciente (solo líneas PENDIENTE), con IGV. */
+  const montoAPagarComputed = React.useMemo(() => {
+    const pending = lineas.filter((l) => (l.estado_facturacion ?? "PENDIENTE") === "PENDIENTE");
+    const total = pending.reduce(
+      (sum, l) => sum + pacientePagaConIgv(l, igvPct, tarifaEsPrecioDirecto),
+      0
+    );
+    return Math.round(total * FACTOR_REDONDO) / FACTOR_REDONDO;
+  }, [lineas, igvPct, tarifaEsPrecioDirecto]);
+
+  React.useEffect(() => {
+    onMontoAPagarChange?.(montoAPagarComputed);
+  }, [montoAPagarComputed, onMontoAPagarChange]);
+
   const estadoFacturacionOptions: SelectOption[] = [
     { value: "", label: "Todos" },
     { value: "PENDIENTE", label: "Pendiente" },
@@ -514,7 +574,7 @@ export function ServiciosSolicitadosSection({
                 }}
                 options={medicoOptionsForLinea}
                 ariaLabel="Médico"
-                buttonClassName="h-10 rounded-xl w-full"
+                buttonClassName="h-8 rounded-lg w-full"
                 menuClassName="w-[280px] min-w-[280px]"
               />
             </div>
@@ -538,10 +598,38 @@ export function ServiciosSolicitadosSection({
           </div>
         </div>
 
-        {/* Servicios finales: título, tabla y monto (sin subcontenedor) */}
+        {/* Servicios finales: título con "Definir Copago variable" a la derecha, luego filtros */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios finales</h3>
+            <div className="flex flex-wrap items-center gap-3 gap-y-1">
+              <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios finales</h3>
+              {!tarifaEsPrecioDirecto && (
+                <>
+                  <span className="hidden sm:block h-5 w-px shrink-0 bg-(--border-color-default)" aria-hidden />
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="cop-var-default" className="text-xs text-(--color-text-secondary) whitespace-nowrap">
+                      Definir Copago variable
+                    </label>
+                    <input
+                      id="cop-var-default"
+                      type="text"
+                      inputMode="numeric"
+                      value={copVarDefault === 0 ? "" : String(copVarDefault)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/,/g, ".");
+                        const v = parseFloat(raw);
+                        if (raw.trim() === "" || (Number.isFinite(v) && v >= 0 && v <= 100)) {
+                          onCopVarDefaultChange?.(raw.trim() === "" ? 0 : v);
+                        }
+                      }}
+                      className="h-7 w-16 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                      title="Se aplica automáticamente a los nuevos servicios que usan copago variable (todas las categorías excepto Consultas Médicas)"
+                    />
+                    <span className="text-xs text-(--color-text-secondary)">%</span>
+                  </div>
+                </>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
               {selectedLineaIdx != null && (
                 <>
@@ -560,7 +648,7 @@ export function ServiciosSolicitadosSection({
                   onChange={setEstadoFacturacionFilter}
                   options={estadoFacturacionOptions}
                   ariaLabel="Filtrar por estado"
-                  buttonClassName="h-9 min-w-[120px]"
+                  buttonClassName="h-8 rounded-lg min-w-[120px]"
                   menuClassName="min-w-[120px]"
                 />
               </div>
@@ -628,7 +716,7 @@ export function ServiciosSolicitadosSection({
                                 value={(item.cop_var ?? 0) === 0 ? "" : String(item.cop_var)}
                                 onChange={(e) => updateLinea(item._idx, { cop_var: parseFloat(e.target.value) || 0 })}
                                 onClick={(ev) => ev.stopPropagation()}
-                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                               />
                             )}
                           </div>
@@ -669,20 +757,20 @@ export function ServiciosSolicitadosSection({
                                     setCopFijoEditing(null);
                                   }}
                                   onClick={(ev) => ev.stopPropagation()}
-                                  className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                  className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                                 />
                               );
                             })()}
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Descuento</span>
-                            <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-secondary)">
+                            <span className="h-9 flex items-center justify-center tabular-nums text-xs text-(--color-text-secondary)">
                               {(item.descuento_pct ?? 0) === 0 ? "—" : `${item.descuento_pct}%`}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Aumento</span>
-                            <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-secondary)">
+                            <span className="h-9 flex items-center justify-center tabular-nums text-xs text-(--color-text-secondary)">
                               {(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}
                             </span>
                           </div>
@@ -690,12 +778,18 @@ export function ServiciosSolicitadosSection({
                             <span className="text-(--color-text-secondary)">Cantidad</span>
                             <input
                               type="number"
-                              min={1}
-                              step={1}
-                              value={item.cantidad ?? 1}
-                              onChange={(e) => updateLinea(item._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                              min={0.0001}
+                              step={0.0001}
+                              inputMode="decimal"
+                              value={Number.isFinite(item.cantidad) && (item.cantidad ?? 0) > 0 ? (item.cantidad ?? 1) : 1}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/,/g, ".");
+                                const parsed = parseFloat(raw);
+                                const next = Number.isFinite(parsed) && parsed > 0 ? roundToPrecision(parsed) : 1;
+                                updateLinea(item._idx, { cantidad: next });
+                              }}
                               onClick={(ev) => ev.stopPropagation()}
-                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                             />
                           </div>
                           <div className="flex flex-col gap-1">
@@ -721,23 +815,23 @@ export function ServiciosSolicitadosSection({
                                   setPrecioSinIgvEditing(null);
                                 }}
                                 onClick={(ev) => ev.stopPropagation()}
-                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-right outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-right outline-none focus:ring-2 focus:ring-(--color-primary)"
                               />
                             ) : (
-                              <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_sin_igv)}</span>
+                              <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_sin_igv)}</span>
                             )}
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
-                            <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
+                            <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Médico</span>
-                            <span className="h-9 flex items-center text-(--color-text-primary)">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span>
+                            <span className="h-9 flex items-center text-xs text-(--color-text-primary)">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Usuario</span>
-                            <span className="h-9 flex items-center text-(--color-text-primary)">{item.user_username ?? item.user_nombre ?? "—"}</span>
+                            <span className="h-9 flex items-center text-xs text-(--color-text-primary)">{item.user_username ?? item.user_nombre ?? "—"}</span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Estado</span>
@@ -754,7 +848,7 @@ export function ServiciosSolicitadosSection({
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar S/.</span>
               <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
-                {formatDecimalDisplay(montoAPagar)}
+                {formatDecimalDisplay(montoAPagarComputed)}
               </span>
             </div>
           </div>
@@ -794,7 +888,7 @@ export function ServiciosSolicitadosSection({
                           <th className={`${thBase} text-right ${monedaMin}`}>Importe con IGV</th>
                           {hasDescuento && <th className={`${thBase} text-center`}>Descuento</th>}
                           {hasAumento && <th className={`${thBase} text-center`}>Aumento</th>}
-                          <th className={`${thBase} text-center`}>Copago variable</th>
+                          <th className={`${thBase} text-right ${monedaMin}`}>Copago variable</th>
                           <th className={`${thBase} text-right ${monedaMin}`}>Copago fijo</th>
                           <th className={`${thBase} text-right ${monedaMin}`}>Pago aseguradora</th>
                         </tr>
@@ -802,13 +896,21 @@ export function ServiciosSolicitadosSection({
                       <tbody>
                         {finalRows.map((item, i) => {
                           const cant = Math.max(0, item.cantidad ?? 1);
-                          const precioUnit = (item.precio_sin_igv ?? 0) as number;
-                          const importeSinIgv = Math.round(precioUnit * cant * 10 ** 4) / 10 ** 4;
+                          const importeSinIgv = (item.precio_sin_igv ?? 0) as number;
+                          const precioUnitarioTarifario = item.precio_unitario_tarifario_sin_igv != null
+                            ? Number(item.precio_unitario_tarifario_sin_igv)
+                            : Math.round((importeSinIgv / Math.max(1, cant)) * FACTOR_REDONDO) / FACTOR_REDONDO;
                           const importeConIgv = (item.precio_con_igv ?? 0) as number;
                           const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
                           const copFijoConIgv = (item.cop_fijo ?? 0) as number;
                           const copFijoSinIgv = copFijoConIgv > 0 && esCat50 ? copagoFijoConIgvToSinIgv(copFijoConIgv, igvPct) : 0;
-                          const pagoAseguradora = esCat50 && copFijoConIgv > 0 ? Math.round((importeSinIgv - copFijoSinIgv) * 10 ** 4) / 10 ** 4 : null;
+                          const copVar = (item.cop_var ?? 0) as number;
+                          const copagoVariableMonto = !esCat50 ? Math.round(importeSinIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO : null;
+                          const pagoAseguradora = esCat50 && copFijoConIgv > 0
+                            ? Math.round((importeSinIgv - copFijoSinIgv) * FACTOR_REDONDO) / FACTOR_REDONDO
+                            : !esCat50 && copVar >= 0
+                              ? Math.round(importeSinIgv * (copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO
+                              : null;
                           const descPct = (item.descuento_pct ?? 0) as number;
                           const aumPct = (item.aumento_pct ?? 0) as number;
                           return (
@@ -818,8 +920,8 @@ export function ServiciosSolicitadosSection({
                             >
                               <td className={`${tdBase} text-center tabular-nums text-(--color-primary)`}>{item.servicio_codigo ?? "—"}</td>
                               <td className={`${tdBase} text-left text-(--color-text-primary) whitespace-normal`}>{item.servicio_descripcion ?? "—"}</td>
-                              <td className={`${tdBase} text-center tabular-nums`}>{cant}</td>
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(precioUnit)}</td>
+                              <td className={`${tdBase} text-center tabular-nums`}>{formatDecimalDisplay(cant)}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(precioUnitarioTarifario)}</td>
                               <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(importeSinIgv)}</td>
                               <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(importeConIgv)}</td>
                               {hasDescuento && (
@@ -828,7 +930,7 @@ export function ServiciosSolicitadosSection({
                               {hasAumento && (
                                 <td className={`${tdBase} text-center tabular-nums`}>{aumPct === 0 ? "—" : `${aumPct}%`}</td>
                               )}
-                              <td className={`${tdBase} text-center tabular-nums`}>{(item.cop_var ?? 0) === 0 ? "—" : `${item.cop_var}%`}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{copagoVariableMonto != null ? renderSoles(copagoVariableMonto) : "—"}</td>
                               <td className={`${tdBase} text-right ${monedaMin}`}>{esCat50 && copFijoConIgv > 0 ? renderSoles(copFijoSinIgv) : "—"}</td>
                               <td className={`${tdBase} text-right ${monedaMin}`}>{pagoAseguradora != null ? renderSoles(pagoAseguradora) : "—"}</td>
                             </tr>
@@ -843,13 +945,21 @@ export function ServiciosSolicitadosSection({
                 <div className="lg:hidden space-y-2">
                   {finalRows.map((item, i) => {
                     const cant = Math.max(0, item.cantidad ?? 1);
-                    const precioUnit = (item.precio_sin_igv ?? 0) as number;
-                    const importeSinIgv = Math.round(precioUnit * cant * 10 ** 4) / 10 ** 4;
+                    const importeSinIgv = (item.precio_sin_igv ?? 0) as number;
+                    const precioUnitarioTarifario = item.precio_unitario_tarifario_sin_igv != null
+                      ? Number(item.precio_unitario_tarifario_sin_igv)
+                      : Math.round((importeSinIgv / Math.max(1, cant)) * FACTOR_REDONDO) / FACTOR_REDONDO;
                     const importeConIgv = (item.precio_con_igv ?? 0) as number;
                     const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
                     const copFijoConIgv = (item.cop_fijo ?? 0) as number;
                     const copFijoSinIgv = copFijoConIgv > 0 && esCat50 ? copagoFijoConIgvToSinIgv(copFijoConIgv, igvPct) : 0;
-                    const pagoAseguradora = esCat50 && copFijoConIgv > 0 ? Math.round((importeSinIgv - copFijoSinIgv) * 10 ** 4) / 10 ** 4 : null;
+                    const copVar = (item.cop_var ?? 0) as number;
+                    const copagoVariableMonto = !esCat50 ? Math.round(importeSinIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO : null;
+                    const pagoAseguradora = esCat50 && copFijoConIgv > 0
+                      ? Math.round((importeSinIgv - copFijoSinIgv) * FACTOR_REDONDO) / FACTOR_REDONDO
+                      : !esCat50 && copVar >= 0
+                        ? Math.round(importeSinIgv * (copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO
+                        : null;
                     const descPct = (item.descuento_pct ?? 0) as number;
                     const aumPct = (item.aumento_pct ?? 0) as number;
                     return (
@@ -863,23 +973,24 @@ export function ServiciosSolicitadosSection({
                             <span className="text-(--color-text-primary)">·</span>
                             <span className="text-(--color-text-primary) flex-1 min-w-0 wrap-break-word">{item.servicio_descripcion ?? "—"}</span>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-(--color-text-secondary)">
+                          {/* Valor monetario: ancho mínimo para alinear S/. en todas las filas (contabilidad). */}
+                            <div className="grid grid-cols-[1fr_minmax(7rem,1fr)] gap-x-4 gap-y-1 text-(--color-text-secondary)">
                             <span>Cantidad:</span>
-                            <span className="tabular-nums text-(--color-text-primary)">{cant}</span>
+                            <span className="tabular-nums text-(--color-text-primary)">{formatDecimalDisplay(cant)}</span>
                             <span>Precio unitario:</span>
-                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              <span className="inline-block w-8 shrink-0 text-right">S/. </span>
-                              <span>{formatDecimalDisplay(precioUnit)}</span>
+                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              <span className="w-8 shrink-0 text-right">S/. </span>
+                              <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(precioUnitarioTarifario)}</span>
                             </span>
                             <span>Importe sin IGV:</span>
-                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              <span className="inline-block w-8 shrink-0 text-right">S/. </span>
-                              <span>{formatDecimalDisplay(importeSinIgv)}</span>
+                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              <span className="w-8 shrink-0 text-right">S/. </span>
+                              <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(importeSinIgv)}</span>
                             </span>
                             <span>Importe con IGV:</span>
-                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              <span className="inline-block w-8 shrink-0 text-right">S/. </span>
-                              <span>{formatDecimalDisplay(importeConIgv)}</span>
+                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              <span className="w-8 shrink-0 text-right">S/. </span>
+                              <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(importeConIgv)}</span>
                             </span>
                             {hasDescuento && (
                               <>
@@ -894,22 +1005,29 @@ export function ServiciosSolicitadosSection({
                               </>
                             )}
                             <span>Copago variable:</span>
-                            <span className="tabular-nums text-(--color-text-primary)">{(item.cop_var ?? 0) === 0 ? "—" : `${item.cop_var}%`}</span>
+                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              {copagoVariableMonto != null ? (
+                                <>
+                                  <span className="w-8 shrink-0 text-right">S/. </span>
+                                  <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(copagoVariableMonto)}</span>
+                                </>
+                              ) : "—"}
+                            </span>
                             <span>Copago fijo:</span>
-                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
                               {esCat50 && copFijoConIgv > 0 ? (
                                 <>
-                                  <span className="inline-block w-8 shrink-0 text-right">S/. </span>
-                                  <span>{formatDecimalDisplay(copFijoSinIgv)}</span>
+                                  <span className="w-8 shrink-0 text-right">S/. </span>
+                                  <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(copFijoSinIgv)}</span>
                                 </>
                               ) : "—"}
                             </span>
                             <span>Pago aseguradora:</span>
-                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
                               {pagoAseguradora != null ? (
                                 <>
-                                  <span className="inline-block w-8 shrink-0 text-right">S/. </span>
-                                  <span>{formatDecimalDisplay(pagoAseguradora)}</span>
+                                  <span className="w-8 shrink-0 text-right">S/. </span>
+                                  <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(pagoAseguradora)}</span>
                                 </>
                               ) : "—"}
                             </span>

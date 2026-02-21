@@ -56,6 +56,7 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
     servicio_descripcion: item.servicio_descripcion,
     categoria_codigo: item.categoria_codigo ?? null,
     desea_liberar_precio: item.desea_liberar_precio ?? false,
+    precio_unitario_tarifario_sin_igv: Math.round((item.precio_sin_igv / Math.max(1, item.cantidad)) * 10 ** 4) / 10 ** 4,
     medico_codigo: item.medico_codigo,
     user_username: item.user_username ?? null,
     user_nombre: item.user_nombre,
@@ -102,6 +103,8 @@ export default function AtencionCitaPage() {
 
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
   const [medicosOptions, setMedicosOptions] = React.useState<SelectOption[]>([]);
+  /** Copago variable por defecto para nuevos servicios (no se borra al ir a Buscar servicios). */
+  const [copVarDefault, setCopVarDefault] = React.useState(0);
 
   const [acudio, setAcudio] = React.useState(false);
   const [horaAsistenciaDisplay, setHoraAsistenciaDisplay] = React.useState<string>("");
@@ -288,14 +291,19 @@ export default function AtencionCitaPage() {
       selectedServicios?: TarifaServicioBusqueda[];
       returnLineas?: AtencionServicioLineaDisplay[];
       scrollToServicios?: boolean;
+      copVarDefault?: number;
     };
     const servs = st.selectedServicios;
     const restoreLineas = st.returnLineas;
     const scrollTo = st.scrollToServicios;
+    if (st.copVarDefault != null && Number.isFinite(st.copVarDefault)) {
+      setCopVarDefault(st.copVarDefault);
+    }
     const stateSinDraft = () => ({
       returnLineas: st.returnLineas,
       scrollToServicios: st.scrollToServicios,
       selectedServicios: st.selectedServicios,
+      copVarDefault: st.copVarDefault,
     });
 
     if (scrollTo && serviciosSectionRef.current) {
@@ -324,19 +332,22 @@ export default function AtencionCitaPage() {
         const recargoNoche = Boolean(s.recargo_noche_activo);
         const aumentoPct = recargoNoche ? (s.recargo_noche_porcentaje ?? 0) : 0;
         const { precioSinIgv, precioConIgv } = calcularPrecios(precioBase, 1, 0, aumentoPct, igvPct);
+        const esCat50 = (String(s.categoria_codigo ?? "").trim() === "50");
+        const copVar = st.copVarDefault ?? copVarDefault;
         return {
           tarifa_servicio_id: s.id,
           servicio_codigo: s.codigo ?? "",
           servicio_descripcion: s.descripcion ?? "",
           categoria_codigo: s.categoria_codigo ?? null,
           desea_liberar_precio: s.desea_liberar_precio ?? false,
-          cop_var: 0,
+          cop_var: esCat50 ? 0 : copVar,
           cop_fijo: 0,
           descuento_pct: 0,
           aumento_pct: aumentoPct,
           cantidad: 1,
           precio_sin_igv: precioSinIgv,
           precio_con_igv: precioConIgv,
+          precio_unitario_tarifario_sin_igv: precioSinIgv,
           medico_id: medicoId,
           medico_codigo: codigoMedico || medicoNombre,
           user_username: user?.username ?? "",
@@ -348,7 +359,7 @@ export default function AtencionCitaPage() {
       setLineas((prev) => [...(restoreLineas ?? prev), ...nuevas]);
       processedServiciosRef.current = null;
     });
-  }, [location.state, location.pathname, navigate, data, medicosOptions, tarifaActual, user]);
+  }, [location.state, location.pathname, navigate, data, medicosOptions, tarifaActual, user, copVarDefault]);
 
   React.useEffect(() => {
     api
@@ -386,11 +397,8 @@ export default function AtencionCitaPage() {
     else setHoraAsistenciaDisplay("");
   }, []);
 
-  const montoAPagar = React.useMemo(() => {
-    return lineas
-      .filter((l) => (l.estado_facturacion ?? "PENDIENTE") === "PENDIENTE")
-      .reduce((sum, l) => sum + (Number(l.precio_con_igv) || 0), 0);
-  }, [lineas]);
+  const [montoAPagar, setMontoAPagar] = React.useState(0);
+  const onMontoAPagarChange = React.useCallback((monto: number) => setMontoAPagar(monto), []);
 
   const hasPendingDataChanges =
     pacientePlanId !== lastSavedPlanId ||
@@ -983,7 +991,9 @@ export default function AtencionCitaPage() {
           hasPendingDataChanges={hasPendingDataChanges}
           onActualizarDatos={onActualizarDatos}
           pendingChangesMessage={pendingChangesMessage}
-          montoAPagar={montoAPagar}
+          onMontoAPagarChange={onMontoAPagarChange}
+          copVarDefault={copVarDefault}
+          onCopVarDefaultChange={setCopVarDefault}
           getAtencionDraft={getAtencionDraft}
         />
       </div>
