@@ -7,7 +7,7 @@ import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
-import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
+import { PRECISION_DECIMAL, formatDecimalDisplay } from "../../../../../shared/constants/decimalPrecision";
 import type {
   AtencionDraft,
   AtencionServicioLineaDisplay,
@@ -30,6 +30,16 @@ function calcularPrecios(
   return { precioSinIgv, precioConIgv };
 }
 
+/** Código de categoría "Consultas Médicas": habilita copago fijo y deshabilita copago variable. */
+const CATEGORIA_CONSULTAS_MEDICAS_CODIGO = "50";
+
+/** Convierte copago fijo (soles con IGV) a sin IGV. Precisión 4 decimales. */
+function copagoFijoConIgvToSinIgv(copFijoConIgv: number, igvPct: number): number {
+  if (copFijoConIgv <= 0) return 0;
+  const factor = 10 ** 4;
+  return Math.round((copFijoConIgv / (1 + igvPct / 100)) * factor) / factor;
+}
+
 function getMedicoCodigo(medicoId: number | undefined, medicoCodigo: string | null | undefined, medicosOptions: SelectOption[]): string {
   if (medicoId != null) {
     const opt = medicosOptions.find((o) => o.value === String(medicoId));
@@ -41,12 +51,13 @@ function getMedicoCodigo(medicoId: number | undefined, medicoCodigo: string | nu
   return fallback || "—";
 }
 
+/** S/. + número; bloque centrado en la celda (como tabla de reporte). */
 function PrecioCell({ valor }: { valor: number }) {
   return (
-    <div className="flex justify-end items-baseline gap-0 text-xs">
-      <span className="inline-block w-8 shrink-0 text-right tabular-nums">S/. </span>
-      <span className="tabular-nums inline-block min-w-14 text-right">
-        {valor.toFixed(PRECISION_DECIMAL)}
+    <div className="inline-flex items-baseline gap-0 text-xs">
+      <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
+      <span className="min-w-14 text-right tabular-nums">
+        {formatDecimalDisplay(valor)}
       </span>
     </div>
   );
@@ -57,6 +68,8 @@ export type ServiciosSolicitadosSectionProps = {
   medicoTratanteLabel: string;
   tarifaId: number | null;
   tarifaDescripcion: string | null;
+  /** Si true, la tarifa usa precio directo (ej. Particular/Privado). */
+  tarifaEsPrecioDirecto?: boolean;
   lineas: AtencionServicioLineaDisplay[];
   onLineasChange: (lineas: AtencionServicioLineaDisplay[]) => void;
   medicosOptions: SelectOption[];
@@ -74,6 +87,7 @@ export function ServiciosSolicitadosSection({
   medicoTratanteId,
   tarifaId,
   tarifaDescripcion,
+  tarifaEsPrecioDirecto = false,
   lineas,
   onLineasChange,
   medicosOptions,
@@ -91,6 +105,7 @@ export function ServiciosSolicitadosSection({
   const [actualizando, setActualizando] = React.useState(false);
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
   const [precioSinIgvEditing, setPrecioSinIgvEditing] = React.useState<{ idx: number; value: string } | null>(null);
+  const [copFijoEditing, setCopFijoEditing] = React.useState<{ idx: number; value: string } | null>(null);
 
   const [medicoChangedMessage, setMedicoChangedMessage] = React.useState<{ servicioDesc: string; medicoNombre: string } | null>(null);
   const medicoChangedTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,11 +125,12 @@ export function ServiciosSolicitadosSection({
       state: {
         tarifaId,
         tarifaDescripcion,
+        tarifaEsPrecioDirecto,
         returnLineas: lineas,
         atencionDraft: draft,
       },
     });
-  }, [navigate, citaId, tarifaId, tarifaDescripcion, lineas, getAtencionDraft]);
+  }, [navigate, citaId, tarifaId, tarifaDescripcion, tarifaEsPrecioDirecto, lineas, getAtencionDraft]);
 
   const handleBuscarServicio = React.useCallback(() => {
     if (hasPendingDataChanges && onActualizarDatos && pendingChangesMessage) {
@@ -247,32 +263,90 @@ export function ServiciosSolicitadosSection({
       header: "Copago variable",
       headerClassName: "text-xs py-1.5 text-center w-28 align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
-      render: (x) => (
-        <input
-          type="text"
-          placeholder=""
-          value={(x.cop_var ?? 0) === 0 ? "" : String(x.cop_var)}
-          onChange={(e) => updateLinea(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
-          onClick={(ev) => ev.stopPropagation()}
-          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
-        />
-      ),
+      render: (x) => {
+        if (tarifaEsPrecioDirecto) {
+          return (
+            <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-secondary)">
+              {(x.cop_var ?? 0) === 0 ? "—" : `${x.cop_var}%`}
+            </span>
+          );
+        }
+        const esConsultasMedicas = (x.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
+        if (esConsultasMedicas) {
+          return (
+            <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-secondary)" title="No aplica para Consultas Médicas">
+              —
+            </span>
+          );
+        }
+        return (
+          <input
+            type="text"
+            placeholder="%"
+            value={(x.cop_var ?? 0) === 0 ? "" : String(x.cop_var)}
+            onChange={(e) => updateLinea(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
+            onClick={(ev) => ev.stopPropagation()}
+            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+          />
+        );
+      },
     },
     {
       key: "cop_fijo",
       header: "Copago fijo",
       headerClassName: "text-xs py-1.5 text-center w-28 align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
-      render: (x) => (
-        <input
-          type="text"
-          placeholder=""
-          value={(x.cop_fijo ?? 0) === 0 ? "" : String(x.cop_fijo)}
-          onChange={(e) => updateLinea(x._idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
-          onClick={(ev) => ev.stopPropagation()}
-          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
-        />
-      ),
+      render: (x) => {
+        if (tarifaEsPrecioDirecto) {
+          return (
+            <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-secondary)">
+              {(x.cop_fijo ?? 0) === 0 ? "—" : String(x.cop_fijo)}
+            </span>
+          );
+        }
+        const esConsultasMedicas = (x.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
+        if (!esConsultasMedicas) {
+          return (
+            <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-secondary)" title="Solo para Consultas Médicas">
+              —
+            </span>
+          );
+        }
+        const copFijo = (x.cop_fijo ?? 0) as number;
+        const isEditing = copFijoEditing?.idx === x._idx;
+        const displayValue = isEditing ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
+        return (
+          <div className="inline-flex items-baseline gap-0">
+            <span className="w-8 shrink-0 text-right text-xs tabular-nums">S/. </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={displayValue}
+              onFocus={(e) => {
+                e.target.select?.();
+                setCopFijoEditing({ idx: x._idx, value: copFijo === 0 ? "" : String(copFijo) });
+              }}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/,/g, ".");
+                setCopFijoEditing({ idx: x._idx, value: raw });
+                const v = parseFloat(raw);
+                if (raw.trim() === "" || (Number.isFinite(v) && v >= 0)) {
+                  updateLinea(x._idx, { cop_fijo: v || 0 });
+                }
+              }}
+              onBlur={() => {
+                const raw = copFijoEditing?.idx === x._idx ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
+                const v = parseFloat(raw) || 0;
+                updateLinea(x._idx, { cop_fijo: v });
+                setCopFijoEditing(null);
+              }}
+              onClick={(ev) => ev.stopPropagation()}
+              className="h-7 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+            />
+          </div>
+        );
+      },
     },
     {
       key: "descuento",
@@ -280,14 +354,9 @@ export function ServiciosSolicitadosSection({
       headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
-        <input
-          type="text"
-          placeholder=""
-          value={(x.descuento_pct ?? 0) === 0 ? "" : String(x.descuento_pct)}
-          onChange={(e) => updateLinea(x._idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
-          onClick={(ev) => ev.stopPropagation()}
-          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
-        />
+        <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-secondary)">
+          {(x.descuento_pct ?? 0) === 0 ? "—" : `${x.descuento_pct}%`}
+        </span>
       ),
     },
     {
@@ -295,21 +364,11 @@ export function ServiciosSolicitadosSection({
       header: "Aumento",
       headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
-      render: (x) =>
-        x.recargo_noche_activo ? (
-          <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-primary)">
-            {(x.aumento_pct ?? 0) === 0 ? "—" : `${x.aumento_pct}%`}
-          </span>
-        ) : (
-          <input
-            type="text"
-            placeholder=""
-            value={(x.aumento_pct ?? 0) === 0 ? "" : String(x.aumento_pct)}
-            onChange={(e) => updateLinea(x._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
-            onClick={(ev) => ev.stopPropagation()}
-            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
-          />
-        ),
+      render: (x) => (
+        <span className="inline-block w-full text-center tabular-nums text-xs text-(--color-text-secondary)">
+          {x.recargo_noche_activo && (x.aumento_pct ?? 0) !== 0 ? `${x.aumento_pct}%` : (x.aumento_pct ?? 0) === 0 ? "—" : `${x.aumento_pct}%`}
+        </span>
+      ),
     },
     {
       key: "cantidad",
@@ -331,12 +390,12 @@ export function ServiciosSolicitadosSection({
     {
       key: "precio_sin_igv",
       header: <span className="whitespace-nowrap">Precio sin IGV</span>,
-      headerClassName: "text-xs py-1.5 text-right w-28 min-w-[6rem] align-middle",
-      cellClassName: "text-xs px-2 py-1.5 text-right whitespace-nowrap align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-28 min-w-[6rem] align-middle",
+      cellClassName: "text-xs px-2 py-1.5 text-center whitespace-nowrap align-middle",
       render: (x) =>
         x.desea_liberar_precio ? (
-          <div className="flex justify-end items-baseline gap-0 text-xs">
-            <span className="inline-block w-8 shrink-0 text-right tabular-nums">S/. </span>
+          <div className="inline-flex items-baseline gap-0 text-xs">
+            <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
             <input
               type="text"
               inputMode="decimal"
@@ -370,8 +429,8 @@ export function ServiciosSolicitadosSection({
     {
       key: "precio_con_igv",
       header: <span className="whitespace-nowrap">Precio con IGV</span>,
-      headerClassName: "text-xs py-1.5 text-right w-28 min-w-[6rem] align-middle",
-      cellClassName: "text-xs px-2 py-1.5 text-right whitespace-nowrap align-middle",
+      headerClassName: "text-xs py-1.5 text-center w-28 min-w-[6rem] align-middle",
+      cellClassName: "text-xs px-2 py-1.5 text-center whitespace-nowrap align-middle",
       render: (x) => <PrecioCell valor={x.precio_con_igv ?? 0} />,
     },
     { key: "medico", header: "Médico", headerClassName: "text-xs py-1.5 text-center w-20 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center tabular-nums align-middle", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
@@ -386,7 +445,7 @@ export function ServiciosSolicitadosSection({
     {
       key: "actions",
       header: "",
-      headerClassName: "text-xs py-1.5 w-12 align-middle",
+      headerClassName: "text-xs py-1.5 w-12 text-center align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
       render: (x) => (
         <div onClick={(e) => e.stopPropagation()} title="Eliminar">
@@ -400,7 +459,7 @@ export function ServiciosSolicitadosSection({
         </div>
       ),
     },
-  ], [medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing]);
+  ], [medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing, copFijoEditing, tarifaEsPrecioDirecto]);
 
   const finalRows = React.useMemo(() => {
     const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
@@ -555,54 +614,77 @@ export function ServiciosSolicitadosSection({
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                           <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Copago var</span>
-                            <input
-                              type="text"
-                              placeholder=""
-                              value={(item.cop_var ?? 0) === 0 ? "" : String(item.cop_var)}
-                              onChange={(e) => updateLinea(item._idx, { cop_var: parseFloat(e.target.value) || 0 })}
-                              onClick={(ev) => ev.stopPropagation()}
-                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Copago fijo</span>
-                            <input
-                              type="text"
-                              placeholder=""
-                              value={(item.cop_fijo ?? 0) === 0 ? "" : String(item.cop_fijo)}
-                              onChange={(e) => updateLinea(item._idx, { cop_fijo: parseFloat(e.target.value) || 0 })}
-                              onClick={(ev) => ev.stopPropagation()}
-                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Descuento</span>
-                            <input
-                              type="text"
-                              placeholder=""
-                              value={(item.descuento_pct ?? 0) === 0 ? "" : String(item.descuento_pct)}
-                              onChange={(e) => updateLinea(item._idx, { descuento_pct: parseFloat(e.target.value) || 0 })}
-                              onClick={(ev) => ev.stopPropagation()}
-                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Aumento</span>
-                            {item.recargo_noche_activo ? (
-                              <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-primary)">
-                                {(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}
+                            <span className="text-(--color-text-secondary)">Copago variable</span>
+                            {tarifaEsPrecioDirecto ? (
+                              <span className="h-9 flex items-center justify-center tabular-nums text-(--color-text-secondary)">
+                                {(item.cop_var ?? 0) === 0 ? "—" : `${item.cop_var}%`}
                               </span>
+                            ) : (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO ? (
+                              <span className="h-9 flex items-center justify-center text-(--color-text-secondary)">—</span>
                             ) : (
                               <input
                                 type="text"
-                                placeholder=""
-                                value={(item.aumento_pct ?? 0) === 0 ? "" : String(item.aumento_pct)}
-                                onChange={(e) => updateLinea(item._idx, { aumento_pct: parseFloat(e.target.value) || 0 })}
+                                placeholder="%"
+                                value={(item.cop_var ?? 0) === 0 ? "" : String(item.cop_var)}
+                                onChange={(e) => updateLinea(item._idx, { cop_var: parseFloat(e.target.value) || 0 })}
                                 onClick={(ev) => ev.stopPropagation()}
                                 className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                               />
                             )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Copago fijo</span>
+                            {tarifaEsPrecioDirecto ? (
+                              <span className="h-9 flex items-center justify-center tabular-nums text-(--color-text-secondary)">
+                                {(item.cop_fijo ?? 0) === 0 ? "—" : String(item.cop_fijo)}
+                              </span>
+                            ) : (item.categoria_codigo ?? "").trim() !== CATEGORIA_CONSULTAS_MEDICAS_CODIGO ? (
+                              <span className="h-9 flex items-center justify-center text-(--color-text-secondary)">—</span>
+                            ) : (() => {
+                              const copFijo = (item.cop_fijo ?? 0) as number;
+                              const isEditing = copFijoEditing?.idx === item._idx;
+                              const displayValue = isEditing ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
+                              return (
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="0.00"
+                                  value={displayValue}
+                                  onFocus={(e) => {
+                                    e.target.select?.();
+                                    setCopFijoEditing({ idx: item._idx, value: copFijo === 0 ? "" : String(copFijo) });
+                                  }}
+                                  onChange={(e) => {
+                                    const raw = e.target.value.replace(/,/g, ".");
+                                    setCopFijoEditing({ idx: item._idx, value: raw });
+                                    const v = parseFloat(raw);
+                                    if (raw.trim() === "" || (Number.isFinite(v) && v >= 0)) {
+                                      updateLinea(item._idx, { cop_fijo: v || 0 });
+                                    }
+                                  }}
+                                  onBlur={() => {
+                                    const raw = copFijoEditing?.idx === item._idx ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
+                                    const v = parseFloat(raw) || 0;
+                                    updateLinea(item._idx, { cop_fijo: v });
+                                    setCopFijoEditing(null);
+                                  }}
+                                  onClick={(ev) => ev.stopPropagation()}
+                                  className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                />
+                              );
+                            })()}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Descuento</span>
+                            <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-secondary)">
+                              {(item.descuento_pct ?? 0) === 0 ? "—" : `${item.descuento_pct}%`}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-(--color-text-secondary)">Aumento</span>
+                            <span className="h-9 flex items-center justify-center tabular-nums text-sm text-(--color-text-secondary)">
+                              {(item.aumento_pct ?? 0) === 0 ? "—" : `${item.aumento_pct}%`}
+                            </span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Cantidad</span>
@@ -642,12 +724,12 @@ export function ServiciosSolicitadosSection({
                                 className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-right outline-none focus:ring-2 focus:ring-(--color-primary)"
                               />
                             ) : (
-                              <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {(item.precio_sin_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span>
+                              <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_sin_igv)}</span>
                             )}
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
-                            <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {(item.precio_con_igv ?? 0).toFixed(PRECISION_DECIMAL)}</span>
+                            <span className="h-9 flex items-center tabular-nums text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Médico</span>
@@ -672,10 +754,174 @@ export function ServiciosSolicitadosSection({
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar S/.</span>
               <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
-                {montoAPagar.toFixed(PRECISION_DECIMAL)}
+                {formatDecimalDisplay(montoAPagar)}
               </span>
             </div>
           </div>
+
+          {/* Tabla resumen solo lectura (detalle para reporte). Mismo tamaño de texto que el resto de la ventana; responsive como Servicios finales. */}
+          {finalRows.length > 0 && (() => {
+            const hasDescuento = finalRows.some((r) => (r.descuento_pct ?? 0) > 0);
+            const hasAumento = finalRows.some((r) => (r.aumento_pct ?? 0) > 0);
+            /* Formato contabilidad: S/. en posición fija, número a la derecha (igual que Servicios finales / Excel). */
+            const renderSoles = (val: number | null) => {
+              if (val == null || (typeof val === "number" && !Number.isFinite(val))) return "—";
+              return (
+                <div className="flex w-full items-baseline gap-0 text-sm">
+                  <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
+                  <span className="min-w-0 flex-1 text-right tabular-nums">{formatDecimalDisplay(val)}</span>
+                </div>
+              );
+            };
+            const thBase = "px-3 py-2 font-semibold align-middle whitespace-normal";
+            const tdBase = "px-3 py-2 align-middle text-sm";
+            const monedaMin = "min-w-[7rem]"; /* Ancho mínimo para alineación contable S/. */
+            return (
+              <div className="mt-6 flex flex-col gap-2 border-l-4 border-(--color-primary) pl-2">
+                <h3 className="text-sm font-medium text-(--color-text-primary)">Detalle para reporte</h3>
+
+                {/* Desktop: tabla completa */}
+                <div className="hidden lg:block rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
+                  <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
+                    <table className="w-full text-sm min-w-[800px]">
+                      <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
+                        <tr>
+                          <th className={`${thBase} text-center`}>Código</th>
+                          <th className={`${thBase} text-left`}>Descripción de servicio</th>
+                          <th className={`${thBase} text-center`}>Cantidad</th>
+                          <th className={`${thBase} text-right ${monedaMin}`}>Precio unitario</th>
+                          <th className={`${thBase} text-right ${monedaMin}`}>Importe sin IGV</th>
+                          <th className={`${thBase} text-right ${monedaMin}`}>Importe con IGV</th>
+                          {hasDescuento && <th className={`${thBase} text-center`}>Descuento</th>}
+                          {hasAumento && <th className={`${thBase} text-center`}>Aumento</th>}
+                          <th className={`${thBase} text-center`}>Copago variable</th>
+                          <th className={`${thBase} text-right ${monedaMin}`}>Copago fijo</th>
+                          <th className={`${thBase} text-right ${monedaMin}`}>Pago aseguradora</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {finalRows.map((item, i) => {
+                          const cant = Math.max(0, item.cantidad ?? 1);
+                          const precioUnit = (item.precio_sin_igv ?? 0) as number;
+                          const importeSinIgv = Math.round(precioUnit * cant * 10 ** 4) / 10 ** 4;
+                          const importeConIgv = (item.precio_con_igv ?? 0) as number;
+                          const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
+                          const copFijoConIgv = (item.cop_fijo ?? 0) as number;
+                          const copFijoSinIgv = copFijoConIgv > 0 && esCat50 ? copagoFijoConIgvToSinIgv(copFijoConIgv, igvPct) : 0;
+                          const pagoAseguradora = esCat50 && copFijoConIgv > 0 ? Math.round((importeSinIgv - copFijoSinIgv) * 10 ** 4) / 10 ** 4 : null;
+                          const descPct = (item.descuento_pct ?? 0) as number;
+                          const aumPct = (item.aumento_pct ?? 0) as number;
+                          return (
+                            <tr
+                              key={item.id ?? `resumen-${i}`}
+                              className="border-t border-(--border-color-default) bg-(--color-surface) hover:bg-(--color-surface-hover)"
+                            >
+                              <td className={`${tdBase} text-center tabular-nums text-(--color-primary)`}>{item.servicio_codigo ?? "—"}</td>
+                              <td className={`${tdBase} text-left text-(--color-text-primary) whitespace-normal`}>{item.servicio_descripcion ?? "—"}</td>
+                              <td className={`${tdBase} text-center tabular-nums`}>{cant}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(precioUnit)}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(importeSinIgv)}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(importeConIgv)}</td>
+                              {hasDescuento && (
+                                <td className={`${tdBase} text-center tabular-nums`}>{descPct === 0 ? "—" : `${descPct}%`}</td>
+                              )}
+                              {hasAumento && (
+                                <td className={`${tdBase} text-center tabular-nums`}>{aumPct === 0 ? "—" : `${aumPct}%`}</td>
+                              )}
+                              <td className={`${tdBase} text-center tabular-nums`}>{(item.cop_var ?? 0) === 0 ? "—" : `${item.cop_var}%`}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{esCat50 && copFijoConIgv > 0 ? renderSoles(copFijoSinIgv) : "—"}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{pagoAseguradora != null ? renderSoles(pagoAseguradora) : "—"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Móvil / tablet: cards como Servicios finales */}
+                <div className="lg:hidden space-y-2">
+                  {finalRows.map((item, i) => {
+                    const cant = Math.max(0, item.cantidad ?? 1);
+                    const precioUnit = (item.precio_sin_igv ?? 0) as number;
+                    const importeSinIgv = Math.round(precioUnit * cant * 10 ** 4) / 10 ** 4;
+                    const importeConIgv = (item.precio_con_igv ?? 0) as number;
+                    const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
+                    const copFijoConIgv = (item.cop_fijo ?? 0) as number;
+                    const copFijoSinIgv = copFijoConIgv > 0 && esCat50 ? copagoFijoConIgvToSinIgv(copFijoConIgv, igvPct) : 0;
+                    const pagoAseguradora = esCat50 && copFijoConIgv > 0 ? Math.round((importeSinIgv - copFijoSinIgv) * 10 ** 4) / 10 ** 4 : null;
+                    const descPct = (item.descuento_pct ?? 0) as number;
+                    const aumPct = (item.aumento_pct ?? 0) as number;
+                    return (
+                      <div
+                        key={item.id ?? `resumen-m-${i}`}
+                        className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4"
+                      >
+                        <div className="flex flex-col gap-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold tabular-nums text-(--color-primary)">{item.servicio_codigo ?? "—"}</span>
+                            <span className="text-(--color-text-primary)">·</span>
+                            <span className="text-(--color-text-primary) flex-1 min-w-0 wrap-break-word">{item.servicio_descripcion ?? "—"}</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-(--color-text-secondary)">
+                            <span>Cantidad:</span>
+                            <span className="tabular-nums text-(--color-text-primary)">{cant}</span>
+                            <span>Precio unitario:</span>
+                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              <span className="inline-block w-8 shrink-0 text-right">S/. </span>
+                              <span>{formatDecimalDisplay(precioUnit)}</span>
+                            </span>
+                            <span>Importe sin IGV:</span>
+                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              <span className="inline-block w-8 shrink-0 text-right">S/. </span>
+                              <span>{formatDecimalDisplay(importeSinIgv)}</span>
+                            </span>
+                            <span>Importe con IGV:</span>
+                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              <span className="inline-block w-8 shrink-0 text-right">S/. </span>
+                              <span>{formatDecimalDisplay(importeConIgv)}</span>
+                            </span>
+                            {hasDescuento && (
+                              <>
+                                <span>Descuento:</span>
+                                <span className="tabular-nums text-(--color-text-primary)">{descPct === 0 ? "—" : `${descPct}%`}</span>
+                              </>
+                            )}
+                            {hasAumento && (
+                              <>
+                                <span>Aumento:</span>
+                                <span className="tabular-nums text-(--color-text-primary)">{aumPct === 0 ? "—" : `${aumPct}%`}</span>
+                              </>
+                            )}
+                            <span>Copago variable:</span>
+                            <span className="tabular-nums text-(--color-text-primary)">{(item.cop_var ?? 0) === 0 ? "—" : `${item.cop_var}%`}</span>
+                            <span>Copago fijo:</span>
+                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              {esCat50 && copFijoConIgv > 0 ? (
+                                <>
+                                  <span className="inline-block w-8 shrink-0 text-right">S/. </span>
+                                  <span>{formatDecimalDisplay(copFijoSinIgv)}</span>
+                                </>
+                              ) : "—"}
+                            </span>
+                            <span>Pago aseguradora:</span>
+                            <span className="flex justify-end items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                              {pagoAseguradora != null ? (
+                                <>
+                                  <span className="inline-block w-8 shrink-0 text-right">S/. </span>
+                                  <span>{formatDecimalDisplay(pagoAseguradora)}</span>
+                                </>
+                              ) : "—"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

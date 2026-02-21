@@ -54,20 +54,13 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
     precio_con_igv: item.precio_con_igv,
     servicio_codigo: item.servicio_codigo ?? null,
     servicio_descripcion: item.servicio_descripcion,
+    categoria_codigo: item.categoria_codigo ?? null,
     desea_liberar_precio: item.desea_liberar_precio ?? false,
     medico_codigo: item.medico_codigo,
     user_username: item.user_username ?? null,
     user_nombre: item.user_nombre,
     estado_facturacion,
   };
-}
-
-const TARIFAS_PRECIO_DIRECTO = ["Particular", "Privado"];
-
-function esPrecioDirecto(tarifaDescripcion: string | null): boolean {
-  if (!tarifaDescripcion) return false;
-  const n = tarifaDescripcion.trim();
-  return TARIFAS_PRECIO_DIRECTO.some((t) => t.toLowerCase() === n.toLowerCase());
 }
 
 /** Nombre completo del usuario para mostrar en servicios (usa name de la tabla users, o apellidos + nombres). */
@@ -238,7 +231,12 @@ export default function AtencionCitaPage() {
     return plan?.tarifa_id ?? null;
   }, [data?.planes, pacientePlanId]);
 
-  const soatDeshabilitado = React.useMemo(() => esPrecioDirecto(tarifaActual), [tarifaActual]);
+  const tarifaEsPrecioDirecto = React.useMemo(() => {
+    if (!pacientePlanId || !data?.planes) return false;
+    const plan = data.planes.find((p) => p.id === pacientePlanId);
+    return Boolean(plan?.tarifa_es_precio_directo);
+  }, [data?.planes, pacientePlanId]);
+  const soatDeshabilitado = tarifaEsPrecioDirecto;
 
   React.useEffect(() => {
     if (soatDeshabilitado && (soatActivo || soatNumeroPoliza.trim() || soatNumeroPlaca.trim())) {
@@ -321,17 +319,16 @@ export default function AtencionCitaPage() {
       const medicoOpt = medicosOpts.find((o) => o.value === String(medicoId));
       const labelMedico = medicoOpt?.label ?? "";
       const codigoMedico = labelMedico.includes(" · ") ? labelMedico.split(" · ")[0]?.trim() ?? "" : labelMedico.split(/\s+/)[0] ?? "";
-      const tarifaDesc = tarifaActual;
       const nuevas: AtencionServicioLineaDisplay[] = servs.map((s) => {
         const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
-        const base = esPrecioDirecto(tarifaDesc) ? precioBase : precioBase;
         const recargoNoche = Boolean(s.recargo_noche_activo);
         const aumentoPct = recargoNoche ? (s.recargo_noche_porcentaje ?? 0) : 0;
-        const { precioSinIgv, precioConIgv } = calcularPrecios(base, 1, 0, aumentoPct, igvPct);
+        const { precioSinIgv, precioConIgv } = calcularPrecios(precioBase, 1, 0, aumentoPct, igvPct);
         return {
           tarifa_servicio_id: s.id,
           servicio_codigo: s.codigo ?? "",
           servicio_descripcion: s.descripcion ?? "",
+          categoria_codigo: s.categoria_codigo ?? null,
           desea_liberar_precio: s.desea_liberar_precio ?? false,
           cop_var: 0,
           cop_fijo: 0,
@@ -977,6 +974,7 @@ export default function AtencionCitaPage() {
           }
           tarifaId={tarifaId}
           tarifaDescripcion={tarifaActual}
+          tarifaEsPrecioDirecto={tarifaEsPrecioDirecto}
           lineas={lineas}
           onLineasChange={setLineas}
           medicosOptions={medicosOptions}

@@ -38,6 +38,7 @@ export type AtencionCitaData = {
     tarifa_id: number | null;
     tarifa_codigo: string | null;
     tarifa_descripcion: string | null;
+    tarifa_es_precio_directo: boolean;
   }>;
   atencion: {
     id: number;
@@ -67,6 +68,7 @@ export type AtencionServicioItem = {
   tarifa_servicio_id: number;
   servicio_codigo?: string | null;
   servicio_descripcion: string | null;
+  categoria_codigo?: string | null;
   desea_liberar_precio?: boolean;
   medico_id: number;
   medico_codigo: string | null;
@@ -101,6 +103,8 @@ export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
   id?: number;
   servicio_codigo?: string | null;
   servicio_descripcion?: string | null;
+  /** Código de la categoría del servicio (ej. "50" = Consultas Médicas, habilita copago fijo). */
+  categoria_codigo?: string | null;
   desea_liberar_precio?: boolean;
   medico_codigo?: string | null;
   user_username?: string | null;

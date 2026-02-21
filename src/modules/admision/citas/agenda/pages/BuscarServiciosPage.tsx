@@ -33,6 +33,8 @@ function useIsLgUp(): boolean {
 type LocationState = {
   tarifaId?: number | null;
   tarifaDescripcion?: string | null;
+  /** Si true, tarifa usa precio directo (ej. Particular/Privado). */
+  tarifaEsPrecioDirecto?: boolean;
   returnLineas?: unknown[];
   atencionDraft?: AtencionDraft | null;
 };
@@ -80,6 +82,8 @@ export default function BuscarServiciosPage() {
   const [data, setData] = React.useState<TarifaServicioBusqueda[]>([]);
   const [meta, setMeta] = React.useState<TarifaServiciosBusquedaMeta | null>(null);
   const [loading, setLoading] = React.useState(false);
+  /** Tarifa precio directo. Fuente: meta (API) o state (navegación). */
+  const tarifaEsPrecioDirecto = meta?.tarifa_es_precio_directo ?? state.tarifaEsPrecioDirecto ?? false;
   const [q, setQ] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(50);
@@ -212,28 +216,26 @@ export default function BuscarServiciosPage() {
       {
         key: "codigo",
         header: "Código",
-        headerClassName: "text-center w-36",
-        cellClassName: "px-3 py-2 text-center tabular-nums text-(--color-primary) whitespace-nowrap",
+        headerClassName: "text-center w-24 align-middle",
+        cellClassName: "px-3 py-2 text-center tabular-nums text-(--color-primary) align-middle",
         render: (x) => x.codigo,
       },
       {
         key: "descripcion",
-        header: "Descripción",
-        cellClassName: "px-3 py-2 whitespace-nowrap",
-        render: (x) => x.descripcion,
-      },
-      {
-        key: "unidad",
-        header: "Unidad",
-        headerClassName: "text-center w-24",
-        cellClassName: "px-3 py-2 text-center tabular-nums whitespace-nowrap",
-        render: (x) => x.unidad ?? "—",
+        header: "Descripción de servicio",
+        headerClassName: "text-left align-middle",
+        cellClassName: "px-3 py-2 max-w-[280px] align-middle",
+        render: (x) => (
+          <span className="block wrap-break-word whitespace-normal text-left leading-snug">
+            {x.descripcion ?? "—"}
+          </span>
+        ),
       },
       {
         key: "precio_sin_igv",
         header: <span className="whitespace-nowrap">Precio sin IGV</span>,
-        headerClassName: "text-right w-32 min-w-[7rem]",
-        cellClassName: "px-3 py-2 text-right whitespace-nowrap",
+        headerClassName: "text-right w-32 min-w-[7rem] align-middle",
+        cellClassName: "px-3 py-2 text-right align-middle",
         render: (x) => {
           const finalPrecio = precioConRecargo(
             x.precio_sin_igv,
@@ -263,8 +265,8 @@ export default function BuscarServiciosPage() {
       {
         key: "precio_con_igv",
         header: <span className="whitespace-nowrap">Precio con IGV</span>,
-        headerClassName: "text-right w-32 min-w-[7rem]",
-        cellClassName: "px-3 py-2 text-right whitespace-nowrap",
+        headerClassName: "text-right w-32 min-w-[7rem] align-middle",
+        cellClassName: "px-3 py-2 text-right align-middle",
         render: (x) => {
           const finalPrecioSinIgv = precioConRecargo(
             x.precio_sin_igv,
@@ -287,8 +289,8 @@ export default function BuscarServiciosPage() {
       {
         key: "nomenclador",
         header: "Nomenclador",
-        headerClassName: "text-center min-w-[100px]",
-        cellClassName: "px-3 py-2 text-center text-(--color-text-secondary) whitespace-nowrap",
+        headerClassName: "text-center w-32 min-w-[7rem] align-middle",
+        cellClassName: "px-3 py-2 text-center text-(--color-text-secondary) align-middle",
         render: (x) => x.nomenclador ?? "—",
       },
     ];
@@ -441,9 +443,6 @@ export default function BuscarServiciosPage() {
                       {r.descripcion}
                     </span>
                     <span className="text-xs text-(--color-text-secondary) flex flex-wrap gap-x-1 gap-y-0.5">
-                      <span className="whitespace-nowrap">
-                        Unidad: {r.unidad ?? "—"} ·
-                      </span>
                       <span className="whitespace-nowrap">
                         Precio sin IGV: {precioStr}
                         {recargo ? ` (Recargo ${r.recargo_noche_porcentaje ?? 0}%)` : ""}

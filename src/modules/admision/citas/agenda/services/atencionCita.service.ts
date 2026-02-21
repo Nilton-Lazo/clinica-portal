@@ -39,6 +39,8 @@ export type TarifaServiciosBusquedaMeta = {
   per_page: number;
   total: number;
   last_page: number;
+  /** Si true, la tarifa usa precio directo (ej. Particular/Privado). */
+  tarifa_es_precio_directo?: boolean;
 };
 
 export async function getIgvPorcentaje(): Promise<number> {
