@@ -7,7 +7,7 @@ import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
-import { PRECISION_DECIMAL, formatDecimalDisplay, roundToPrecision } from "../../../../../shared/constants/decimalPrecision";
+import { PRECISION_DECIMAL, formatDecimalDisplay } from "../../../../../shared/constants/decimalPrecision";
 import type {
   AtencionDraft,
   AtencionServicioLineaDisplay,
@@ -411,27 +411,17 @@ export function ServiciosSolicitadosSection({
       header: "Cantidad",
       headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
       cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
-      render: (x) => {
-        const rawCant = x.cantidad ?? 1;
-        const cant = Number.isFinite(rawCant) && rawCant > 0 ? rawCant : 1;
-        return (
-          <input
-            type="number"
-            min={0.0001}
-            step={0.0001}
-            inputMode="decimal"
-            value={cant}
-            onChange={(e) => {
-              const raw = e.target.value.replace(/,/g, ".");
-              const parsed = parseFloat(raw);
-              const next = Number.isFinite(parsed) && parsed > 0 ? roundToPrecision(parsed) : 1;
-              updateLinea(x._idx, { cantidad: next });
-            }}
-            onClick={(ev) => ev.stopPropagation()}
-            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
-          />
-        );
-      },
+      render: (x) => (
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={Math.max(1, Math.floor(Number(x.cantidad) || 1))}
+          onChange={(e) => updateLinea(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+          onClick={(ev) => ev.stopPropagation()}
+          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+        />
+      ),
     },
     {
       key: "precio_sin_igv",
@@ -778,16 +768,10 @@ export function ServiciosSolicitadosSection({
                             <span className="text-(--color-text-secondary)">Cantidad</span>
                             <input
                               type="number"
-                              min={0.0001}
-                              step={0.0001}
-                              inputMode="decimal"
-                              value={Number.isFinite(item.cantidad) && (item.cantidad ?? 0) > 0 ? (item.cantidad ?? 1) : 1}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/,/g, ".");
-                                const parsed = parseFloat(raw);
-                                const next = Number.isFinite(parsed) && parsed > 0 ? roundToPrecision(parsed) : 1;
-                                updateLinea(item._idx, { cantidad: next });
-                              }}
+                              min={1}
+                              step={1}
+                              value={Math.max(1, Math.floor(Number(item.cantidad) || 1))}
+                              onChange={(e) => updateLinea(item._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                               onClick={(ev) => ev.stopPropagation()}
                               className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
                             />
@@ -853,8 +837,8 @@ export function ServiciosSolicitadosSection({
             </div>
           </div>
 
-          {/* Tabla resumen solo lectura (detalle para reporte). Mismo tamaño de texto que el resto de la ventana; responsive como Servicios finales. */}
-          {finalRows.length > 0 && (() => {
+          {/* Detalle para reporte: solo para tarifarios con copago (no Particular/Privado). */}
+          {!tarifaEsPrecioDirecto && finalRows.length > 0 && (() => {
             const hasDescuento = finalRows.some((r) => (r.descuento_pct ?? 0) > 0);
             const hasAumento = finalRows.some((r) => (r.aumento_pct ?? 0) > 0);
             /* Formato contabilidad: S/. en posición fija, número a la derecha (igual que Servicios finales / Excel). */
@@ -895,7 +879,7 @@ export function ServiciosSolicitadosSection({
                       </thead>
                       <tbody>
                         {finalRows.map((item, i) => {
-                          const cant = Math.max(0, item.cantidad ?? 1);
+                          const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
                           const importeSinIgv = (item.precio_sin_igv ?? 0) as number;
                           const precioUnitarioTarifario = item.precio_unitario_tarifario_sin_igv != null
                             ? Number(item.precio_unitario_tarifario_sin_igv)
@@ -944,7 +928,7 @@ export function ServiciosSolicitadosSection({
                 {/* Móvil / tablet: cards como Servicios finales */}
                 <div className="lg:hidden space-y-2">
                   {finalRows.map((item, i) => {
-                    const cant = Math.max(0, item.cantidad ?? 1);
+                    const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
                     const importeSinIgv = (item.precio_sin_igv ?? 0) as number;
                     const precioUnitarioTarifario = item.precio_unitario_tarifario_sin_igv != null
                       ? Number(item.precio_unitario_tarifario_sin_igv)
