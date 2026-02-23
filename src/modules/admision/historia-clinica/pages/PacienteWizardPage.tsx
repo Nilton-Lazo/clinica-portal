@@ -15,11 +15,31 @@ import {
   type PacienteFormCatalogos,
   type PacienteFull,
 } from "../wizard/types";
+import type { ApiError } from "../../../../shared/api/apiError";
 import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
+import NoticeBanner, { type Notice } from "../components/NoticeBanner";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
+
+function isApiError(e: unknown): e is ApiError {
+  return typeof e === "object" && e !== null && "kind" in e && "message" in e;
+}
+
+function messageFromError(e: unknown): string {
+  if (isApiError(e)) {
+    if (e.kind === "validation" && e.errors && Object.keys(e.errors).length > 0) {
+      const first = Object.entries(e.errors)[0];
+      const field = first[0];
+      const msgs = first[1];
+      const detail = Array.isArray(msgs) ? msgs[0] : String(msgs);
+      return detail ? `${e.message}: ${field} — ${detail}` : e.message;
+    }
+    return e.message;
+  }
+  return "No se pudo guardar. Intenta de nuevo.";
+}
 
 function stepFromPath(pathname: string): StepKey | null {
   if (pathname.includes("/datos-generales")) return "datos-generales";
@@ -137,6 +157,7 @@ function WizardInner({
 }) {
   const navigate = useNavigate();
   const { state, actions, derived } = usePacienteWizard();
+  const [notice, setNotice] = useState<Notice>(null);
 
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
 
@@ -153,12 +174,12 @@ function WizardInner({
     const tipo = String((d as unknown as { tipo_documento?: unknown })?.tipo_documento ?? "").trim().toUpperCase();
     if (!tipo) return false;
 
-    if (tipo === "SIN_DOCUMENTO") return true;
-
     const parentesco = String((d as unknown as { parentesco_seguro?: unknown })?.parentesco_seguro ?? "").trim();
     const titular = String((d as unknown as { titular_nombre?: unknown })?.titular_nombre ?? "").trim();
     if (!parentesco) return false;
     if (!titular) return false;
+
+    if (tipo === "SIN_DOCUMENTO") return true;
 
     const nd = String((d as unknown as { numero_documento?: unknown })?.numero_documento ?? "").trim();
     const n = String((d as unknown as { nombres?: unknown })?.nombres ?? "").trim();
@@ -178,6 +199,7 @@ function WizardInner({
   };
 
   const save = async () => {
+    setNotice(null);
     actions.markSaving(true);
     try {
       const payload = buildPacientePayload(state.draft);
@@ -193,9 +215,13 @@ function WizardInner({
       const nextDraft = mapPacienteToDraft(saved);
       actions.markSaved(nextDraft);
 
+      setNotice({ type: "success", text: "Paciente guardado correctamente." });
+
       if (!((state.draft as unknown as { id?: unknown })?.id)) {
         navigate(`/admision/historia-clinica/${saved.id}/datos-generales`, { replace: true });
       }
+    } catch (e) {
+      setNotice({ type: "error", text: messageFromError(e) });
     } finally {
       actions.markSaving(false);
     }
@@ -204,6 +230,9 @@ function WizardInner({
 
   return (
     <div className="space-y-4">
+      {notice ? (
+        <NoticeBanner notice={notice} onClose={() => setNotice(null)} />
+      ) : null}
       <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">

@@ -75,9 +75,10 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
     setFormError(null);
     setFieldErrors({});
-
     if (!validate()) return;
 
     setLoading(true);
@@ -94,9 +95,10 @@ export default function LoginPage() {
       const message =
         typeof err === "object" && err && "message" in err
           ? String((err as { message: unknown }).message)
-          : "Credenciales inválidas.";
+          : "Credenciales incorrectas.";
 
       setFormError(message);
+      setPassword("");
     } finally {
       setLoading(false);
     }
