@@ -44,7 +44,7 @@ export type TarifaServiciosBusquedaMeta = {
 };
 
 export async function getIgvPorcentaje(): Promise<number> {
-  const res = await api.get<{ igv_porcentaje: number }>("/admision/ficheros/parametros/igv");
+  const res = await api.get<{ igv_porcentaje: number }>("/ficheros/parametros/igv");
   return res.igv_porcentaje ?? 18;
 }
 
@@ -69,6 +69,6 @@ export async function buscarServiciosTarifa(
   });
   const qs = sp.toString() ? `?${sp.toString()}` : "";
   return api.get<{ data: TarifaServicioBusqueda[]; meta: TarifaServiciosBusquedaMeta }>(
-    `/admision/ficheros/tarifas/${tarifaId}/servicios${qs}`
+    `/ficheros/tarifas/${tarifaId}/servicios${qs}`
   );
 }

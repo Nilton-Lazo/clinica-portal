@@ -1,12 +1,20 @@
 import type { PaginationMeta } from "../types/pagination";
 
+const defaultMeta: PaginationMeta = {
+  current_page: 1,
+  per_page: 25,
+  total: 0,
+  last_page: 1,
+};
+
 export function PaginationFooter(props: {
-  meta: PaginationMeta;
+  meta?: PaginationMeta | null;
   variant: "desktop" | "mobile";
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const { meta, variant, onPrev, onNext } = props;
+  const { variant, onPrev, onNext } = props;
+  const meta = props.meta ?? defaultMeta;
 
   const page = meta.current_page;
   const last = meta.last_page;

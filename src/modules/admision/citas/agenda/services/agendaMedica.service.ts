@@ -128,3 +128,25 @@ export async function getPacienteAgenda(id: number): Promise<PacienteAgenda> {
     iafas: uniqueIafas,
   };
 }
+
+export type AgendaInitData = {
+  opciones: {
+    especialidades: AgendaEspecialidadOption[];
+    medicos: AgendaMedicoOption[];
+  };
+  citas: {
+    paginator: AgendaCitasPaginated | null;
+    programacion: AgendaProgramacion | null;
+  } | null;
+  slots: AgendaSlotsResponse | null;
+  programacion: AgendaProgramacion | null;
+  defaults: {
+    especialidad_id: number | null;
+    medico_id: number | null;
+  };
+};
+
+export async function getAgendaInitData(fecha: string): Promise<{ data: AgendaInitData }> {
+  return api.get(`/admision/citas/agenda-medica/init?fecha=${fecha}`);
+}
+

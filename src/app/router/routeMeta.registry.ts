@@ -3,13 +3,15 @@ import type { RouteMeta } from "./routeMeta.types";
 import { authMeta } from "../../modules/login/meta";
 import { inicioMeta } from "../../modules/inicio/meta";
 import { facturacionMeta } from "../../modules/facturacion/meta";
-import { admisionMeta } from "../../modules/admision/meta"
+import { admisionMeta } from "../../modules/admision/meta";
+import { ficherosMeta } from "../../modules/ficheros/meta";
 
 export const ROUTE_META: Record<string, RouteMeta> = {
   ...authMeta,
   ...inicioMeta,
   ...facturacionMeta,
   ...admisionMeta,
+  ...ficherosMeta,
 };
 
 type Entry = [pattern: string, meta: RouteMeta];

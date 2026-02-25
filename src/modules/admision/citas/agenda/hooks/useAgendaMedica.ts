@@ -14,11 +14,13 @@ import type {
 import {
   anularAgendaCita,
   createAgendaCita,
+  getAgendaInitData,
   getAgendaOpciones,
   getAgendaSlots,
   getPacienteAgenda,
   listAgendaCitas,
 } from "../services/agendaMedica.service";
+import type { AgendaInitData } from "../services/agendaMedica.service";
 import { toApiError } from "../../../../../shared/api/apiError";
 
 type Notice = { type: "success" | "error"; text: string } | null;
@@ -51,7 +53,7 @@ export function useAgendaMedica() {
   /** Número de respuestas de slots para las que NO resetear contadores (vuelta de Buscar paciente; evita que un 2.º .then por Strict Mode limpie la Hora). */
   const preserveVisibleCountersRef = React.useRef(0);
 
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(new Date());
   const selectedDateStr = React.useMemo(() => (selectedDate ? ymd(selectedDate) : ""), [selectedDate]);
 
   const [especialidadId, setEspecialidadId] = React.useState<number | null>(null);
@@ -59,6 +61,7 @@ export function useAgendaMedica() {
 
   const [especialidadesList, setEspecialidadesList] = React.useState<AgendaEspecialidadOption[]>([]);
   const [medicosList, setMedicosList] = React.useState<AgendaMedicoOption[]>([]);
+  const [initLoading, setInitLoading] = React.useState(true);
   const [opcionesLoading, setOpcionesLoading] = React.useState(false);
   const [medicosLoading, setMedicosLoading] = React.useState(false);
 
@@ -183,23 +186,45 @@ export function useAgendaMedica() {
     (slots?.slots_adicional ?? []).every((h) => takenSet.has(h));
   const canAddExtra = baseFull && adicionalesAllTaken && extraVisible < extrasTotal;
 
-  // Cargar especialidades solo cuando hay fecha seleccionada.
+  // Carga inicial consolidada: no vaciar listas/selección al iniciar para evitar parpadeo.
   React.useEffect(() => {
     if (!selectedDateStr) {
       setEspecialidadesList([]);
       setMedicosList([]);
       setEspecialidadId(null);
       setMedicoId(null);
+      setSlots(null);
+      setProgramacion(null);
+      setData({ data: [], meta: { current_page: 1, per_page: perPage, total: 0, last_page: 1 } });
+      setInitLoading(false);
       return;
     }
-    setOpcionesLoading(true);
-    setMedicosList([]);
-    setMedicoId(null);
-    getAgendaOpciones({ fecha: selectedDateStr })
-      .then((data) => {
-        setEspecialidadesList(data.especialidades);
-        const ids = data.especialidades.map((e) => e.id);
-        setEspecialidadId((prev) => (prev !== null && ids.includes(prev) ? prev : data.especialidades[0]?.id ?? null));
+
+    setInitLoading(true);
+    setLoading(true);
+    getAgendaInitData(selectedDateStr)
+      .then((res) => {
+        const d = res.data;
+        setEspecialidadesList(d.opciones.especialidades);
+        setMedicosList(d.opciones.medicos);
+        setEspecialidadId(d.defaults.especialidad_id);
+        setMedicoId(d.defaults.medico_id);
+        setSlots(d.slots);
+        setProgramacion(d.programacion);
+        if (d.citas?.paginator) {
+          const paginator = d.citas.paginator as any;
+          setData({
+            data: paginator.data ?? [],
+            meta: {
+              current_page: paginator.current_page ?? 1,
+              per_page: paginator.per_page ?? perPage,
+              total: paginator.total ?? 0,
+              last_page: paginator.last_page ?? 1,
+            },
+          });
+        } else {
+          setData({ data: [], meta: { current_page: 1, per_page: perPage, total: 0, last_page: 1 } });
+        }
       })
       .catch((e) => {
         const err = toApiError(e);
@@ -207,19 +232,25 @@ export function useAgendaMedica() {
           err.kind === "validation"
             ? Object.values(err.errors).flat()[0] ?? err.message
             : err.message;
-        setNotice({ type: "error", text: msg || "No se pudieron cargar servicios programados." });
+        setNotice({ type: "error", text: msg || "No se pudo cargar la agenda." });
+        // Limpiar todo en caso de error
         setEspecialidadesList([]);
+        setMedicosList([]);
         setEspecialidadId(null);
+        setMedicoId(null);
+        setSlots(null);
+        setProgramacion(null);
+        setData({ data: [], meta: { current_page: 1, per_page: perPage, total: 0, last_page: 1 } });
       })
-      .finally(() => setOpcionesLoading(false));
-  }, [selectedDateStr, reloadFlag]);
+      .finally(() => {
+        setInitLoading(false);
+        setLoading(false); // Desactiva el spinner principal
+      });
+  }, [selectedDateStr, reloadFlag, perPage]);
 
-  // Cargar médicos cuando hay fecha y servicio seleccionado; por defecto se selecciona el primero.
-  // Al cambiar de servicio, limpiar médico de inmediato para no llamar a slots con (fecha, nuevoServicio, médicoViejo).
+  // Cargar médicos cuando la especialidad cambia MANUALMENTE
   React.useEffect(() => {
-    if (!selectedDateStr || especialidadId === null) {
-      setMedicosList([]);
-      setMedicoId(null);
+    if (initLoading || !selectedDateStr || especialidadId === null) {
       return;
     }
     setMedicosList([]);
@@ -228,24 +259,20 @@ export function useAgendaMedica() {
     getAgendaOpciones({ fecha: selectedDateStr, especialidad_id: especialidadId })
       .then((data) => {
         setMedicosList(data.medicos);
-        const ids = data.medicos.map((m) => m.id);
-        setMedicoId((prev) => (prev !== null && ids.includes(prev) ? prev : data.medicos[0]?.id ?? null));
+        setMedicoId(data.medicos[0]?.id ?? null);
       })
       .catch((e) => {
         const err = toApiError(e);
-        const msg =
-          err.kind === "validation"
-            ? Object.values(err.errors).flat()[0] ?? err.message
-            : err.message;
-        setNotice({ type: "error", text: msg || "No se pudieron cargar médicos programados." });
+        setNotice({ type: "error", text: err.message || "No se pudieron cargar médicos programados." });
         setMedicosList([]);
         setMedicoId(null);
       })
       .finally(() => setMedicosLoading(false));
-  }, [selectedDateStr, especialidadId, reloadFlag]);
+  }, [selectedDateStr, especialidadId, initLoading]);
 
+  // Cargar slots y citas cuando el médico cambia MANUALMENTE
   React.useEffect(() => {
-    if (!selectedDateStr || !especialidadId || !medicoId) {
+    if (initLoading || !selectedDateStr || !especialidadId || !medicoId) {
       setSlots(null);
       setProgramacion(null);
       setData({ data: [], meta: { current_page: 1, per_page: perPage, total: 0, last_page: 1 } });
@@ -257,40 +284,15 @@ export function useAgendaMedica() {
       .then((res) => {
         setSlots(res);
         setProgramacion(res.programacion ?? null);
-        if (preserveVisibleCountersRef.current > 0) {
-          preserveVisibleCountersRef.current -= 1;
-        } else {
-          const taken = new Set((res.slots_tomados ?? []).map((h) => (String(h).length >= 5 ? String(h).slice(0, 5) : String(h))));
-          const adicionales = res.slots_adicional ?? [];
-          const extras = res.slots_extra ?? [];
-          const allAdicionalTaken = adicionales.length > 0 && adicionales.every((h) => taken.has(String(h).slice(0, 5)));
-          const allExtraTaken = extras.length > 0 && extras.every((h) => taken.has(String(h).slice(0, 5)));
-          setAdicionalVisible(allAdicionalTaken ? adicionales.length : 0);
-          setExtraVisible(allExtraTaken ? extras.length : 0);
-        }
       })
       .catch((e) => {
         const err = toApiError(e);
-        const msg =
-          err.kind === "validation"
-            ? Object.values(err.errors).flat()[0] ?? err.message
-            : err.message;
-        setNotice({ type: "error", text: msg || "No se pudieron cargar los slots." });
+        setNotice({ type: "error", text: err.message || "No se pudieron cargar los slots." });
         setSlots(null);
         setProgramacion(null);
       })
       .finally(() => setSlotsLoading(false));
-  }, [selectedDateStr, especialidadId, medicoId, reloadFlag]);
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [selectedDateStr, especialidadId, medicoId, perPage, estadoAtencionFilter]);
-
-  React.useEffect(() => {
-    if (!selectedDateStr || !especialidadId || !medicoId) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     listAgendaCitas({
       fecha: selectedDateStr,
@@ -302,18 +304,20 @@ export function useAgendaMedica() {
     })
       .then((res) => {
         setData(res.data);
-        setProgramacion(res.programacion ?? programacion);
+        setProgramacion((p) => res.programacion ?? p);
       })
       .catch((e) => {
         const err = toApiError(e);
-        const msg =
-          err.kind === "validation"
-            ? Object.values(err.errors).flat()[0] ?? err.message
-            : err.message;
-        setNotice({ type: "error", text: msg || "No se pudieron cargar las citas." });
+        setNotice({ type: "error", text: err.message || "No se pudieron cargar las citas." });
       })
       .finally(() => setLoading(false));
-  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, reloadFlag]);
+  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, initLoading]);
+
+  React.useEffect(() => {
+    if (!initLoading) {
+      setPage(1);
+    }
+  }, [selectedDateStr, especialidadId, medicoId, perPage, estadoAtencionFilter, initLoading]);
 
   const resetForm = React.useCallback(() => {
     setHora("");
@@ -536,6 +540,7 @@ export function useAgendaMedica() {
     medicosList,
     opcionesLoading,
     medicosLoading,
+    initLoading,
     especialidadOptions,
     medicoOptions,
     slots,

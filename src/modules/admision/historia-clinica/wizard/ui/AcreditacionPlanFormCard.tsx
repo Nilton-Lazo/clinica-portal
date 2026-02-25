@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { AcreditacionPlan, RecordStatus, TipoClienteLookup } from "../acreditacionPlanes.types";
-import { StatusBadge } from "../../../ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
 import type { Mode } from "../useAcreditacionPlanes";
 import { Calendar } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";

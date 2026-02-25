@@ -1,7 +1,7 @@
 import type { ProgramacionMedica, ProgramacionMedicaPaginated } from "../../types/programacionMedica.types";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
-import { StatusBadge } from "../../../ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
 import { dmyFromYmdString } from "../../utils/programacionMedica.utils";
 
 function medicoText(x: ProgramacionMedica) {

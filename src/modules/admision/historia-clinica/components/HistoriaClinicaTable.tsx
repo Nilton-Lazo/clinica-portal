@@ -1,7 +1,7 @@
 import type { PacienteListItem, PaginatedResponse } from "../types/historiaClinica.types";
 import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
-import { StatusBadge } from "../../ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 
 function formatDMY(iso?: string | null): string {
   if (!iso) return "—";

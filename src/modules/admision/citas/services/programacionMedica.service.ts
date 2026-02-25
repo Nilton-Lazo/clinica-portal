@@ -242,25 +242,25 @@ export function programacionMedicaService() {
 
     async listMedicosActivos(): Promise<MedicoLookup[]> {
       const qs = new URLSearchParams({ status: "ACTIVO", per_page: "100", page: "1" }).toString();
-      const res = await api.get<unknown>(`/admision/ficheros/medicos?${qs}`);
+      const res = await api.get<unknown>(`/ficheros/medicos?${qs}`);
       return normalizeLookupList<MedicoLookup>(res, normalizeMedico);
     },
 
     async listEspecialidadesActivas(): Promise<EspecialidadLookup[]> {
       const qs = new URLSearchParams({ status: "ACTIVO", per_page: "100", page: "1" }).toString();
-      const res = await api.get<unknown>(`/admision/ficheros/especialidades?${qs}`);
+      const res = await api.get<unknown>(`/ficheros/especialidades?${qs}`);
       return normalizeLookupList<EspecialidadLookup>(res, normalizeEspecialidad);
     },
 
     async listConsultoriosActivos(): Promise<ConsultorioLookup[]> {
       const qs = new URLSearchParams({ status: "ACTIVO", per_page: "100", page: "1" }).toString();
-      const res = await api.get<unknown>(`/admision/ficheros/consultorios?${qs}`);
+      const res = await api.get<unknown>(`/ficheros/consultorios?${qs}`);
       return normalizeLookupList<ConsultorioLookup>(res, normalizeConsultorio);
     },
 
     async listTurnosActivos(): Promise<TurnoLookup[]> {
       const qs = new URLSearchParams({ status: "ACTIVO", per_page: "100", page: "1" }).toString();
-      const res = await api.get<unknown>(`/admision/ficheros/turnos?${qs}`);
+      const res = await api.get<unknown>(`/ficheros/turnos?${qs}`);
       return normalizeLookupList<TurnoLookup>(res, normalizeTurno);
     },
   };

@@ -7,7 +7,7 @@ import AcreditacionPlanesToolbar from "../../wizard/ui/AcreditacionPlanesToolbar
 import AcreditacionPlanesTable from "../../wizard/ui/AcreditacionPlanesTable";
 import AcreditacionPlanesMobileList from "../../wizard/ui/AcreditacionPlanesMobileList";
 import AcreditacionPlanFormCard from "../../wizard/ui/AcreditacionPlanFormCard";
-import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {

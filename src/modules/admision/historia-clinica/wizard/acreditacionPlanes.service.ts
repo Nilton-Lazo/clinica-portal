@@ -130,7 +130,7 @@ export async function listTiposClientesLookup(): Promise<TipoClienteLookup[]> {
   const res = await api.get<{
     data: TipoClienteApi[];
     meta: { current_page: number; per_page: number; total: number; last_page: number };
-  }>(`/admision/ficheros/tipos-clientes?page=1&per_page=100&status=ACTIVO`);
+  }>(`/ficheros/tipos-clientes?page=1&per_page=100&status=ACTIVO`);
 
   return (res.data ?? [])
     .map((x) => ({
@@ -147,7 +147,7 @@ export async function listIafasLookup(): Promise<IafaLookup[]> {
   const res = await api.get<{
     data: IafaApi[];
     meta: { current_page: number; per_page: number; total: number; last_page: number };
-  }>(`/admision/ficheros/iafas?page=1&per_page=200&status=ACTIVO`);
+  }>(`/ficheros/iafas?page=1&per_page=200&status=ACTIVO`);
 
   return (res.data ?? [])
     .map((x) => ({
@@ -163,7 +163,7 @@ export async function listContratantesLookup(): Promise<ContratanteLookup[]> {
   const res = await api.get<{
     data: ContratanteApi[];
     meta: { current_page: number; per_page: number; total: number; last_page: number };
-  }>(`/admision/ficheros/contratantes?page=1&per_page=200&status=ACTIVO`);
+  }>(`/ficheros/contratantes?page=1&per_page=200&status=ACTIVO`);
 
   return (res.data ?? [])
     .map((x) => ({

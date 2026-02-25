@@ -31,7 +31,7 @@ function toQuery(params: Record<string, unknown>): string {
 
 export const acreditacionService = {
   tiposClientes(filters: TipoClienteFilters = {}): Promise<PaginatedResponse<TipoClienteListItem>> {
-    const url = `/admision/ficheros/tipos-clientes${toQuery(filters as Record<string, unknown>)}`;
+    const url = `/ficheros/tipos-clientes${toQuery(filters as Record<string, unknown>)}`;
     return api.get(url);
   },
 

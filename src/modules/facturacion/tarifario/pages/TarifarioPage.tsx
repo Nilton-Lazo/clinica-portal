@@ -7,7 +7,7 @@ import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
 import { useTarifario } from "../hooks/useTarifario";
 import type { TarifaTreeCategoria } from "../types/tarifario.types";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { StatusBadge } from "../../../admision/ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { formatPrecioUnidad } from "../../../../shared/constants/decimalPrecision";
 
 const gestionOptions = [

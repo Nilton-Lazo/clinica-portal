@@ -90,23 +90,6 @@ import {
       ],
     },
     {
-      id: "ficheros",
-      title: "Ficheros",
-      description: "Gestiona archivos clínicos",
-      icon: Folder,
-      to: "/admision/ficheros",
-      actions: [
-        {
-          id: "principal",
-          label: "Ficheros principal",
-          to: "/admision/ficheros/especialidades",
-        },
-        { id: "pacientes", label: "Pacientes", to: "/admision/ficheros/pacientes" },
-        { id: "medicos", label: "Médicos", to: "/admision/ficheros/medicos" },
-        { id: "especialidades", label: "Especialidades", to: "/admision/ficheros/especialidades" },
-      ],
-    },
-    {
       id: "caja",
       title: "Caja",
       description: "Controla operaciones de caja",

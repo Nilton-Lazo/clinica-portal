@@ -1,7 +1,7 @@
 import type { PacienteListItem, PaginatedResponse } from "../types/historiaClinica.types";
 import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
-import { StatusBadge } from "../../ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 
 export default function HistoriaClinicaMobileList(props: {
   data: PaginatedResponse<PacienteListItem>;

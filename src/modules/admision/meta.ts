@@ -23,44 +23,6 @@ export const admisionMeta: Record<string, RouteMeta> = {
         ],
     },
 
-    "/admision/ficheros": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [
-            { label: "Admisión", path: "/admision" },
-            { label: "Ficheros" },
-        ],
-    },
-
-    "/admision/ficheros/especialidades": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [
-            { label: "Admisión", path: "/admision" },
-            { label: "Ficheros", path: "/admision/ficheros" },
-            { label: "Especialidades" },
-        ],
-    },
-
-    "/admision/ficheros/parametros/igv": {
-        title: "Ficheros",
-        subtitle: "Configuración de parámetros del sistema.",
-        breadcrumb: [
-            { label: "Admisión", path: "/admision" },
-            { label: "Ficheros", path: "/admision/ficheros" },
-            { label: "IGV" },
-        ],
-    },
-    "/admision/ficheros/parametros/recargo-noche": {
-        title: "Ficheros",
-        subtitle: "Recargo nocturno por tarifario y categoría.",
-        breadcrumb: [
-            { label: "Admisión", path: "/admision" },
-            { label: "Ficheros", path: "/admision/ficheros" },
-            { label: "Recargo nocturno" },
-        ],
-    },
-
     "/admision/citas/programacion": {
         title: "Programación medica",
         subtitle: "Planificación y control de la atención médica según disponibilidad y especialidad",

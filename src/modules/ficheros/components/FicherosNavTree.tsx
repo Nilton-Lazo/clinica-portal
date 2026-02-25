@@ -1,0 +1,122 @@
+import { NavLink, useLocation } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+
+type Item = { label: string; to: string; disabled?: boolean };
+type Group = { label: string; items: Item[] };
+
+const groups: Group[] = [
+  {
+    label: "Configuración clínica",
+    items: [
+      { label: "Especialidades", to: "/ficheros/especialidades" },
+      { label: "Consultorios", to: "/ficheros/consultorios" },
+      { label: "Médicos", to: "/ficheros/medicos"},
+      { label: "Turnos", to: "/ficheros/turnos"},
+    ],
+  },
+  {
+    label: "Aseguradoras y planes",
+    items: [
+      { label: "Tipos de IAFAS", to: "/ficheros/tipos-iafas"},
+      { label: "IAFAS", to: "/ficheros/iafas"},
+      { label: "Contratantes", to: "/ficheros/contratantes"},
+      { label: "Tarifas", to: "/ficheros/tarifas"},
+      { label: "Tipos de clientes", to: "/ficheros/tipos-clientes"},
+    ],
+  },
+  {
+    label: "Parámetros",
+    items: [
+      { label: "IGV", to: "/ficheros/parametros/igv" },
+      { label: "Recargo nocturno", to: "/ficheros/parametros/recargo-noche" },
+    ],
+  },
+];
+
+export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
+  const { pathname } = useLocation();
+
+  const activeGroupLabel = useMemo(() => {
+    for (const g of groups) {
+      if (g.items.some((it) => pathname.startsWith(it.to))) return g.label;
+    }
+    return groups[0]?.label ?? "";
+  }, [pathname]);
+
+  const [openByLabel, setOpenByLabel] = useState<Record<string, boolean>>({});
+
+  return (
+    <div className="space-y-2">
+      {groups.map((g) => {
+        const isActiveGroup = g.label === activeGroupLabel;
+        const open = openByLabel[g.label] ?? isActiveGroup;
+
+        return (
+          <div key={g.label} className="rounded-2xl">
+            <button
+              type="button"
+              onClick={() =>
+                setOpenByLabel((prev) => ({
+                  ...prev,
+                  [g.label]: !(prev[g.label] ?? isActiveGroup),
+                }))
+              }
+              className={[
+                "flex w-full items-center justify-between rounded-xl px-2 py-2 text-left",
+                "text-sm font-semibold text-(--color-text-primary)",
+                "hover:bg-(--color-surface-hover) transition-colors",
+              ].join(" ")}
+              aria-expanded={open}
+            >
+              <span className="min-w-0 truncate">{g.label}</span>
+              {open ? (
+                <ChevronDown className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
+              ) : (
+                <ChevronRight className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
+              )}
+            </button>
+
+            <div
+              className={[
+                "grid transition-[grid-template-rows] duration-200 ease-out",
+                open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+              ].join(" ")}
+            >
+              <div className="overflow-hidden">
+                <div className="mt-1 space-y-1 pl-2">
+                  {g.items.map((it) =>
+                    it.disabled ? (
+                      <div
+                        key={it.to}
+                        className="cursor-not-allowed rounded-xl px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
+                      >
+                        {it.label}
+                      </div>
+                    ) : (
+                      <NavLink
+                        key={it.to}
+                        to={it.to}
+                        onClick={onNavigate}
+                        className={({ isActive }) =>
+                          [
+                            "block rounded-xl px-3 py-2 text-sm transition-colors",
+                            isActive
+                              ? "bg-(--color-primary) text-(--color-text-inverse)"
+                              : "text-(--color-text-primary) hover:bg-(--color-surface-hover)",
+                          ].join(" ")
+                        }
+                      >
+                        {it.label}
+                      </NavLink>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

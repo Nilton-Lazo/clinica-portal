@@ -33,5 +33,5 @@ export const catalogoPacienteService = {
   ubigeos: () => api.get<ListResponse<UbigeoItem>>(`/admision/catalogos/ubigeos`),
   paisesAll: () => fetchAllPages<PaisItem>(`/admision/catalogos/paises`),
   ubigeosAll: () => fetchAllPages<UbigeoItem>(`/admision/catalogos/ubigeos`),
-  medicosActivos: () => api.get<MedicosPage>(`/admision/ficheros/medicos?status=ACTIVO&per_page=100&page=1`),
+  medicosActivos: () => api.get<MedicosPage>(`/ficheros/medicos?status=ACTIVO&per_page=100&page=1`),
 };

@@ -4,8 +4,8 @@ import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu"
 import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
 import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
-import { ConfirmDialog } from "../../../admision/ficheros/components/ConfirmDialog";
-import { StatusBadge } from "../../../admision/ficheros/components/StatusBadge";
+import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../shared/api/apiError";
@@ -829,6 +829,25 @@ function useServiciosCrud(tarifaId: number | null) {
     lookupGruposServicio().then(setGrupos).catch(() => {});
   }, []);
 
+  /** Lista para dropdowns: prioridad a grupos_servicio (API); si viene vacía, se completan con los que aparecen en servicios cargados. */
+  const gruposOpciones = React.useMemo(() => {
+    const byCode = new Map<string, GrupoServicioLookup>();
+    grupos.forEach((g) => byCode.set(g.codigo, g));
+    if (byCode.size === 0) {
+      (data?.data ?? []).forEach((s) => {
+        if (s.grupo_codigo && String(s.grupo_codigo).trim() && !byCode.has(s.grupo_codigo)) {
+          byCode.set(s.grupo_codigo, {
+            id: 0,
+            codigo: s.grupo_codigo,
+            descripcion: s.grupo_descripcion || s.grupo_codigo,
+            abrev: s.grupo_abrev ?? null,
+          });
+        }
+      });
+    }
+    return Array.from(byCode.values()).sort((a, b) => (a.descripcion || "").localeCompare(b.descripcion || ""));
+  }, [grupos, data?.data]);
+
   React.useEffect(() => {
     if (!tarifaId) return;
     lookupCategorias(tarifaId, false)
@@ -1249,7 +1268,7 @@ function useServiciosCrud(tarifaId: number | null) {
     setGrupoCodigo,
     deseaLiberarPrecio,
     setDeseaLiberarPrecio,
-    grupos,
+    gruposOpciones,
     isValid,
     isDirty,
     canDeactivate,
@@ -1929,9 +1948,9 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
                 options={[
                   { value: "", label: "Todos los grupos" },
-                  ...vm.grupos.map((g) => ({ value: g.codigo, label: g.descripcion })),
+                  ...vm.gruposOpciones.map((g) => ({ value: g.codigo, label: g.descripcion })),
                 ]}
-                ariaLabel="Grupo"
+                ariaLabel="Filtrar por grupo"
                 buttonClassName="h-10 w-full min-w-[120px] sm:w-fit"
                 menuClassName="w-full"
               />
@@ -2117,7 +2136,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                     onChange={(v) => vm.setGrupoCodigo(v ? v : null)}
                     options={[
                       { value: "", label: "Sin grupo" },
-                      ...vm.grupos.map((g) => ({ value: g.codigo, label: g.descripcion })),
+                      ...vm.gruposOpciones.map((g) => ({ value: g.codigo, label: g.descripcion })),
                     ]}
                     ariaLabel="Grupo del servicio"
                     buttonClassName="w-full"

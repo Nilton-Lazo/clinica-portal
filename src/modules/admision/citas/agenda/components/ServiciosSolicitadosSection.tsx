@@ -1,9 +1,9 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton, DangerButton } from "../../../../../shared/ui/buttons";
-import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
 import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
@@ -33,13 +33,6 @@ function calcularPrecios(
 /** Código de categoría "Consultas Médicas": habilita copago fijo y deshabilita copago variable. */
 const CATEGORIA_CONSULTAS_MEDICAS_CODIGO = "50";
 
-/** Convierte copago fijo (soles con IGV) a sin IGV. Precisión 4 decimales. */
-function copagoFijoConIgvToSinIgv(copFijoConIgv: number, igvPct: number): number {
-  if (copFijoConIgv <= 0) return 0;
-  const factor = 10 ** 4;
-  return Math.round((copFijoConIgv / (1 + igvPct / 100)) * factor) / factor;
-}
-
 const FACTOR_REDONDO = 10 ** 4;
 
 /**
@@ -63,7 +56,8 @@ function pacientePagaConIgv(
   const esCat50 = (line.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
   if (esCat50) {
     const copFijo = (line.cop_fijo ?? 0) as number;
-    return copFijo > 0 ? Math.round(copFijo * FACTOR_REDONDO) / FACTOR_REDONDO : 0;
+    const cant = Math.max(1, Math.floor(Number(line.cantidad) || 1));
+    return copFijo > 0 ? Math.round(copFijo * cant * FACTOR_REDONDO) / FACTOR_REDONDO : 0;
   }
   const copVar = (line.cop_var ?? 0) as number;
   const pacienteSinIgv = Math.round(importeSinIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO;
@@ -143,6 +137,13 @@ export function ServiciosSolicitadosSection({
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
   const [precioSinIgvEditing, setPrecioSinIgvEditing] = React.useState<{ idx: number; value: string } | null>(null);
   const [copFijoEditing, setCopFijoEditing] = React.useState<{ idx: number; value: string } | null>(null);
+  const [reporteExpandido, setReporteExpandido] = React.useState(false);
+  const reporteSectionRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (reporteExpandido && reporteSectionRef.current) {
+      reporteSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [reporteExpandido]);
 
   const [medicoChangedMessage, setMedicoChangedMessage] = React.useState<{ servicioDesc: string; medicoNombre: string } | null>(null);
   const medicoChangedTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -244,13 +245,18 @@ export function ServiciosSolicitadosSection({
       const next = { ...p, ...upd };
       const puedeLiberarPrecio = Boolean(p.desea_liberar_precio);
 
-      if (puedeLiberarPrecio && "precio_sin_igv" in upd && typeof upd.precio_sin_igv === "number") {
+      if (puedeLiberarPrecio && "precio_con_igv" in upd && typeof upd.precio_con_igv === "number") {
+        const factor = 10 ** PRECISION_DECIMAL;
+        const nuevoConIgv = Math.max(0, upd.precio_con_igv);
+        next.precio_con_igv = Math.round(nuevoConIgv * factor) / factor;
+        next.precio_sin_igv = Math.round((next.precio_con_igv / (1 + igvPct / 100)) * factor) / factor;
+      } else if (puedeLiberarPrecio && "precio_sin_igv" in upd && typeof upd.precio_sin_igv === "number") {
         const nuevoSinIgv = Math.max(0, upd.precio_sin_igv);
         const factor = 10 ** PRECISION_DECIMAL;
         next.precio_sin_igv = Math.round(nuevoSinIgv * factor) / factor;
         const igv = next.precio_sin_igv * (igvPct / 100);
         next.precio_con_igv = Math.round((next.precio_sin_igv + igv) * factor) / factor;
-      } else if (!puedeLiberarPrecio || !("precio_sin_igv" in upd)) {
+      } else if (!puedeLiberarPrecio || (!("precio_sin_igv" in upd) && !("precio_con_igv" in upd))) {
         const factorDesc = Math.max(0.01, 1 - (p.descuento_pct ?? 0) / 100);
         const factorAum = 1 + (p.aumento_pct ?? 0) / 100;
         const precioBase = (p.precio_sin_igv ?? 0) / Math.max(0.001, p.cantidad ?? 1) / factorDesc / factorAum;
@@ -424,8 +430,8 @@ export function ServiciosSolicitadosSection({
       ),
     },
     {
-      key: "precio_sin_igv",
-      header: <span className="whitespace-nowrap">Precio sin IGV</span>,
+      key: "precio_con_igv",
+      header: <span className="whitespace-nowrap">Precio con IGV</span>,
       headerClassName: "text-xs py-1.5 text-center w-28 min-w-[6rem] align-middle",
       cellClassName: "text-xs px-2 py-1.5 text-center whitespace-nowrap align-middle",
       render: (x) =>
@@ -435,23 +441,23 @@ export function ServiciosSolicitadosSection({
             <input
               type="text"
               inputMode="decimal"
-              value={precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_sin_igv ?? 0)}
+              value={precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_con_igv ?? 0)}
               onFocus={(e) => {
                 e.target.select?.();
-                setPrecioSinIgvEditing({ idx: x._idx, value: String(x.precio_sin_igv ?? 0) });
+                setPrecioSinIgvEditing({ idx: x._idx, value: String(x.precio_con_igv ?? 0) });
               }}
               onChange={(e) => {
                 const raw = e.target.value.replace(/,/g, ".");
                 setPrecioSinIgvEditing({ idx: x._idx, value: raw });
                 const parsed = parseFloat(raw);
                 if (raw.trim() === "" || (Number.isFinite(parsed) && parsed >= 0)) {
-                  updateLinea(x._idx, { precio_sin_igv: parsed || 0 });
+                  updateLinea(x._idx, { precio_con_igv: parsed || 0 });
                 }
               }}
               onBlur={() => {
-                const raw = precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_sin_igv ?? 0);
+                const raw = precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_con_igv ?? 0);
                 const v = parseFloat(raw) || 0;
-                updateLinea(x._idx, { precio_sin_igv: v });
+                updateLinea(x._idx, { precio_con_igv: v });
                 setPrecioSinIgvEditing(null);
               }}
               onClick={(ev) => ev.stopPropagation()}
@@ -459,15 +465,8 @@ export function ServiciosSolicitadosSection({
             />
           </div>
         ) : (
-          <PrecioCell valor={x.precio_sin_igv ?? 0} />
+          <PrecioCell valor={x.precio_con_igv ?? 0} />
         ),
-    },
-    {
-      key: "precio_con_igv",
-      header: <span className="whitespace-nowrap">Precio con IGV</span>,
-      headerClassName: "text-xs py-1.5 text-center w-28 min-w-[6rem] align-middle",
-      cellClassName: "text-xs px-2 py-1.5 text-center whitespace-nowrap align-middle",
-      render: (x) => <PrecioCell valor={x.precio_con_igv ?? 0} />,
     },
     { key: "medico", header: "Médico", headerClassName: "text-xs py-1.5 text-center w-20 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center tabular-nums align-middle", render: (x) => getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions) },
     { key: "usuario", header: "Usuario", headerClassName: "text-xs py-1.5 text-center w-28 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center align-middle", render: (x) => (x.user_username ?? x.user_nombre ?? "—") },
@@ -516,6 +515,29 @@ export function ServiciosSolicitadosSection({
   React.useEffect(() => {
     onMontoAPagarChange?.(montoAPagarComputed);
   }, [montoAPagarComputed, onMontoAPagarChange]);
+
+  /** Para tarifarios con copago: total pago aseguradora (con IGV) y filas del reporte con todos los valores con IGV. */
+  const reporteConIgv = React.useMemo(() => {
+    if (tarifaEsPrecioDirecto || finalRows.length === 0) return { totalPagoAseguradora: 0, filas: [] as Array<{ precioUnitarioConIgv: number; importeConIgv: number; copagoVariableConIgv: number | null; copagoFijoConIgv: number | null; pagoAseguradoraConIgv: number | null }>, totalCopVar: 0, totalCopFijo: 0, totalPagoAsegu: 0 };
+    const filas = finalRows.map((item) => {
+      const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
+      const importeConIgv = (item.precio_con_igv ?? 0) as number;
+      const precioUnitarioConIgv = Math.round((importeConIgv / cant) * FACTOR_REDONDO) / FACTOR_REDONDO;
+      const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
+      const copFijoConIgv = (item.cop_fijo ?? 0) as number;
+      const copVar = (item.cop_var ?? 0) as number;
+      const copagoVariableConIgv: number | null = !esCat50 ? Math.round(importeConIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO : null;
+      const copagoFijoConIgv: number | null = esCat50 && copFijoConIgv > 0 ? Math.round(copFijoConIgv * cant * FACTOR_REDONDO) / FACTOR_REDONDO : null;
+      const pagoAseguradoraConIgv: number | null = esCat50 && copFijoConIgv > 0
+        ? Math.round((importeConIgv - copFijoConIgv * cant) * FACTOR_REDONDO) / FACTOR_REDONDO
+        : !esCat50 && copVar >= 0 ? Math.round(importeConIgv * (copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO : null;
+      return { precioUnitarioConIgv, importeConIgv, copagoVariableConIgv, copagoFijoConIgv, pagoAseguradoraConIgv };
+    });
+    const totalCopVar = filas.reduce((s, f) => s + (f.copagoVariableConIgv ?? 0), 0);
+    const totalCopFijo = filas.reduce((s, f) => s + (f.copagoFijoConIgv ?? 0), 0);
+    const totalPagoAsegu = filas.reduce((s, f) => s + (f.pagoAseguradoraConIgv ?? 0), 0);
+    return { totalPagoAseguradora: Math.round(totalPagoAsegu * FACTOR_REDONDO) / FACTOR_REDONDO, filas, totalCopVar, totalCopFijo, totalPagoAsegu };
+  }, [tarifaEsPrecioDirecto, finalRows]);
 
   const estadoFacturacionOptions: SelectOption[] = [
     { value: "", label: "Todos" },
@@ -777,37 +799,33 @@ export function ServiciosSolicitadosSection({
                             />
                           </div>
                           <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Precio s/ IGV</span>
+                            <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
                             {item.desea_liberar_precio ? (
                               <input
                                 type="text"
                                 inputMode="decimal"
-                                value={precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_sin_igv ?? 0)}
-                                onFocus={() => setPrecioSinIgvEditing({ idx: item._idx, value: String(item.precio_sin_igv ?? 0) })}
+                                value={precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_con_igv ?? 0)}
+                                onFocus={() => setPrecioSinIgvEditing({ idx: item._idx, value: String(item.precio_con_igv ?? 0) })}
                                 onChange={(e) => {
                                   const raw = e.target.value.replace(/,/g, ".");
                                   setPrecioSinIgvEditing({ idx: item._idx, value: raw });
                                   const parsed = parseFloat(raw);
                                   if (raw.trim() === "" || (Number.isFinite(parsed) && parsed >= 0)) {
-                                    updateLinea(item._idx, { precio_sin_igv: parsed || 0 });
+                                    updateLinea(item._idx, { precio_con_igv: parsed || 0 });
                                   }
                                 }}
                                 onBlur={() => {
-                                  const raw = precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_sin_igv ?? 0);
+                                  const raw = precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_con_igv ?? 0);
                                   const v = parseFloat(raw) || 0;
-                                  updateLinea(item._idx, { precio_sin_igv: v });
+                                  updateLinea(item._idx, { precio_con_igv: v });
                                   setPrecioSinIgvEditing(null);
                                 }}
                                 onClick={(ev) => ev.stopPropagation()}
                                 className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-right outline-none focus:ring-2 focus:ring-(--color-primary)"
                               />
                             ) : (
-                              <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_sin_igv)}</span>
+                              <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
                             )}
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
-                            <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Médico</span>
@@ -828,202 +846,181 @@ export function ServiciosSolicitadosSection({
               </div>
             )}
           </div>
-          <div className="mt-4 flex justify-end border-t border-(--border-color-default) pt-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar S/.</span>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-(--border-color-default) pt-4">
+            {!tarifaEsPrecioDirecto && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar aseguradora S/.</span>
+                <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
+                  {formatDecimalDisplay(reporteConIgv.totalPagoAseguradora)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar paciente S/.</span>
               <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
                 {formatDecimalDisplay(montoAPagarComputed)}
               </span>
             </div>
           </div>
 
-          {/* Detalle para reporte: solo para tarifarios con copago (no Particular/Privado). */}
-          {!tarifaEsPrecioDirecto && finalRows.length > 0 && (() => {
-            const hasDescuento = finalRows.some((r) => (r.descuento_pct ?? 0) > 0);
-            const hasAumento = finalRows.some((r) => (r.aumento_pct ?? 0) > 0);
-            /* Formato contabilidad: S/. en posición fija, número a la derecha (igual que Servicios finales / Excel). */
-            const renderSoles = (val: number | null) => {
-              if (val == null || (typeof val === "number" && !Number.isFinite(val))) return "—";
-              return (
-                <div className="flex w-full items-baseline gap-0 text-sm">
-                  <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
-                  <span className="min-w-0 flex-1 text-right tabular-nums">{formatDecimalDisplay(val)}</span>
-                </div>
-              );
-            };
-            const thBase = "px-3 py-2 font-semibold align-middle whitespace-normal";
-            const tdBase = "px-3 py-2 align-middle text-sm";
-            const monedaMin = "min-w-[7rem]"; /* Ancho mínimo para alineación contable S/. */
-            return (
-              <div className="mt-6 flex flex-col gap-2 border-l-4 border-(--color-primary) pl-2">
-                <h3 className="text-sm font-medium text-(--color-text-primary)">Detalle para reporte</h3>
-
-                {/* Desktop: tabla completa */}
-                <div className="hidden lg:block rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
-                  <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
-                    <table className="w-full text-sm min-w-[800px]">
-                      <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
-                        <tr>
-                          <th className={`${thBase} text-center`}>Código</th>
-                          <th className={`${thBase} text-left`}>Descripción de servicio</th>
-                          <th className={`${thBase} text-center`}>Cantidad</th>
-                          <th className={`${thBase} text-right ${monedaMin}`}>Precio unitario</th>
-                          <th className={`${thBase} text-right ${monedaMin}`}>Importe sin IGV</th>
-                          <th className={`${thBase} text-right ${monedaMin}`}>Importe con IGV</th>
-                          {hasDescuento && <th className={`${thBase} text-center`}>Descuento</th>}
-                          {hasAumento && <th className={`${thBase} text-center`}>Aumento</th>}
-                          <th className={`${thBase} text-right ${monedaMin}`}>Copago variable</th>
-                          <th className={`${thBase} text-right ${monedaMin}`}>Copago fijo</th>
-                          <th className={`${thBase} text-right ${monedaMin}`}>Pago aseguradora</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {finalRows.map((item, i) => {
-                          const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
-                          const importeSinIgv = (item.precio_sin_igv ?? 0) as number;
-                          const precioUnitarioTarifario = item.precio_unitario_tarifario_sin_igv != null
-                            ? Number(item.precio_unitario_tarifario_sin_igv)
-                            : Math.round((importeSinIgv / Math.max(1, cant)) * FACTOR_REDONDO) / FACTOR_REDONDO;
-                          const importeConIgv = (item.precio_con_igv ?? 0) as number;
-                          const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
-                          const copFijoConIgv = (item.cop_fijo ?? 0) as number;
-                          const copFijoSinIgv = copFijoConIgv > 0 && esCat50 ? copagoFijoConIgvToSinIgv(copFijoConIgv, igvPct) : 0;
-                          const copVar = (item.cop_var ?? 0) as number;
-                          const copagoVariableMonto = !esCat50 ? Math.round(importeSinIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO : null;
-                          const pagoAseguradora = esCat50 && copFijoConIgv > 0
-                            ? Math.round((importeSinIgv - copFijoSinIgv) * FACTOR_REDONDO) / FACTOR_REDONDO
-                            : !esCat50 && copVar >= 0
-                              ? Math.round(importeSinIgv * (copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO
-                              : null;
-                          const descPct = (item.descuento_pct ?? 0) as number;
-                          const aumPct = (item.aumento_pct ?? 0) as number;
-                          return (
-                            <tr
-                              key={item.id ?? `resumen-${i}`}
-                              className="border-t border-(--border-color-default) bg-(--color-surface) hover:bg-(--color-surface-hover)"
-                            >
-                              <td className={`${tdBase} text-center tabular-nums text-(--color-primary)`}>{item.servicio_codigo ?? "—"}</td>
-                              <td className={`${tdBase} text-left text-(--color-text-primary) whitespace-normal`}>{item.servicio_descripcion ?? "—"}</td>
-                              <td className={`${tdBase} text-center tabular-nums`}>{formatDecimalDisplay(cant)}</td>
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(precioUnitarioTarifario)}</td>
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(importeSinIgv)}</td>
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(importeConIgv)}</td>
-                              {hasDescuento && (
-                                <td className={`${tdBase} text-center tabular-nums`}>{descPct === 0 ? "—" : `${descPct}%`}</td>
-                              )}
-                              {hasAumento && (
-                                <td className={`${tdBase} text-center tabular-nums`}>{aumPct === 0 ? "—" : `${aumPct}%`}</td>
-                              )}
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{copagoVariableMonto != null ? renderSoles(copagoVariableMonto) : "—"}</td>
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{esCat50 && copFijoConIgv > 0 ? renderSoles(copFijoSinIgv) : "—"}</td>
-                              <td className={`${tdBase} text-right ${monedaMin}`}>{pagoAseguradora != null ? renderSoles(pagoAseguradora) : "—"}</td>
+          {/* Detalle para reporte: desplegable; solo para tarifarios con copago. Todo con IGV. */}
+          {!tarifaEsPrecioDirecto && finalRows.length > 0 && (
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setReporteExpandido((e) => !e)}
+                className="flex items-center justify-center gap-2 rounded-xl border border-(--border-color-default) bg-(--color-surface) py-2.5 px-3 text-sm font-medium text-(--color-text-primary) transition-colors hover:bg-(--color-surface-hover)"
+                aria-expanded={reporteExpandido}
+              >
+                {reporteExpandido ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 shrink-0" />
+                    Ocultar detalle para reporte
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 shrink-0" />
+                    Ver detalle para reporte
+                  </>
+                )}
+              </button>
+              {reporteExpandido && (() => {
+                const hasDescuento = finalRows.some((r) => (r.descuento_pct ?? 0) > 0);
+                const hasAumento = finalRows.some((r) => (r.aumento_pct ?? 0) > 0);
+                const renderSoles = (val: number | null) => {
+                  if (val == null || (typeof val === "number" && !Number.isFinite(val))) return "—";
+                  return (
+                    <div className="flex w-full items-baseline gap-0 text-sm">
+                      <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
+                      <span className="min-w-0 flex-1 text-right tabular-nums">{formatDecimalDisplay(val)}</span>
+                    </div>
+                  );
+                };
+                /** En móvil: celda de monto con S/. y número alineados a contabilidad. */
+                const renderSolesCelda = (val: number | null) => {
+                  if (val == null || (typeof val === "number" && !Number.isFinite(val))) {
+                    return <span className="flex w-full min-w-0 justify-end tabular-nums text-(--color-text-primary)">—</span>;
+                  }
+                  return (
+                    <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                      <span className="w-8 shrink-0 text-right">S/. </span>
+                      <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(val)}</span>
+                    </span>
+                  );
+                };
+                const thBase = "px-3 py-2 font-semibold align-middle whitespace-normal";
+                const tdBase = "px-3 py-2 align-middle text-sm";
+                const monedaMin = "min-w-[7rem]";
+                const { filas, totalCopVar, totalCopFijo, totalPagoAsegu } = reporteConIgv;
+                return (
+                  <div ref={reporteSectionRef} className="flex flex-col gap-2">
+                    <div className="hidden lg:block rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
+                      <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
+                        <table className="w-full text-sm min-w-[700px]">
+                          <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
+                            <tr>
+                              <th className={`${thBase} text-center`}>Código</th>
+                              <th className={`${thBase} text-left`}>Descripción de servicio</th>
+                              <th className={`${thBase} text-center`}>Cantidad</th>
+                              <th className={`${thBase} text-right ${monedaMin}`}>Precio unitario</th>
+                              <th className={`${thBase} text-right ${monedaMin}`}>Importe neto</th>
+                              {hasDescuento && <th className={`${thBase} text-center`}>Descuento</th>}
+                              {hasAumento && <th className={`${thBase} text-center`}>Aumento</th>}
+                              <th className={`${thBase} text-right ${monedaMin}`}>Copago variable</th>
+                              <th className={`${thBase} text-right ${monedaMin}`}>Copago fijo</th>
+                              <th className={`${thBase} text-right ${monedaMin}`}>Pago aseguradora</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Móvil / tablet: cards como Servicios finales */}
-                <div className="lg:hidden space-y-2">
-                  {finalRows.map((item, i) => {
-                    const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
-                    const importeSinIgv = (item.precio_sin_igv ?? 0) as number;
-                    const precioUnitarioTarifario = item.precio_unitario_tarifario_sin_igv != null
-                      ? Number(item.precio_unitario_tarifario_sin_igv)
-                      : Math.round((importeSinIgv / Math.max(1, cant)) * FACTOR_REDONDO) / FACTOR_REDONDO;
-                    const importeConIgv = (item.precio_con_igv ?? 0) as number;
-                    const esCat50 = (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO;
-                    const copFijoConIgv = (item.cop_fijo ?? 0) as number;
-                    const copFijoSinIgv = copFijoConIgv > 0 && esCat50 ? copagoFijoConIgvToSinIgv(copFijoConIgv, igvPct) : 0;
-                    const copVar = (item.cop_var ?? 0) as number;
-                    const copagoVariableMonto = !esCat50 ? Math.round(importeSinIgv * (1 - copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO : null;
-                    const pagoAseguradora = esCat50 && copFijoConIgv > 0
-                      ? Math.round((importeSinIgv - copFijoSinIgv) * FACTOR_REDONDO) / FACTOR_REDONDO
-                      : !esCat50 && copVar >= 0
-                        ? Math.round(importeSinIgv * (copVar / 100) * FACTOR_REDONDO) / FACTOR_REDONDO
-                        : null;
-                    const descPct = (item.descuento_pct ?? 0) as number;
-                    const aumPct = (item.aumento_pct ?? 0) as number;
-                    return (
-                      <div
-                        key={item.id ?? `resumen-m-${i}`}
-                        className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4"
-                      >
-                        <div className="flex flex-col gap-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold tabular-nums text-(--color-primary)">{item.servicio_codigo ?? "—"}</span>
-                            <span className="text-(--color-text-primary)">·</span>
-                            <span className="text-(--color-text-primary) flex-1 min-w-0 wrap-break-word">{item.servicio_descripcion ?? "—"}</span>
+                          </thead>
+                          <tbody>
+                            {finalRows.map((item, i) => {
+                              const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
+                              const row = filas[i];
+                              const descPct = (item.descuento_pct ?? 0) as number;
+                              const aumPct = (item.aumento_pct ?? 0) as number;
+                              if (!row) return null;
+                              return (
+                                <tr key={item.id ?? `resumen-${i}`} className="border-t border-(--border-color-default) bg-(--color-surface) hover:bg-(--color-surface-hover)">
+                                  <td className={`${tdBase} text-center tabular-nums text-(--color-primary)`}>{item.servicio_codigo ?? "—"}</td>
+                                  <td className={`${tdBase} text-left text-(--color-text-primary) whitespace-normal`}>{item.servicio_descripcion ?? "—"}</td>
+                                  <td className={`${tdBase} text-center tabular-nums`}>{formatDecimalDisplay(cant)}</td>
+                                  <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(row.precioUnitarioConIgv)}</td>
+                                  <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(row.importeConIgv)}</td>
+                                  {hasDescuento && <td className={`${tdBase} text-center tabular-nums`}>{descPct === 0 ? "—" : `${descPct}%`}</td>}
+                                  {hasAumento && <td className={`${tdBase} text-center tabular-nums`}>{aumPct === 0 ? "—" : `${aumPct}%`}</td>}
+                                  <td className={`${tdBase} text-right ${monedaMin}`}>{row.copagoVariableConIgv != null ? renderSoles(row.copagoVariableConIgv) : "—"}</td>
+                                  <td className={`${tdBase} text-right ${monedaMin}`}>{row.copagoFijoConIgv != null ? renderSoles(row.copagoFijoConIgv) : "—"}</td>
+                                  <td className={`${tdBase} text-right ${monedaMin}`}>{row.pagoAseguradoraConIgv != null ? renderSoles(row.pagoAseguradoraConIgv) : "—"}</td>
+                                </tr>
+                              );
+                            })}
+                            <tr className="border-t-2 border-(--color-primary) bg-(--color-surface) font-semibold">
+                              <td className={`${tdBase} text-right text-(--color-text-primary)`} colSpan={5 + (hasDescuento ? 1 : 0) + (hasAumento ? 1 : 0)}>Total</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(totalCopVar)}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(totalCopFijo)}</td>
+                              <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(totalPagoAsegu)}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div className="lg:hidden space-y-2">
+                      {finalRows.map((item, i) => {
+                        const cant = Math.max(1, Math.floor(Number(item.cantidad) || 1));
+                        const row = filas[i];
+                        if (!row) return null;
+                        return (
+                          <div key={item.id ?? `resumen-m-${i}`} className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+                            <div className="flex flex-col gap-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold tabular-nums text-(--color-primary)">{item.servicio_codigo ?? "—"}</span>
+                                <span className="text-(--color-text-primary)">·</span>
+                                <span className="text-(--color-text-primary) flex-1 min-w-0 wrap-break-word">{item.servicio_descripcion ?? "—"}</span>
+                              </div>
+                              <div className="grid grid-cols-[1fr_minmax(8rem,1fr)] gap-x-4 gap-y-1 text-(--color-text-secondary)">
+                                <span>Cantidad:</span>
+                                <span className="tabular-nums text-right text-(--color-text-primary)">{formatDecimalDisplay(cant)}</span>
+                                <span>Precio unit. c/ IGV:</span>
+                                {renderSolesCelda(row.precioUnitarioConIgv)}
+                                <span>Importe c/ IGV:</span>
+                                {renderSolesCelda(row.importeConIgv)}
+                                <span>Copago variable:</span>
+                                {renderSolesCelda(row.copagoVariableConIgv)}
+                                <span>Copago fijo:</span>
+                                {renderSolesCelda(row.copagoFijoConIgv)}
+                                <span>Pago aseguradora:</span>
+                                {renderSolesCelda(row.pagoAseguradoraConIgv)}
+                              </div>
+                            </div>
                           </div>
-                          {/* Valor monetario: ancho mínimo para alinear S/. en todas las filas (contabilidad). */}
-                            <div className="grid grid-cols-[1fr_minmax(7rem,1fr)] gap-x-4 gap-y-1 text-(--color-text-secondary)">
-                            <span>Cantidad:</span>
-                            <span className="tabular-nums text-(--color-text-primary)">{formatDecimalDisplay(cant)}</span>
-                            <span>Precio unitario:</span>
-                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              <span className="w-8 shrink-0 text-right">S/. </span>
-                              <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(precioUnitarioTarifario)}</span>
-                            </span>
-                            <span>Importe sin IGV:</span>
-                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              <span className="w-8 shrink-0 text-right">S/. </span>
-                              <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(importeSinIgv)}</span>
-                            </span>
-                            <span>Importe con IGV:</span>
-                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              <span className="w-8 shrink-0 text-right">S/. </span>
-                              <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(importeConIgv)}</span>
-                            </span>
-                            {hasDescuento && (
-                              <>
-                                <span>Descuento:</span>
-                                <span className="tabular-nums text-(--color-text-primary)">{descPct === 0 ? "—" : `${descPct}%`}</span>
-                              </>
-                            )}
-                            {hasAumento && (
-                              <>
-                                <span>Aumento:</span>
-                                <span className="tabular-nums text-(--color-text-primary)">{aumPct === 0 ? "—" : `${aumPct}%`}</span>
-                              </>
-                            )}
-                            <span>Copago variable:</span>
-                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              {copagoVariableMonto != null ? (
-                                <>
-                                  <span className="w-8 shrink-0 text-right">S/. </span>
-                                  <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(copagoVariableMonto)}</span>
-                                </>
-                              ) : "—"}
-                            </span>
-                            <span>Copago fijo:</span>
-                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              {esCat50 && copFijoConIgv > 0 ? (
-                                <>
-                                  <span className="w-8 shrink-0 text-right">S/. </span>
-                                  <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(copFijoSinIgv)}</span>
-                                </>
-                              ) : "—"}
-                            </span>
-                            <span>Pago aseguradora:</span>
-                            <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
-                              {pagoAseguradora != null ? (
-                                <>
-                                  <span className="w-8 shrink-0 text-right">S/. </span>
-                                  <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(pagoAseguradora)}</span>
-                                </>
-                              ) : "—"}
-                            </span>
-                          </div>
+                        );
+                      })}
+                      <div className="rounded-2xl border-t-2 border-(--color-primary) bg-(--color-surface) p-4 font-semibold text-sm">
+                        <div className="grid grid-cols-[1fr_minmax(8rem,1fr)] gap-x-4 gap-y-1 text-(--color-text-secondary)">
+                          <span className="text-(--color-text-primary)">Total</span>
+                          <span />
+                          <span>Copago variable:</span>
+                          <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                            <span className="w-8 shrink-0 text-right">S/. </span>
+                            <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(totalCopVar)}</span>
+                          </span>
+                          <span>Copago fijo:</span>
+                          <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                            <span className="w-8 shrink-0 text-right">S/. </span>
+                            <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(totalCopFijo)}</span>
+                          </span>
+                          <span>Pago aseguradora:</span>
+                          <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
+                            <span className="w-8 shrink-0 text-right">S/. </span>
+                            <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(totalPagoAsegu)}</span>
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </div>
     </div>

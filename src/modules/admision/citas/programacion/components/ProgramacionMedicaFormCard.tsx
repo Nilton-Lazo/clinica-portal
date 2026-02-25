@@ -3,7 +3,7 @@ import type { Mode } from "../hooks/useProgramacionMedica";
 import type { TipoProgramacionMedica } from "../../types/programacionMedica.types";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
-import { StatusBadge } from "../../../ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
 
 type Opt = { id: number; label: string };
 

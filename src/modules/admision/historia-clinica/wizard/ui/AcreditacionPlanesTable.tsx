@@ -1,7 +1,7 @@
 import type { AcreditacionPlan, ContratanteLookup, IafaLookup, PaginatedResponse, RecordStatus } from "../acreditacionPlanes.types";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
-import { StatusBadge } from "../../../ficheros/components/StatusBadge";
+import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
 
 function planLabel(p: AcreditacionPlan): string {
   const c = (p.tipo_cliente?.codigo ?? "").trim();

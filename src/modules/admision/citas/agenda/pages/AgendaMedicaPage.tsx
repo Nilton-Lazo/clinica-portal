@@ -2,7 +2,7 @@ import * as React from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../../shared/ui/buttons";
-import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
 import AgendaMedicaCalendarCard from "../components/AgendaMedicaCalendarCard";
 import AgendaMedicaTable from "../components/AgendaMedicaTable";
 import AgendaMedicaMobileList from "../components/AgendaMedicaMobileList";
@@ -77,9 +77,9 @@ export default function AgendaMedicaPage() {
   const onPickDate = React.useCallback(
     (d: Date) => {
       vm.setSelectedDate(d);
-      vm.setEspecialidadId(null);
-      vm.setMedicoId(null);
       vm.setNotice(null);
+      // No limpiar especialidadId/medicoId: se actualizan al llegar la nueva data.
+      // Así se evita el parpadeo (vacío → tabla) y se mantiene el layout con overlay de carga.
     },
     [vm]
   );
@@ -167,7 +167,7 @@ export default function AgendaMedicaPage() {
                     vm.setMedicoId(null);
                     vm.setEspecialidadId(id);
                   }}
-                  loading={vm.opcionesLoading}
+                  loading={vm.initLoading || vm.opcionesLoading}
                   emptyMessage={vm.selectedDateStr ? "Sin servicios programados para esta fecha" : "Seleccione una fecha"}
                 />
               </div>
@@ -177,7 +177,7 @@ export default function AgendaMedicaPage() {
                   list={vm.medicosList}
                   selectedId={vm.medicoId}
                   onSelect={(id) => vm.setMedicoId(id)}
-                  loading={vm.medicosLoading}
+                  loading={vm.initLoading || vm.medicosLoading}
                   emptyMessage={
                     !vm.selectedDateStr
                       ? "Seleccione una fecha"
@@ -227,7 +227,7 @@ export default function AgendaMedicaPage() {
               </div>
             </div>
 
-            {vm.selectedDateStr && vm.especialidadId && vm.medicoId ? (
+            {vm.selectedDateStr && (vm.initLoading || (vm.especialidadId != null && vm.medicoId != null)) ? (
               <>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-sm">
                   <div>

@@ -18,7 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "farmacia", label: "Farmacia", to: "/farmacia", icon: { kind: "lucide", icon: Pill } },
   { id: "hospital", label: "Hospital", to: "/hospital", icon: { kind: "lucide", icon: Hospital } },
   { id: "diagnostico", label: "D. clínico", to: "/diagnostico-clinico", icon: { kind: "lucide", icon: Stethoscope } },
-  { id: "ficheros", label: "Ficheros", to: "/admision/ficheros", icon: { kind: "lucide", icon: Database } },
+  { id: "ficheros", label: "Ficheros", to: "/ficheros", icon: { kind: "lucide", icon: Database } },
   { id: "gerencia", label: "Gerencia", to: "/gerencia", icon: { kind: "lucide", icon: BarChart3 } },
   { id: "seguridad", label: "Seguridad", to: "/seguridad", icon: { kind: "lucide", icon: ShieldCheck } },
 ];

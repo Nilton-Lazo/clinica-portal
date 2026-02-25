@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ConfirmDialog } from "../../ficheros/components/ConfirmDialog";
+import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import NoticeBanner from "../programacion/components/NoticeBanner";
 import ProgramacionCalendarCard from "../programacion/components/ProgramacionCalendarCard";
 import ProgramacionMedicaFormCard from "../programacion/components/ProgramacionMedicaFormCard";

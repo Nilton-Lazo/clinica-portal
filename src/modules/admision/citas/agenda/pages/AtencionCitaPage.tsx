@@ -364,7 +364,7 @@ export default function AtencionCitaPage() {
   React.useEffect(() => {
     api
       .get<{ data?: Array<{ id: number; codigo?: string; nombres?: string; apellido_paterno?: string; apellido_materno?: string }> }>(
-        "/admision/ficheros/medicos?status=ACTIVO&per_page=200&page=1"
+        "/ficheros/medicos?status=ACTIVO&per_page=200&page=1"
       )
       .then((res) => {
         const raw = res as { data?: unknown };
@@ -388,7 +388,7 @@ export default function AtencionCitaPage() {
 
   const onRegresar = React.useCallback(() => {
     if (Number.isFinite(id)) clearDraftForCita(id);
-    navigate("/admision/citas/agenda");
+    navigate("/admision/citas/agenda", { state: { returnFromAtencion: true, citaId: id } });
   }, [navigate, id, clearDraftForCita]);
 
   const onAcudioChange = React.useCallback((checked: boolean) => {
@@ -607,7 +607,7 @@ export default function AtencionCitaPage() {
         <div className="rounded-2xl border border-(--color-danger) bg-(--color-surface) p-4 text-(--color-danger)">
           {error ?? "No se encontraron datos."}
         </div>
-        <SecondaryButton onClick={onRegresar}>Regresar a la agenda</SecondaryButton>
+        <SecondaryButton onClick={() => navigate("/admision/citas/agenda", { state: { returnFromAtencion: true, citaId: id } })}>Regresar a la agenda</SecondaryButton>
       </div>
     );
   }

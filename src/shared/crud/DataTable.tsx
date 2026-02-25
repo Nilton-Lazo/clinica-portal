@@ -20,8 +20,12 @@ export function DataTable<T>(props: {
 }) {
   const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, emptyText } = props;
 
+  const showOverlay = loading && rows.length > 0;
+  const showLoadingRow = loading && rows.length === 0;
+  const showEmptyRow = !loading && rows.length === 0;
+
   return (
-    <div className="rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
+    <div className="relative rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
       <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
@@ -41,13 +45,13 @@ export function DataTable<T>(props: {
           </thead>
 
           <tbody>
-            {loading ? (
+            {showLoadingRow ? (
               <tr>
                 <td className="px-3 py-3 text-(--color-text-secondary)" colSpan={columns.length}>
                   Cargando…
                 </td>
               </tr>
-            ) : rows.length === 0 ? (
+            ) : showEmptyRow ? (
               <tr>
                 <td className="px-3 py-3 text-(--color-text-secondary)" colSpan={columns.length}>
                   {emptyText ?? "No hay registros."}
@@ -81,6 +85,15 @@ export function DataTable<T>(props: {
           </tbody>
         </table>
       </div>
+      {showOverlay ? (
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-(--color-surface)/80 backdrop-blur-[2px] z-10"
+          aria-busy="true"
+          aria-live="polite"
+        >
+          <span className="text-sm font-medium text-(--color-text-secondary)">Cargando…</span>
+        </div>
+      ) : null}
     </div>
   );
 }

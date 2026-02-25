@@ -12,11 +12,11 @@ import TarifarioCrudPage from "../../modules/facturacion/tarifario/pages/Tarifar
 import TarifarioCrudLayoutPage from "../../modules/facturacion/tarifario/pages/TarifarioCrudLayoutPage";
 import AdmisionHomePage from "../../modules/admision/pages/AdmisionHomePage";
 
-import FicherosPage from "../../modules/admision/ficheros/pages/FicherosPage";
-import EspecialidadesPage from "../../modules/admision/ficheros/pages/EspecialidadesPage";
-import ConsultoriosPage from "../../modules/admision/ficheros/pages/ConsultoriosPage";
-import MedicosPage from "../../modules/admision/ficheros/pages/MedicosPage";
-import TurnosPage from "../../modules/admision/ficheros/pages/TurnosPage";
+import FicherosPage from "../../modules/ficheros/pages/FicherosPage";
+import EspecialidadesPage from "../../modules/ficheros/pages/EspecialidadesPage";
+import ConsultoriosPage from "../../modules/ficheros/pages/ConsultoriosPage";
+import MedicosPage from "../../modules/ficheros/pages/MedicosPage";
+import TurnosPage from "../../modules/ficheros/pages/TurnosPage";
 
 import ProgramacionMedicaPage from "../../modules/admision/citas/pages/ProgramacionMedicaPage";
 import AgendaMedicaLayout from "../../modules/admision/citas/agenda/pages/AgendaMedicaLayout";
@@ -26,13 +26,13 @@ import AgendaMedicaNuevaCitaPage from "../../modules/admision/citas/agenda/pages
 import AtencionCitaPage from "../../modules/admision/citas/agenda/pages/AtencionCitaPage";
 import BuscarServiciosPage from "../../modules/admision/citas/agenda/pages/BuscarServiciosPage";
 
-import TiposIafasPage from "../../modules/admision/ficheros/pages/TiposIafasPage";
-import IafasPage from "../../modules/admision/ficheros/pages/IafasPage";
-import ContratantesPage from "../../modules/admision/ficheros/pages/ContratantesPage";
-import TarifasPage from "../../modules/admision/ficheros/pages/TarifasPage";
-import TiposClientesPage from "../../modules/admision/ficheros/pages/TiposClientesPage";
-import ParametrosIgvPage from "../../modules/admision/ficheros/pages/ParametrosIgvPage";
-import RecargoNochePage from "../../modules/admision/ficheros/pages/RecargoNochePage";
+import TiposIafasPage from "../../modules/ficheros/pages/TiposIafasPage";
+import IafasPage from "../../modules/ficheros/pages/IafasPage";
+import ContratantesPage from "../../modules/ficheros/pages/ContratantesPage";
+import TarifasPage from "../../modules/ficheros/pages/TarifasPage";
+import TiposClientesPage from "../../modules/ficheros/pages/TiposClientesPage";
+import ParametrosIgvPage from "../../modules/ficheros/pages/ParametrosIgvPage";
+import RecargoNochePage from "../../modules/ficheros/pages/RecargoNochePage";
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
@@ -55,6 +55,24 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: "inicio", element: <HomePage /> },
+              {
+                path: "ficheros",
+                element: <FicherosPage />,
+                children: [
+                  { index: true, element: <Navigate to="especialidades" replace /> },
+                  { path: "especialidades", element: <EspecialidadesPage /> },
+                  { path: "consultorios", element: <ConsultoriosPage /> },
+                  { path: "medicos", element: <MedicosPage /> },
+                  { path: "turnos", element: <TurnosPage /> },
+                  { path: "tipos-iafas", element: <TiposIafasPage /> },
+                  { path: "iafas", element: <IafasPage /> },
+                  { path: "contratantes", element: <ContratantesPage /> },
+                  { path: "tarifas", element: <TarifasPage /> },
+                  { path: "tipos-clientes", element: <TiposClientesPage /> },
+                  { path: "parametros/igv", element: <ParametrosIgvPage /> },
+                  { path: "parametros/recargo-noche", element: <RecargoNochePage /> },
+                ],
+              },
               {
                 path: "facturacion",
                 children: [
@@ -79,25 +97,6 @@ export const router = createBrowserRouter([
                   
                       { path: "nuevo/*", element: <PacienteWizardPage /> },
                       { path: ":pacienteId/*", element: <PacienteWizardPage /> },
-                    ],
-                  },                  
-              
-                  {
-                    path: "ficheros",
-                    element: <FicherosPage />,
-                    children: [
-                      { index: true, element: <Navigate to="especialidades" replace /> },
-                      { path: "especialidades", element: <EspecialidadesPage /> },
-                      { path: "consultorios", element: <ConsultoriosPage /> },
-                      { path: "medicos", element: <MedicosPage /> },
-                      { path: "turnos", element: <TurnosPage /> },
-                      { path: "tipos-iafas", element: <TiposIafasPage /> },
-                      { path: "iafas", element: <IafasPage /> },
-                      { path: "contratantes", element: <ContratantesPage /> },
-                      { path: "tarifas", element: <TarifasPage /> },
-                      { path: "tipos-clientes", element: <TiposClientesPage /> },
-                      { path: "parametros/igv", element: <ParametrosIgvPage /> },
-                      { path: "parametros/recargo-noche", element: <RecargoNochePage /> },
                     ],
                   },
 
