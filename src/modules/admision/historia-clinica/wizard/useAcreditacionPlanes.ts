@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 
 import type {
   AcreditacionPlan,
@@ -24,18 +25,11 @@ import {
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
-export type Notice = { type: "success" | "error"; text: string } | null;
 
 function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function toNullIfBlank(s: string): string | null {
@@ -139,10 +133,10 @@ function matchesQ(p: AcreditacionPlan, q: string): boolean {
 }
 
 export function useAcreditacionPlanes(pacienteId: number | null, parentescoPaciente?: string | null) {
+  const toast = useToast();
   const [raw, setRaw] = useState<AcreditacionPlan[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPageState] = useState(50);
@@ -201,18 +195,16 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     }
 
     setLoading(true);
-    setNotice(null);
     try {
       const res = await listPacientePlanes(pacienteId);
       setRaw(res);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo cargar los planes.";
-      setNotice({ type: "error", text: msg });
+      toast.error(toUserFriendlyMessage(e, "No se pudo cargar los planes. Intenta de nuevo."));
       setRaw([]);
     } finally {
       setLoading(false);
     }
-  }, [pacienteId]);
+  }, [pacienteId, toast]);
 
   useEffect(() => {
     void loadTiposClientes();
@@ -295,7 +287,6 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     setFechaAfiliacion(todayIso());
     setEstado("ACTIVO");
     originalRef.current = null;
-    setNotice(null);
   }, [parentescoPaciente]);
 
   const loadForEdit = useCallback((p: AcreditacionPlan) => {
@@ -313,8 +304,6 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       fechaAfiliacion: p.fecha_afiliacion ?? null,
       estado: p.estado,
     };
-
-    setNotice(null);
   }, []);
 
   const cancel = useCallback(() => {
@@ -329,33 +318,32 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       return;
     }
 
+    const hadChanges = isDirty;
     setTipoClienteId(o.tipoClienteId);
     setParentesco((o.parentesco ?? "") as ParentescoSeguro | "");
     setFechaAfiliacion(o.fechaAfiliacion ?? "");
     setEstado(o.estado);
-    setNotice(null);
-  }, [mode, resetToNew, selected]);
+    if (hadChanges) toast.info("Cambios descartados.");
+  }, [mode, resetToNew, selected, isDirty, toast]);
 
   const onSave = useCallback(async () => {
-    setNotice(null);
-
     if (!pacienteId) {
-      setNotice({ type: "error", text: "Guarda el paciente para afiliar planes." });
+      toast.error("Guarda el paciente para afiliar planes.");
       return;
     }
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Datos inválidos." });
+      toast.error("Datos inválidos.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un plan para editar." });
+      toast.error("Selecciona un plan para editar.");
       return;
     }
 
     if (!isDirty) {
-      setNotice({ type: "error", text: "No hay cambios para guardar." });
+      toast.error("No hay cambios para guardar.");
       return;
     }
 
@@ -369,7 +357,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     try {
       if (mode === "new") {
         const res = await createPacientePlan(pacienteId, payload);
-        setNotice({ type: "success", text: "Plan afiliado." });
+        toast.success("Plan afiliado.");
 
         await reloadPlanes();
         loadForEdit(res.data);
@@ -377,13 +365,12 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       }
 
       const res = await updatePacientePlan(pacienteId, selected!.id, payload);
-      setNotice({ type: "success", text: "Cambios guardados." });
+      toast.success("Cambios guardados.");
 
       await reloadPlanes();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
-      setNotice({ type: "error", text: msg });
+      toast.error(toUserFriendlyMessage(e, "No se pudo guardar el plan. Intenta de nuevo."));
     } finally {
       setSaving(false);
     }
@@ -398,21 +385,22 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     estado,
     reloadPlanes,
     loadForEdit,
+    toast,
   ]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un plan para desactivar." });
+      toast.error("Selecciona un plan para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
     setConfirmDeactivateOpen(true);
-  }, [selected]);
+  }, [selected, toast]);
 
   const onDeactivateConfirmed = useCallback(async () => {
     if (!pacienteId || !selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un plan." });
+      toast.error("Selecciona un plan.");
       return;
     }
 
@@ -420,18 +408,17 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     try {
       const res = await deactivatePacientePlan(pacienteId, selected.id);
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "success", text: "Plan desactivado." });
+      toast.success("Plan desactivado.");
 
       await reloadPlanes();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: msg });
+      toast.error(toUserFriendlyMessage(e, "No se pudo desactivar el plan. Intenta de nuevo."));
     } finally {
       setSaving(false);
     }
-  }, [pacienteId, selected, reloadPlanes, loadForEdit]);
+  }, [pacienteId, selected, reloadPlanes, loadForEdit, toast]);
 
   const canDeactivate = Boolean(selected) && selected?.estado !== "INACTIVO" && !saving;
 
@@ -464,7 +451,6 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     rawCount: raw.length,
     loading,
     saving,
-    notice,
 
     page,
     setPage,

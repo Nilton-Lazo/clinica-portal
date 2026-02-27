@@ -58,11 +58,11 @@ export default function AgendaMedicaCalendarCard(props: {
         <div className="text-xs text-(--color-text-secondary)">Selecciona una fecha.</div>
       </div>
 
-      <div className="border border-(--border-color-default) overflow-hidden">
+      <div className="rounded-md border border-(--border-color-default) overflow-hidden">
         <div className="flex items-center justify-between bg-(--color-panel-context) px-3 py-2">
           <button
             type="button"
-            className="h-8 w-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+            className="h-8 w-10 rounded-md border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
             onClick={() => setMonth((m) => addMonths(m, -1))}
             aria-label="Mes anterior"
           >
@@ -75,7 +75,7 @@ export default function AgendaMedicaCalendarCard(props: {
 
           <button
             type="button"
-            className="h-8 w-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+            className="h-8 w-10 rounded-md border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
             onClick={() => setMonth((m) => addMonths(m, 1))}
             aria-label="Mes siguiente"
           >
@@ -109,7 +109,7 @@ export default function AgendaMedicaCalendarCard(props: {
                   "relative text-sm tabular-nums transition-colors",
                   "flex items-center justify-center",
                   isActive
-                    ? "ring-2 ring-(--color-primary) ring-inset bg-(--color-panel-options-bg) font-semibold"
+                    ? "ring-1 ring-(--color-primary) ring-inset bg-(--color-panel-options-bg) font-semibold"
                     : "bg-(--color-surface) text-(--color-text-primary)",
                   !isActive ? "hover:bg-(--color-panel-options-bg)" : "",
                 ].join(" ")}
@@ -138,7 +138,7 @@ export default function AgendaMedicaCalendarCard(props: {
   }
 
   return (
-    <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
       {content}
     </div>
   );

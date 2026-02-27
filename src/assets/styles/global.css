@@ -196,7 +196,7 @@ body,
   --color-icon-primary: #434e5d;
   --layout-sidebar-collapsed: 88px;
   --layout-sidebar-expanded: 220px;
-  --layout-header-height: 92px;
+  --layout-header-height: 56px;
   --scrollbar-thumb: rgba(15, 23, 42, 0.25);
   --scrollbar-thumb-hover: rgba(15, 23, 42, 0.4);
   --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.278);
@@ -207,6 +207,22 @@ body,
   --color-panel-options-bg: #E8F0FE;
   --color-app-bg: #F5F7FB;
   --border-color-default: #D9D9D9;
+
+  /* React-Toastify: alineado al sistema de diseño (enterprise) */
+  --toastify-color-light: var(--color-surface);
+  --toastify-color-dark: #121212;
+  --toastify-color-info: var(--color-primary);
+  --toastify-color-success: var(--color-success);
+  --toastify-color-warning: var(--color-warning);
+  --toastify-color-error: var(--color-danger);
+  --toastify-color-transparent: rgba(255, 255, 255, 0.7);
+  --toastify-icon-color-info: var(--color-text-inverse);
+  --toastify-icon-color-success: var(--color-text-inverse);
+  --toastify-icon-color-warning: var(--color-text-inverse);
+  --toastify-icon-color-error: var(--color-text-inverse);
+  --toastify-font-family: "Poppins", system-ui, sans-serif;
+  --toastify-text-color-light: var(--color-text-primary);
+  --toastify-text-color-dark: var(--color-text-inverse);
 }
 
 html, body {
@@ -247,3 +263,19 @@ html, body {
 .app-scrollbar-no-gutter {
   scrollbar-gutter: auto;
 }
+
+/* React-Toastify: contenedor enterprise (Historia Clínica y app) */
+.Toastify__toast-container {
+  z-index: 9999;
+  font-family: var(--toastify-font-family);
+}
+
+.Toastify__toast {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.Toastify__toast--success { background: var(--toastify-color-success); color: var(--color-text-inverse); }
+.Toastify__toast--error { background: var(--toastify-color-error); color: var(--color-text-inverse); }
+.Toastify__toast--warning { background: var(--toastify-color-warning); color: var(--color-text-inverse); }
+.Toastify__toast--info { background: var(--toastify-color-info); color: var(--color-text-inverse); }

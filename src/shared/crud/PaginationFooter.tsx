@@ -1,4 +1,5 @@
 import type { PaginationMeta } from "../types/pagination";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 const defaultMeta: PaginationMeta = {
   current_page: 1,
@@ -12,46 +13,94 @@ export function PaginationFooter(props: {
   variant: "desktop" | "mobile";
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
 }) {
-  const { variant, onPrev, onNext } = props;
+  const { variant, onPrev, onNext, onFirst, onLast } = props;
   const meta = props.meta ?? defaultMeta;
 
   const page = meta.current_page;
-  const last = meta.last_page;
+  const last = Math.max(1, meta.last_page);
 
   const start = meta.total === 0 ? 0 : (page - 1) * meta.per_page + 1;
   const end = Math.min(page * meta.per_page, meta.total);
 
   const btn =
-    "h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100";
+    "inline-flex h-9 w-9 items-center justify-center rounded-md bg-(--color-panel-context) text-(--color-base-primary) transition-colors hover:bg-(--color-surface-hover) active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:hover:bg-(--color-panel-context)";
+
+  const showFirstLast = onFirst != null || onLast != null;
 
   return (
     <div
       className={[
-        "mt-3 flex items-center justify-between text-sm text-(--color-text-secondary)",
+        "mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-(--color-text-secondary)",
         variant === "mobile" ? "gap-2" : "",
       ].join(" ")}
     >
       {variant === "desktop" ? (
-        <div>
+        <div className="min-w-0">
           Mostrando {start} – {end} de {meta.total}
         </div>
       ) : (
-        <div />
+        <div className="text-xs tabular-nums">
+          {page} / {last}
+        </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <button type="button" className={btn} disabled={page <= 1} onClick={onPrev}>
-          Anterior
+      <div className="flex items-center gap-1 sm:gap-2">
+        {showFirstLast && onFirst != null ? (
+          <button
+            type="button"
+            className={btn}
+            disabled={page <= 1}
+            onClick={onFirst}
+            aria-label="Primera página"
+            title="Primera página"
+          >
+            <ChevronsLeft className="h-4 w-4" strokeWidth={2} />
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          className={btn}
+          disabled={page <= 1}
+          onClick={onPrev}
+          aria-label="Página anterior"
+          title="Anterior"
+        >
+          <ChevronLeft className="h-4 w-4" strokeWidth={2} />
         </button>
 
-        <div>
-          {variant === "desktop" ? `Página ${page} / ${last}` : `${page} / ${last}`}
-        </div>
+        {variant === "desktop" ? (
+          <span className="min-w-28 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 py-1.5 text-center text-sm tabular-nums text-(--color-text-primary)">
+            Página {page} de {last}
+          </span>
+        ) : null}
 
-        <button type="button" className={btn} disabled={page >= last} onClick={onNext}>
-          Siguiente
+        <button
+          type="button"
+          className={btn}
+          disabled={page >= last}
+          onClick={onNext}
+          aria-label="Página siguiente"
+          title="Siguiente"
+        >
+          <ChevronRight className="h-4 w-4" strokeWidth={2} />
         </button>
+
+        {showFirstLast && onLast != null ? (
+          <button
+            type="button"
+            className={btn}
+            disabled={page >= last}
+            onClick={onLast}
+            aria-label="Última página"
+            title="Última página"
+          >
+            <ChevronsRight className="h-4 w-4" strokeWidth={2} />
+          </button>
+        ) : null}
       </div>
     </div>
   );

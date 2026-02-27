@@ -5,7 +5,7 @@ import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { PacienteWizardProvider } from "../wizard/PacienteWizardProvider";
 import { usePacienteWizard } from "../wizard/usePacienteWizard";
 import { PacienteSummaryBar } from "../wizard/PacienteSummaryBar";
-import { catalogoPacienteService } from "../wizard/catalogoPaciente.service";
+import { getWizardCatalog, getWizardCatalogSync } from "../wizard/wizardCatalogCache";
 import { pacienteService } from "../wizard/paciente.service";
 import {
   buildPacientePayload,
@@ -15,31 +15,13 @@ import {
   type PacienteFormCatalogos,
   type PacienteFull,
 } from "../wizard/types";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
-import NoticeBanner, { type Notice } from "../components/NoticeBanner";
+import { useToast } from "../../../../shared/feedback";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
-
-function isApiError(e: unknown): e is ApiError {
-  return typeof e === "object" && e !== null && "kind" in e && "message" in e;
-}
-
-function messageFromError(e: unknown): string {
-  if (isApiError(e)) {
-    if (e.kind === "validation" && e.errors && Object.keys(e.errors).length > 0) {
-      const first = Object.entries(e.errors)[0];
-      const field = first[0];
-      const msgs = first[1];
-      const detail = Array.isArray(msgs) ? msgs[0] : String(msgs);
-      return detail ? `${e.message}: ${field} — ${detail}` : e.message;
-    }
-    return e.message;
-  }
-  return "No se pudo guardar. Intenta de nuevo.";
-}
 
 function stepFromPath(pathname: string): StepKey | null {
   if (pathname.includes("/datos-generales")) return "datos-generales";
@@ -56,8 +38,8 @@ export default function PacienteWizardPage() {
 
   const isEdit = useMemo(() => Boolean(pacienteId && String(pacienteId).trim()), [pacienteId]);
 
-  const [catalog, setCatalog] = useState<PacienteFormCatalogos | null>(null);
-  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [catalog, setCatalog] = useState<PacienteFormCatalogos | null>(() => getWizardCatalogSync());
+  const [catalogLoading, setCatalogLoading] = useState(() => getWizardCatalogSync() === null);
 
   const [initialDraft, setInitialDraft] = useState(() => emptyDraft());
   const [loadingPaciente, setLoadingPaciente] = useState(false);
@@ -74,29 +56,9 @@ export default function PacienteWizardPage() {
   }, [loc.pathname, isEdit, pacienteId, navigate]);
 
   useEffect(() => {
-    const load = async () => {
-      setCatalogLoading(true);
-      try {
-        const [formRes, paisesRes, ubigeosRes, medicosRes] = await Promise.all([
-          catalogoPacienteService.pacienteForm(),
-          catalogoPacienteService.paisesAll(),
-          catalogoPacienteService.ubigeosAll(),
-          catalogoPacienteService.medicosActivos(),
-        ]);
-
-        const merged: PacienteFormCatalogos = {
-          ...formRes.data,
-          paises: paisesRes,
-          ubigeos: ubigeosRes,
-          medicos: medicosRes.data,
-        };
-
-        setCatalog(merged);
-      } finally {
-        setCatalogLoading(false);
-      }
-    };
-    void load();
+    getWizardCatalog()
+      .then(setCatalog)
+      .finally(() => setCatalogLoading(false));
   }, []);
 
   useEffect(() => {
@@ -156,8 +118,8 @@ function WizardInner({
   loadingPaciente: boolean;
 }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const { state, actions, derived } = usePacienteWizard();
-  const [notice, setNotice] = useState<Notice>(null);
 
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
 
@@ -199,7 +161,6 @@ function WizardInner({
   };
 
   const save = async () => {
-    setNotice(null);
     actions.markSaving(true);
     try {
       const payload = buildPacientePayload(state.draft);
@@ -213,15 +174,15 @@ function WizardInner({
 
       const saved = res.data;
       const nextDraft = mapPacienteToDraft(saved);
-      actions.markSaved(nextDraft);
+      actions.markSaved({ ...nextDraft, contacto_emergencia: { ...nextDraft.contacto_emergencia } });
 
-      setNotice({ type: "success", text: "Paciente guardado correctamente." });
+      toast.success("Paciente guardado correctamente.");
 
       if (!((state.draft as unknown as { id?: unknown })?.id)) {
         navigate(`/admision/historia-clinica/${saved.id}/datos-generales`, { replace: true });
       }
     } catch (e) {
-      setNotice({ type: "error", text: messageFromError(e) });
+      toast.error(toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo."));
     } finally {
       actions.markSaving(false);
     }
@@ -229,11 +190,8 @@ function WizardInner({
 
 
   return (
-    <div className="space-y-4">
-      {notice ? (
-        <NoticeBanner notice={notice} onClose={() => setNotice(null)} />
-      ) : null}
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-3">
+    <div className="flex flex-col gap-4 lg:gap-2">
+      <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             <TabButton active={step === "datos-generales"} onClick={() => onTab("datos-generales")}>
@@ -245,36 +203,41 @@ function WizardInner({
             <TabButton active={step === "acreditacion"} disabled={!canGoAcreditacion} onClick={() => onTab("acreditacion")}>
               Acreditación
             </TabButton>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
               onClick={() => navigate("/admision/historia-clinica")}
-              className="ml-2 h-10 px-4 rounded-xl border border-dashed border-(--border-color-default) bg-(--color-background) text-sm font-semibold text-(--color-text-secondary) transition hover:bg-(--color-surface) hover:text-(--color-text-primary)"
+              className="h-10 px-4 rounded-md border border-dashed border-(--border-color-default) bg-(--color-background) text-sm font-semibold text-(--color-text-secondary) transition hover:bg-(--color-surface) hover:text-(--color-text-primary)"
             >
               Regresar a historias
             </button>
+            {step !== "acreditacion" ? (
+              <>
+                <SecondaryButton
+                  onClick={() => {
+                    actions.resetDraft();
+                    toast.info("Cambios descartados.");
+                  }}
+                  disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
+                  className="w-full sm:w-auto"
+                >
+                  Cancelar
+                </SecondaryButton>
+                <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
+                  {state.saving ? "Guardando..." : "Guardar"}
+                </PrimaryButton>
+              </>
+            ) : null}
           </div>
-
-          {step !== "acreditacion" ? (
-            <div className="flex justify-end gap-2">
-              <SecondaryButton
-                onClick={actions.resetDraft}
-                disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
-                className="w-full sm:w-auto"
-              >
-                Cancelar
-              </SecondaryButton>
-              <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
-                {state.saving ? "Guardando..." : "Guardar"}
-              </PrimaryButton>
-            </div>
-          ) : null}
         </div>
 
             <PacienteSummaryBar />
       </div>
 
       {catalogLoading || loadingPaciente ? (
-        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 text-sm text-(--color-text-secondary)">
+        <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 text-sm text-(--color-text-secondary)">
           Cargando...
         </div>
       ) : null}
@@ -316,7 +279,7 @@ function TabButton({
   onClick: () => void;
   children: React.ReactNode;
 }) {
-  const base = "h-10 px-4 rounded-xl text-sm font-semibold transition border border-(--border-color-default)";
+  const base = "h-10 px-4 rounded-md text-sm font-semibold transition border border-(--border-color-default)";
   const cls = active ? `${base} bg-(--color-primary) text-(--color-text-inverse)` : `${base} bg-(--color-surface) text-(--color-text-primary) hover:bg-(--color-background)`;
   const dis = disabled ? "opacity-50 cursor-not-allowed hover:bg-(--color-surface)" : "";
   return (

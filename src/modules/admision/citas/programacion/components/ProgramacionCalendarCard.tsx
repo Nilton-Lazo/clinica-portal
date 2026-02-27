@@ -102,7 +102,7 @@ export default function ProgramacionCalendarCard(props: {
   const cellBorder = "border-b border-r border-(--border-color-default) last:border-r-0";
 
   return (
-    <div className="h-full border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="h-full rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex h-full flex-col gap-3">
         <div>
           <div className="text-sm font-semibold text-(--color-text-primary)">Modalidad de fechas</div>
@@ -123,7 +123,7 @@ export default function ProgramacionCalendarCard(props: {
           <div className="flex items-center justify-between bg-(--color-panel-context) px-3 py-2">
             <button
               type="button"
-              className="h-8 w-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+              className="h-8 w-10 rounded-md border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
               onClick={() => setMonth((m) => addMonths(m, -1))}
               aria-label="Mes anterior"
             >
@@ -136,7 +136,7 @@ export default function ProgramacionCalendarCard(props: {
 
             <button
               type="button"
-              className="h-8 w-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+              className="h-8 w-10 rounded-md border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
               onClick={() => setMonth((m) => addMonths(m, 1))}
               aria-label="Mes siguiente"
             >
@@ -180,8 +180,8 @@ export default function ProgramacionCalendarCard(props: {
                     "flex items-center justify-center",
                     // rango entre inicio/fin
                     inBetween ? "bg-(--color-panel-options-bg) text-(--color-text-primary)" : "bg-(--color-surface) text-(--color-text-primary)",
-                    // recuadro de seleccion
-                    activeRing ? "ring-2 ring-(--color-primary) ring-inset bg-(--color-panel-options-bg) font-semibold" : "",
+                    // recuadro de selección (mismo grosor que el resto de celdas)
+                    activeRing ? "ring-1 ring-(--color-primary) ring-inset bg-(--color-panel-options-bg) font-semibold" : "",
                     // hover solo si no está seleccionado
                     !activeRing ? "hover:bg-(--color-panel-options-bg)" : "",
                   ].join(" ")}

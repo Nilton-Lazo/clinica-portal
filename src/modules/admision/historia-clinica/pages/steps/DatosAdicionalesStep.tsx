@@ -24,7 +24,7 @@ function ensureSelectedOption(options: SelectOption[], value: string, label?: st
   const v = value.trim();
   if (!v) return options;
   if (options.some((opt) => String(opt.value) === v)) return options;
-  return [{ value: v, label: label ?? v }, ...options];
+  return [...options, { value: v, label: label ?? v }];
 }
 
 export function DatosAdicionalesStep({ catalog }: { catalog: PacienteFormCatalogos | null }) {
@@ -47,8 +47,8 @@ export function DatosAdicionalesStep({ catalog }: { catalog: PacienteFormCatalog
   }, [catalog, d.medio_informacion]);
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="flex flex-col gap-4 lg:gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-2">
         <FormCard title="Datos adicionales">
           <div className="space-y-4">
             <SelectField

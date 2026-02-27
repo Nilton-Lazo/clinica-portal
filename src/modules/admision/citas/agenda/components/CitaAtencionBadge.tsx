@@ -8,7 +8,7 @@ const labelMap: Record<CitaAtencionEstado, string> = {
 
 export function CitaAtencionBadge({ estado }: { estado: CitaAtencionEstado }) {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold";
+    "inline-flex items-center justify-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold leading-none";
 
   const cfg =
     estado === "PENDIENTE"
@@ -25,8 +25,8 @@ export function CitaAtencionBadge({ estado }: { estado: CitaAtencionEstado }) {
 
   return (
     <span className={cfg.cls}>
-      <Icon className="h-4 w-4" aria-hidden="true" />
-      {labelMap[estado]}
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span className="leading-none">{labelMap[estado]}</span>
     </span>
   );
 }

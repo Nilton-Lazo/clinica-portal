@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useToast } from "../../../../shared/feedback";
+import { getWizardCatalog } from "../wizard/wizardCatalogCache";
 import { useHistoriaClinica } from "../hooks/useHistoriaClinica";
-import NoticeBanner, { type Notice } from "../components/NoticeBanner";
 import HistoriaClinicaToolbar from "../components/HistoriaClinicaToolbar";
 import HistoriaClinicaTable from "../components/HistoriaClinicaTable";
 import HistoriaClinicaMobileList from "../components/HistoriaClinicaMobileList";
@@ -24,14 +25,21 @@ function useIsLgUp(): boolean {
   return isLgUp;
 }
 
-type NoticeController = {
-  setNotice?: (n: Notice) => void;
-  clearNotice?: () => void;
-};
-
 export default function HistoriaClinicaPage() {
   const vm = useHistoriaClinica();
   const navigate = useNavigate();
+  const toast = useToast();
+
+  React.useEffect(() => {
+    if (vm.notice?.type === "error") {
+      toast.error(vm.notice.text);
+    }
+  }, [vm.notice?.type, vm.notice?.text, toast]);
+
+  // Prefetch catálogo del wizard para que al abrir un registro cargue al instante
+  React.useEffect(() => {
+    void getWizardCatalog();
+  }, []);
 
   const isLgUp = useIsLgUp();
   const listRef = React.useRef<HTMLDivElement | null>(null);
@@ -41,42 +49,23 @@ export default function HistoriaClinicaPage() {
     navigate("/admision/historia-clinica/nuevo/datos-generales");
   }, [navigate, vm]);
 
-  const handleEdit = React.useCallback(() => {
-    if (!vm.selected) return;
-    navigate(`/admision/historia-clinica/${vm.selected.id}/datos-generales`);
-  }, [navigate, vm.selected]);
-
   const handleSelect = React.useCallback(
     (x: (typeof vm)["data"]["data"][number]) => {
       vm.onSelect(x);
+      navigate(`/admision/historia-clinica/${x.id}/datos-generales`);
 
-      if (isLgUp) return;
-
-      requestAnimationFrame(() => {
+      if (!isLgUp) {
         requestAnimationFrame(() => {
           listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
-      });
+      }
     },
-    [isLgUp, vm]
+    [isLgUp, navigate, vm]
   );
 
-  const handleCloseNotice = React.useCallback(() => {
-    const ctl = vm as unknown as NoticeController;
-
-    if (typeof ctl.clearNotice === "function") {
-      ctl.clearNotice();
-      return;
-    }
-
-    if (typeof ctl.setNotice === "function") {
-      ctl.setNotice(null);
-    }
-  }, [vm]);
-
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div ref={listRef} className="w-full">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-hidden lg:gap-2">
+      <div ref={listRef} className="shrink-0 w-full">
         <HistoriaClinicaToolbar
           q={vm.q}
           onQChange={vm.setQ}
@@ -88,15 +77,11 @@ export default function HistoriaClinicaPage() {
           onStatusChange={vm.setStatusFilter}
           perPage={vm.perPage}
           onPerPageChange={(n) => vm.setPerPage(n)}
-          canEdit={vm.canEdit}
           onCreate={handleCreate}
-          onEdit={handleEdit}
         />
       </div>
 
-      <NoticeBanner notice={vm.notice} onClose={handleCloseNotice} />
-
-      <div className="min-w-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <HistoriaClinicaTable
           data={vm.data}
           loading={vm.loading}
@@ -105,6 +90,8 @@ export default function HistoriaClinicaPage() {
           page={vm.page}
           onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
           onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+          onFirst={() => vm.setPage(1)}
+          onLast={() => vm.setPage(vm.data.meta.last_page)}
         />
 
         <HistoriaClinicaMobileList
@@ -115,6 +102,8 @@ export default function HistoriaClinicaPage() {
           page={vm.page}
           onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
           onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+          onFirst={() => vm.setPage(1)}
+          onLast={() => vm.setPage(vm.data.meta.last_page)}
         />
       </div>
     </div>

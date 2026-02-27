@@ -78,39 +78,16 @@ export default function AgendaMedicaNuevaCitaPage() {
     : "";
 
   return (
-    <div className="flex w-full min-w-0 flex-col space-y-4">
-      {vm.notice ? (
-        <div
-          role="status"
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm",
-            vm.notice.type === "success"
-              ? "border-(--color-success) text-(--color-success)"
-              : "border-(--color-danger) text-(--color-danger)",
-          ].join(" ")}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">{vm.notice.text}</div>
-            <button
-              type="button"
-              aria-label="Cerrar notificación"
-              onClick={vm.clearNotice}
-              className="text-base font-semibold leading-none"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      ) : null}
+    <div className="flex w-full min-w-0 flex-col gap-4 lg:gap-2">
       {!vm.slotsLoading && vm.selectedDateStr && vm.especialidadId && vm.medicoId && !vm.programacion ? (
-        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 text-sm text-(--color-text-secondary)">
+        <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 text-sm text-(--color-text-secondary)">
           No hay programación disponible para la fecha, servicio y médico seleccionados.
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-2">
         <div className="min-w-0">
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+          <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-(--color-text-primary)">Datos de la cita</div>

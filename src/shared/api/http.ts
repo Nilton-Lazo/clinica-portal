@@ -38,6 +38,9 @@ function parseErrorResponse(data: unknown): ErrorResponseShape {
   return result;
 }
 
+/** Timeout por defecto para evitar peticiones colgadas (p. ej. tras inactividad). */
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+
 export class HttpClient {
   private readonly baseUrl: string;
 
@@ -64,6 +67,10 @@ export class HttpClient {
       body = JSON.stringify(opts.body);
     }
 
+    const timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS;
+    const ac = new AbortController();
+    const timeoutId = setTimeout(() => ac.abort(), timeoutMs);
+
     let response: Response;
     try {
       response = await fetch(buildUrl(this.baseUrl, opts.path), {
@@ -71,13 +78,24 @@ export class HttpClient {
         headers,
         body,
         credentials: "omit",
+        signal: ac.signal,
       });
-    } catch {
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error && err.name === "AbortError") {
+        throw {
+          kind: "network",
+          status: 0,
+          message: "La petición tardó demasiado. Comprueba tu conexión e intenta de nuevo.",
+        } as ApiError;
+      }
       throw {
         kind: "network",
         status: 0,
         message: "No se pudo conectar con el servidor.",
       } as ApiError;
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     const contentType = response.headers.get("content-type") ?? "";

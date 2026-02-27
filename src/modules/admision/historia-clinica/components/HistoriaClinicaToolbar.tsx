@@ -1,7 +1,7 @@
 import type { RecordStatus } from "../types/historiaClinica.types";
 import type { StatusFilter } from "../hooks/useHistoriaClinica";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
-import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
+import { PrimaryButton } from "../../../../shared/ui/buttons";
 
 export default function HistoriaClinicaToolbar(props: {
   q: string;
@@ -18,10 +18,7 @@ export default function HistoriaClinicaToolbar(props: {
   perPage: number;
   onPerPageChange: (v: number) => void;
 
-  canEdit: boolean;
-
   onCreate: () => void;
-  onEdit: () => void;
 }) {
   const {
     q,
@@ -34,9 +31,7 @@ export default function HistoriaClinicaToolbar(props: {
     onStatusChange,
     perPage,
     onPerPageChange,
-    canEdit,
     onCreate,
-    onEdit,
   } = props;
 
   const statusOptions: SelectOption[] = [
@@ -60,8 +55,8 @@ export default function HistoriaClinicaToolbar(props: {
           onChange={(e) => onQChange(e.target.value)}
           placeholder="Buscar por HC, NR, apellidos y nombres"
           className={[
-            "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
-            "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+            "h-10 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3",
+            "text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)",
             "basis-full lg:basis-auto lg:flex-1 min-w-80",
           ].join(" ")}
         />
@@ -70,7 +65,7 @@ export default function HistoriaClinicaToolbar(props: {
           type="date"
           value={filiacionFrom}
           onChange={(e) => onFiliacionFromChange(e.target.value)}
-          className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) sm:w-auto min-w-40"
+          className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) sm:w-auto min-w-40"
           aria-label="Filiación desde"
         />
 
@@ -78,7 +73,7 @@ export default function HistoriaClinicaToolbar(props: {
           type="date"
           value={filiacionTo}
           onChange={(e) => onFiliacionToChange(e.target.value)}
-          className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) sm:w-auto min-w-40"
+          className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) sm:w-auto min-w-40"
           aria-label="Filiación hasta"
         />
 
@@ -100,15 +95,9 @@ export default function HistoriaClinicaToolbar(props: {
           menuClassName="min-w-[90px]"
         />
 
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <SecondaryButton disabled={!canEdit} onClick={onEdit}>
-            Actualizar registro
-          </SecondaryButton>
-
-          <PrimaryButton onClick={onCreate}>
-            Registrar paciente
-          </PrimaryButton>
-        </div>
+        <PrimaryButton onClick={onCreate}>
+          Registrar paciente
+        </PrimaryButton>
       </div>
     </div>
   );

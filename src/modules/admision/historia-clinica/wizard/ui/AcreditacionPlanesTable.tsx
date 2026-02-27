@@ -53,11 +53,13 @@ export default function AcreditacionPlanesTable(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
   emptyText?: string;
   iafaById: Record<number, IafaLookup>;
   contratanteById: Record<number, ContratanteLookup>;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, emptyText, iafaById, contratanteById } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast, emptyText, iafaById, contratanteById } = props;
 
   const columns: DataTableColumn<AcreditacionPlan>[] = [
     {
@@ -125,7 +127,7 @@ export default function AcreditacionPlanesTable(props: {
         emptyText={emptyText}
       />
 
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} />
+      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
     </div>
   );
 }

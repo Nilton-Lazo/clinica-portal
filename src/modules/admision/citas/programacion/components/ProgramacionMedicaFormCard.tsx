@@ -96,12 +96,12 @@ export default function ProgramacionMedicaFormCard(props: {
   };
 
   const fieldCls =
-    "mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)";
+    "mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 
   const codigoValue = String(codigo ?? "").trim() !== "" ? codigo : "Generando...";
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 flex flex-col">
+    <div className="flex h-full flex-col rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">

@@ -67,6 +67,9 @@ export function AcreditacionStep() {
     vm.setPage((p) => Math.min(lastPage, p + 1));
   }, [vm, lastPage]);
 
+  const handleFirst = React.useCallback(() => vm.setPage(1), [vm]);
+  const handleLast = React.useCallback(() => vm.setPage(lastPage), [vm, lastPage]);
+
   return (
     <FormCard title="Acreditación">
       <div className="flex w-full flex-col gap-4">
@@ -84,25 +87,9 @@ export function AcreditacionStep() {
               perPage={vm.perPage}
               onPerPageChange={(n) => vm.setPerPage(n)}
               onNew={handleNew}
-              onRefresh={() => void vm.reloadPlanes()}
-              refreshDisabled={vm.loading || !pacienteId}
             />
           </div>
         </div>
-
-        {vm.notice ? (
-          <div
-            role="status"
-            className={[
-              "rounded-2xl border px-4 py-3 text-sm",
-              vm.notice.type === "success"
-                ? "border-(--color-success) text-(--color-success)"
-                : "border-(--color-danger) text-(--color-danger)",
-            ].join(" ")}
-          >
-            {vm.notice.text}
-          </div>
-        ) : null}
 
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_571px] lg:items-start">
           <div className="min-w-0">
@@ -115,6 +102,8 @@ export function AcreditacionStep() {
                 page={vm.page}
                 onPrev={handlePrev}
                 onNext={handleNext}
+                onFirst={handleFirst}
+                onLast={handleLast}
                 emptyText={emptyText}
                 iafaById={vm.iafaById}
                 contratanteById={vm.contratanteById}
@@ -130,6 +119,8 @@ export function AcreditacionStep() {
                 page={vm.page}
                 onPrev={handlePrev}
                 onNext={handleNext}
+                onFirst={handleFirst}
+                onLast={handleLast}
                 emptyText={emptyText}
                 iafaById={vm.iafaById}
                 contratanteById={vm.contratanteById}

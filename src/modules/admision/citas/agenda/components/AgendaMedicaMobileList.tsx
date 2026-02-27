@@ -9,11 +9,13 @@ export default function AgendaMedicaMobileList(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
   selectedId: number | null;
   onSelect: (row: AgendaCita) => void;
   onLongPress?: (row: AgendaCita) => void;
 }) {
-  const { data, loading, onPrev, onNext, selectedId, onSelect, onLongPress } = props;
+  const { data, loading, onPrev, onNext, onFirst, onLast, selectedId, onSelect, onLongPress } = props;
 
   const formatHora = (value?: string | null) => {
     if (!value) return "—";
@@ -65,7 +67,7 @@ export default function AgendaMedicaMobileList(props: {
         )}
       />
 
-      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} />
+      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
     </div>
   );
 }

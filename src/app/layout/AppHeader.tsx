@@ -25,7 +25,7 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
         "sticky top-0 z-20",
       ].join(" ")}
     >
-      <div className="h-full flex items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="h-full flex items-center justify-between gap-3 px-4 sm:px-5">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -38,7 +38,7 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
 
             <div className="min-w-0">
                 <div
-                    className="text-xl sm:text-3xl font-bold text-(--color-primary) leading-tight truncate"
+                    className="text-xl sm:text-2xl font-bold text-(--color-primary) leading-tight truncate"
                     title={meta?.title ?? "Sistema"}
                 >
                     {meta?.title ?? "Sistema"}
@@ -89,7 +89,7 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
             {openUserMenu && (
               <div
                 className={[
-                  "absolute right-0 mt-2 w-48 rounded-xl bg-(--color-surface)",
+                  "absolute right-0 mt-2 w-48 rounded-lg bg-(--color-surface)",
                   "border border-(--color-border) shadow-lg overflow-hidden",
                 ].join(" ")}
                 onClick={(e) => e.stopPropagation()}

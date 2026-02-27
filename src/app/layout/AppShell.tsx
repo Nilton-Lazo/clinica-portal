@@ -29,9 +29,15 @@ export default function AppShell() {
   const { setUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isHistoriaList =
+    location.pathname === "/admision/historia-clinica" ||
+    location.pathname === "/admision/historia-clinica/";
   const isHistoriaClinicaWizard = location.pathname.includes("/admision/historia-clinica/");
+  const isProgramacionMedica = location.pathname.includes("/admision/citas/programacion");
   const isAgendaCitas = location.pathname.includes("/admision/citas/agenda");
   const isTarifario = location.pathname.startsWith("/facturacion/tarifario");
+  const isScrollableContent =
+    (isHistoriaClinicaWizard && !isHistoriaList) || isProgramacionMedica || isAgendaCitas || isTarifario;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const canHover = useMediaQuery("(hover: hover) and (pointer: fine)");
@@ -107,12 +113,12 @@ export default function AppShell() {
       >
         <AppHeader onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
 
-        {/* ✅ Frame global para TODAS las páginas */}
-        <main className="flex-1 min-w-0 min-h-0 overflow-auto">
+        {/* Frame: altura acotada para que tablas puedan llenar y hacer scroll interno */}
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden min-w-0">
           <div
             className={[
-              "mx-auto w-full max-w-400 px-4 py-4",
-              isHistoriaClinicaWizard || isAgendaCitas || isTarifario ? "" : "h-full min-h-0",
+              "mx-auto flex min-h-0 w-full max-w-400 flex-1 flex-col p-4 lg:p-2",
+              isScrollableContent ? "overflow-auto" : "overflow-hidden",
             ].join(" ")}
           >
             <Outlet />

@@ -39,10 +39,10 @@ export function ConfirmDialog({
   if (!open) return null;
 
   const cancelBtn =
-    "h-10 rounded-xl px-4 text-sm font-medium bg-[var(--color-panel-context)] text-[var(--color-base-primary)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]";
+    "h-10 rounded-md px-4 text-sm font-medium bg-[var(--color-panel-context)] text-[var(--color-base-primary)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]";
 
   const confirmBtn = [
-    "h-10 rounded-xl px-4 text-sm font-medium text-[var(--color-text-inverse)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
+    "h-10 rounded-md px-4 text-sm font-medium text-[var(--color-text-inverse)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
     destructive ? "bg-[var(--color-danger)]" : "bg-[var(--color-primary)]",
   ].join(" ");
 
@@ -58,7 +58,7 @@ export function ConfirmDialog({
           role="dialog"
           aria-modal="true"
           aria-label={title}
-          className="w-full max-w-md rounded-2xl border border-(--border-color-default) bg-(--color-surface) shadow-lg"
+          className="w-full max-w-md rounded-lg border border-(--border-color-default) bg-(--color-surface) shadow-lg"
         >
           <div className="p-5">
             <div className="text-base font-semibold text-(--color-text-primary)">

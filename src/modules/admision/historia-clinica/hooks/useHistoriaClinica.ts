@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ApiError } from "../../../../shared/api/apiError";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 
 import type { PacienteListItem, PaginatedResponse, RecordStatus } from "../types/historiaClinica.types";
 import { listPacientes } from "../services/historiaClinica.service";
@@ -12,12 +12,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function toIsoDateOrNull(v: string): string | null {
@@ -122,8 +116,10 @@ export function useHistoriaClinica() {
 
         setData({ ...res, data: sorted });
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
-        setNotice({ type: "error", text: msg });
+        setNotice({
+          type: "error",
+          text: toUserFriendlyMessage(e, "No se pudo cargar la lista. Intenta de nuevo."),
+        });
       } finally {
         setLoading(false);
       }

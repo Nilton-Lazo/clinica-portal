@@ -1,20 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import type { ApiError } from "../../../../shared/api/apiError";
 import { createPaciente, updatePaciente, type PacienteUpsertPayload } from "../services/pacientes.service";
+import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 
 export type Notice = { type: "success" | "error"; text: string } | null;
-
-function toErrorText(e: unknown): string {
-  if (typeof e === "object" && e !== null && "message" in e && typeof (e as { message: unknown }).message === "string") {
-    return (e as { message: string }).message;
-  }
-  return "No se pudo guardar. Revisa Network y Laravel logs.";
-}
-
-function isApiError(e: unknown): e is ApiError {
-  return typeof e === "object" && e !== null && "status" in e && "message" in e;
-}
 
 export function usePacientePersist() {
   const params = useParams();
@@ -41,8 +30,7 @@ export function usePacientePersist() {
         }
         setNotice({ type: "success", text: "Guardado correctamente." });
       } catch (e) {
-        const text = isApiError(e) ? e.message : toErrorText(e);
-        setNotice({ type: "error", text });
+        setNotice({ type: "error", text: toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo.") });
         throw e;
       } finally {
         setSaving(false);

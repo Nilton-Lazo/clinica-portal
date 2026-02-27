@@ -1,6 +1,5 @@
 import * as React from "react";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
-import NoticeBanner from "../programacion/components/NoticeBanner";
 import ProgramacionCalendarCard from "../programacion/components/ProgramacionCalendarCard";
 import ProgramacionMedicaFormCard from "../programacion/components/ProgramacionMedicaFormCard";
 import ProgramacionMedicaListBar from "../programacion/components/ProgramacionMedicaListBar";
@@ -44,10 +43,8 @@ export default function ProgramacionMedicaPage() {
   }, [vm, isLgUp]);
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 pb-4">
-      <NoticeBanner notice={vm.notice} />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch">
+    <div className="flex w-full min-w-0 min-h-[calc(100vh+1px)] shrink-0 flex-col gap-4 lg:gap-2">
+      <div className="grid shrink-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch lg:gap-2">
         <div className="min-w-0 h-full">
           <ProgramacionCalendarCard
             modalidad={vm.modalidad}
@@ -96,18 +93,17 @@ export default function ProgramacionMedicaPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-(--color-text-primary)">Listado</div>
-              <div className="text-xs text-(--color-text-secondary)">
-                Usa los filtros para controlar qué se muestra en la tabla.
-              </div>
+      <div className="flex min-h-[420px] shrink-0 flex-col gap-3 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div className="flex shrink-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-(--color-text-primary)">Listado</div>
+            <div className="text-xs text-(--color-text-secondary)">
+              Usa los filtros para controlar qué se muestra en la tabla.
             </div>
+          </div>
 
-            <div className="w-full sm:max-w-none sm:flex-1 sm:ml-4">
-              <ProgramacionMedicaListBar
+          <div className="w-full sm:max-w-none sm:flex-1 sm:ml-4">
+            <ProgramacionMedicaListBar
                 q={vm.q}
                 onQChange={vm.setQ}
                 from={vm.from}
@@ -119,18 +115,20 @@ export default function ProgramacionMedicaPage() {
                 perPage={vm.perPage}
                 onPerPageChange={(n) => vm.setPerPage(n)}
                 onNew={handleNew}
-              />
-            </div>
+            />
           </div>
+        </div>
 
-          <div className="min-w-0">
-            <ProgramacionMedicaTable
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <ProgramacionMedicaTable
               data={vm.data}
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               onSelect={vm.loadForEdit}
               onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
               onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+              onFirst={() => vm.setPage(1)}
+              onLast={() => vm.setPage(vm.data.meta.last_page)}
             />
 
             <ProgramacionMedicaMobileList
@@ -140,8 +138,9 @@ export default function ProgramacionMedicaPage() {
               onSelect={vm.loadForEdit}
               onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
               onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+              onFirst={() => vm.setPage(1)}
+              onLast={() => vm.setPage(vm.data.meta.last_page)}
             />
-          </div>
         </div>
       </div>
 

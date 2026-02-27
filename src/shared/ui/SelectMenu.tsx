@@ -32,6 +32,7 @@ export function SelectMenu(props: {
   } = props;
 
   const [open, setOpen] = React.useState(false);
+  const [openUp, setOpenUp] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const optionsNoPlaceholder = React.useMemo(() => {
     return options.filter((opt) => {
@@ -85,11 +86,23 @@ export function SelectMenu(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!open) {
       setQuery("");
       return;
     }
+    const btn = btnRef.current;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const menuHeight = 240;
+      setOpenUp(spaceBelow < menuHeight && spaceAbove >= spaceBelow);
+    }
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return;
     if (shouldShowSearch) {
       requestAnimationFrame(() => searchRef.current?.focus());
     }
@@ -152,9 +165,9 @@ export function SelectMenu(props: {
           }
         }}
         className={[
-          "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface)",
+          "h-10 rounded-md border border-(--border-color-default) bg-(--color-surface)",
           "px-3 text-sm text-(--color-text-primary)",
-          "outline-none focus:ring-2 focus:ring-(--color-primary)",
+          "outline-none focus:ring-0 focus:border-(--color-primary)",
           "flex items-center justify-between gap-2",
           "transition-transform duration-150 hover:scale-[1.01] active:scale-[0.99]",
           disabled ? "opacity-50 cursor-not-allowed hover:scale-100 active:scale-100" : "",
@@ -167,10 +180,12 @@ export function SelectMenu(props: {
 
       <div
         className={[
-          "absolute left-0 right-0 mt-2 z-50",
-          "rounded-xl border border-(--border-color-default) bg-(--color-surface) shadow-lg",
-          "origin-top transition-all duration-150",
-          open ? "opacity-100 translate-y-0 scale-100" : "pointer-events-none opacity-0 -translate-y-1 scale-[0.98]",
+          "absolute left-0 right-0 z-50",
+          openUp ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top",
+          "rounded-md border border-(--border-color-default) bg-(--color-surface) shadow-lg",
+          "transition-all duration-150",
+          open ? "opacity-100 translate-y-0 scale-100" : "pointer-events-none opacity-0 scale-[0.98]",
+          !open ? (openUp ? "translate-y-1" : "-translate-y-1") : "",
           menuClassName ?? "w-full min-w-0",
           "max-w-[calc(100vw-2rem)]",
         ].join(" ")}
@@ -203,7 +218,7 @@ export function SelectMenu(props: {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-sm outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  className="h-9 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-2 text-sm outline-none focus:ring-0 focus:border-(--color-primary)"
                   aria-label={searchPlaceholder}
                 />
               </div>
@@ -220,7 +235,7 @@ export function SelectMenu(props: {
                   onMouseEnter={() => setActiveIndex(idx)}
                   onClick={() => !o.disabled && pick(o.value)}
                   className={[
-                    "w-full rounded-lg px-3 py-2 text-left text-sm",
+                    "w-full rounded-md px-3 py-2 text-left text-sm",
                     "transition-colors",
                     "whitespace-normal wrap-break-words leading-5",
                     o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",

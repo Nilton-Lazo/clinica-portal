@@ -22,8 +22,8 @@ import {
 } from "../services/agendaMedica.service";
 import type { AgendaInitData } from "../services/agendaMedica.service";
 import { toApiError } from "../../../../../shared/api/apiError";
-
-type Notice = { type: "success" | "error"; text: string } | null;
+import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
+import { useToast } from "../../../../../shared/feedback";
 
 function ymd(d: Date): string {
   const y = d.getFullYear();
@@ -44,12 +44,11 @@ function medicoLabel(m: { nombres: string; apellido_paterno: string; apellido_ma
 }
 
 export function useAgendaMedica() {
-  const [notice, setNotice] = React.useState<Notice>(null);
-  const noticeTimerRef = React.useRef<number | null>(null);
-  const clearNotice = React.useCallback(() => setNotice(null), []);
+  const toast = useToast();
   const draftKeyRef = React.useRef("admision:agendaMedicaDraft");
   const draftLoadedRef = React.useRef(false);
   const draftReadyRef = React.useRef(false);
+  const opcionesCacheRef = React.useRef<Record<string, AgendaMedicoOption[]>>({});
   /** Número de respuestas de slots para las que NO resetear contadores (vuelta de Buscar paciente; evita que un 2.º .then por Strict Mode limpie la Hora). */
   const preserveVisibleCountersRef = React.useRef(0);
 
@@ -92,17 +91,6 @@ export function useAgendaMedica() {
   const [selectedCita, setSelectedCita] = React.useState<AgendaCita | null>(null);
   const [confirmEliminarOpen, setConfirmEliminarOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    if (noticeTimerRef.current) {
-      window.clearTimeout(noticeTimerRef.current);
-      noticeTimerRef.current = null;
-    }
-    if (!notice || typeof window === "undefined") return;
-    noticeTimerRef.current = window.setTimeout(() => {
-      setNotice(null);
-      noticeTimerRef.current = null;
-    }, 10000);
-  }, [notice]);
   const saveDraft = React.useCallback(() => {
     if (typeof window === "undefined") return;
     const payload = {
@@ -209,6 +197,9 @@ export function useAgendaMedica() {
         setMedicosList(d.opciones.medicos);
         setEspecialidadId(d.defaults.especialidad_id);
         setMedicoId(d.defaults.medico_id);
+        if (d.defaults.especialidad_id != null) {
+          opcionesCacheRef.current[`${selectedDateStr}|${d.defaults.especialidad_id}`] = d.opciones.medicos;
+        }
         setSlots(d.slots);
         setProgramacion(d.programacion);
         if (d.citas?.paginator) {
@@ -227,12 +218,7 @@ export function useAgendaMedica() {
         }
       })
       .catch((e) => {
-        const err = toApiError(e);
-        const msg =
-          err.kind === "validation"
-            ? Object.values(err.errors).flat()[0] ?? err.message
-            : err.message;
-        setNotice({ type: "error", text: msg || "No se pudo cargar la agenda." });
+        toast.error(toUserFriendlyMessage(e, "No se pudo cargar la agenda."));
         // Limpiar todo en caso de error
         setEspecialidadesList([]);
         setMedicosList([]);
@@ -246,11 +232,18 @@ export function useAgendaMedica() {
         setInitLoading(false);
         setLoading(false); // Desactiva el spinner principal
       });
-  }, [selectedDateStr, reloadFlag, perPage]);
+  }, [selectedDateStr, reloadFlag, perPage, toast]);
 
-  // Cargar médicos cuando la especialidad cambia MANUALMENTE
+  // Cargar médicos cuando la especialidad cambia (con cache para respuesta al instante al volver)
   React.useEffect(() => {
     if (initLoading || !selectedDateStr || especialidadId === null) {
+      return;
+    }
+    const cacheKey = `${selectedDateStr}|${especialidadId}`;
+    const cached = opcionesCacheRef.current[cacheKey];
+    if (cached !== undefined) {
+      setMedicosList(cached);
+      setMedicoId(cached[0]?.id ?? null);
       return;
     }
     setMedicosList([]);
@@ -258,17 +251,17 @@ export function useAgendaMedica() {
     setMedicosLoading(true);
     getAgendaOpciones({ fecha: selectedDateStr, especialidad_id: especialidadId })
       .then((data) => {
+        opcionesCacheRef.current[cacheKey] = data.medicos;
         setMedicosList(data.medicos);
         setMedicoId(data.medicos[0]?.id ?? null);
       })
       .catch((e) => {
-        const err = toApiError(e);
-        setNotice({ type: "error", text: err.message || "No se pudieron cargar médicos programados." });
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar los médicos programados."));
         setMedicosList([]);
         setMedicoId(null);
       })
       .finally(() => setMedicosLoading(false));
-  }, [selectedDateStr, especialidadId, initLoading]);
+  }, [selectedDateStr, especialidadId, initLoading, toast]);
 
   // Cargar slots y citas cuando el médico cambia MANUALMENTE
   React.useEffect(() => {
@@ -286,8 +279,7 @@ export function useAgendaMedica() {
         setProgramacion(res.programacion ?? null);
       })
       .catch((e) => {
-        const err = toApiError(e);
-        setNotice({ type: "error", text: err.message || "No se pudieron cargar los slots." });
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar los horarios disponibles."));
         setSlots(null);
         setProgramacion(null);
       })
@@ -307,8 +299,7 @@ export function useAgendaMedica() {
         setProgramacion((p) => res.programacion ?? p);
       })
       .catch((e) => {
-        const err = toApiError(e);
-        setNotice({ type: "error", text: err.message || "No se pudieron cargar las citas." });
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar las citas."));
       })
       .finally(() => setLoading(false));
   }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, initLoading]);
@@ -405,12 +396,12 @@ export function useAgendaMedica() {
       if (!iafaId && p.iafas.length > 0) {
         setIafaId(p.iafas[0].id);
       }
-    } catch {
-      setNotice({ type: "error", text: "No se pudo cargar el paciente." });
+    } catch (e) {
+      toast.error(toUserFriendlyMessage(e, "No se pudo cargar el paciente."));
     } finally {
       setPacienteLoading(false);
     }
-  }, [iafaId]);
+  }, [iafaId, toast]);
 
   React.useEffect(() => {
     if (draftLoadedRef.current) return;
@@ -471,7 +462,7 @@ export function useAgendaMedica() {
         autorizacion_siteds: autorizacion || undefined,
         iafa_id: iafaId ?? undefined,
       });
-      setNotice({ type: "success", text: "Cita agendada correctamente." });
+      toast.success("Cita agendada correctamente.");
       setFormOpen(false);
       setHora("");
       setOrden(null);
@@ -486,15 +477,10 @@ export function useAgendaMedica() {
       setPage(1);
       return true;
     } catch (e) {
-      const err = toApiError(e);
-      const msg =
-        err.kind === "validation"
-          ? Object.values(err.errors).flat()[0] ?? err.message
-          : err.message;
-      setNotice({ type: "error", text: msg ?? "No se pudo agendar la cita." });
+      toast.error(toUserFriendlyMessage(e, "No se pudo agendar la cita."));
       return false;
     }
-  }, [programacion, hora, paciente, motivo, observacion, autorizacion, iafaId, selectedDateStr, especialidadId, medicoId]);
+  }, [programacion, hora, paciente, motivo, observacion, autorizacion, iafaId, selectedDateStr, especialidadId, medicoId, toast]);
 
   const setSelectedDateStr = React.useCallback((value: string) => {
     const d = parseYmd(value);
@@ -511,23 +497,15 @@ export function useAgendaMedica() {
     setConfirmEliminarOpen(false);
     try {
       await anularAgendaCita(selectedCita.id);
-      setNotice({ type: "success", text: "Cita eliminada, la hora quedó libre para otra cita." });
+      toast.success("Cita eliminada. La hora quedó libre para otra cita.");
       setSelectedCita(null);
       setReloadFlag((v) => v + 1);
     } catch (e) {
-      const err = toApiError(e);
-      const msg =
-        err.kind === "validation"
-          ? Object.values(err.errors).flat()[0] ?? err.message
-          : err.message;
-      setNotice({ type: "error", text: msg ?? "No se pudo eliminar la cita." });
+      toast.error(toUserFriendlyMessage(e, "No se pudo eliminar la cita."));
     }
-  }, [selectedCita]);
+  }, [selectedCita, toast]);
 
   return {
-    notice,
-    setNotice,
-    clearNotice,
     selectedDate,
     selectedDateStr,
     setSelectedDate,

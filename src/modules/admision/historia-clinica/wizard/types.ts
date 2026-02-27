@@ -255,6 +255,25 @@ function toCodeOrEmpty(v: unknown): string {
   return "";
 }
 
+function toDateOnly(v: unknown): string {
+  if (v == null || v === "") return "";
+  const s = String(v).trim();
+  if (!s) return "";
+  const match = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : s;
+}
+
+/** Normaliza sexo: el API puede devolver "Masculino"/"Femenino" (display); el catálogo usa "MASCULINO"/"FEMENINO". */
+function normalizeSexoValue(v: unknown): string {
+  if (v == null || v === "") return "";
+  const s = String(v).trim();
+  if (!s) return "";
+  const u = s.toUpperCase();
+  if (u === "MASCULINO" || u === "M") return "MASCULINO";
+  if (u === "FEMENINO" || u === "F") return "FEMENINO";
+  return s;
+}
+
 function getContactoEmergencia(p: PacienteFull): PacienteFull["contactoEmergencia"] | null | undefined {
   const maybeSnake = (p as unknown as { contacto_emergencia?: PacienteFull["contactoEmergencia"] }).contacto_emergencia;
   return p.contactoEmergencia ?? maybeSnake ?? null;
@@ -272,8 +291,8 @@ export const mapPacienteToDraft = (p: PacienteFull): PacienteDraft => ({
   apellido_materno: p.apellido_materno ?? "",
 
   estado_civil: p.estado_civil ?? "",
-  sexo: p.sexo ?? "",
-  fecha_nacimiento: p.fecha_nacimiento ?? "",
+  sexo: normalizeSexoValue(p.sexo),
+  fecha_nacimiento: toDateOnly(p.fecha_nacimiento),
 
   nacionalidad_iso2: toCodeOrEmpty(p.nacionalidad_iso2),
   ubigeo_nacimiento: toCodeOrEmpty(p.ubigeo_nacimiento),

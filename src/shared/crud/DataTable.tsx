@@ -8,6 +8,22 @@ export type DataTableColumn<T> = {
   render: (row: T) => React.ReactNode;
 };
 
+function TableLoadingOverlay() {
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-(--color-surface) opacity-95 z-10"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div
+        className="h-8 w-8 shrink-0 rounded-full border-2 border-(--color-primary) border-t-transparent animate-spin"
+        aria-hidden
+      />
+      <span className="text-sm font-medium text-(--color-text-secondary)">Cargando…</span>
+    </div>
+  );
+}
+
 export function DataTable<T>(props: {
   rows: T[];
   columns: DataTableColumn<T>[];
@@ -20,15 +36,15 @@ export function DataTable<T>(props: {
 }) {
   const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, emptyText } = props;
 
-  const showOverlay = loading && rows.length > 0;
-  const showLoadingRow = loading && rows.length === 0;
+  const showOverlay = loading;
   const showEmptyRow = !loading && rows.length === 0;
+  const showPlaceholderRow = loading && rows.length === 0;
 
   return (
-    <div className="relative rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
-      <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)">
+      <div className="min-h-0 min-w-0 flex-1 overflow-auto app-scrollbar app-scrollbar-no-gutter">
+        <table className="w-full min-w-full border-collapse text-sm">
+          <thead className="sticky top-0 z-1 bg-(--color-primary) text-(--color-text-inverse)">
             <tr>
               {columns.map((c) => (
                 <th
@@ -45,11 +61,9 @@ export function DataTable<T>(props: {
           </thead>
 
           <tbody>
-            {showLoadingRow ? (
+            {showPlaceholderRow ? (
               <tr>
-                <td className="px-3 py-3 text-(--color-text-secondary)" colSpan={columns.length}>
-                  Cargando…
-                </td>
+                <td className="h-24" colSpan={columns.length} aria-hidden />
               </tr>
             ) : showEmptyRow ? (
               <tr>
@@ -85,15 +99,7 @@ export function DataTable<T>(props: {
           </tbody>
         </table>
       </div>
-      {showOverlay ? (
-        <div
-          className="absolute inset-0 flex items-center justify-center bg-(--color-surface)/80 backdrop-blur-[2px] z-10"
-          aria-busy="true"
-          aria-live="polite"
-        >
-          <span className="text-sm font-medium text-(--color-text-secondary)">Cargando…</span>
-        </div>
-      ) : null}
+      {showOverlay ? <TableLoadingOverlay /> : null}
     </div>
   );
 }

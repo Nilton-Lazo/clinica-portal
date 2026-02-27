@@ -11,7 +11,10 @@ import type {
   TipoProgramacionMedica,
   TurnoLookup,
 } from "../../types/programacionMedica.types";
-import { programacionMedicaService, isApiError } from "../../services/programacionMedica.service";
+import { programacionMedicaService } from "../../services/programacionMedica.service";
+import { getProgramacionCatalog, getProgramacionCatalogSync } from "../programacionCatalogCache";
+import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
+import { useToast } from "../../../../../shared/feedback";
 
 import {
   dmyFromYmdString,
@@ -25,7 +28,6 @@ import {
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
-export type Notice = { type: "success" | "error"; text: string } | null;
 
 function clampPerPage(n: number) {
   if (n <= 25) return 25;
@@ -54,29 +56,6 @@ function turnoLabel(t: TurnoLookup): string {
   const c = String(t.codigo ?? "").trim();
   const d = String(t.descripcion ?? "").trim();
   return c && d ? `${c} · ${d}` : c || d || `Turno ${t.id}`;
-}
-
-function errorMessage(e: unknown, fallback: string): string {
-  if (isApiError(e)) {
-    const x = e as Record<string, unknown>;
-
-    const errs = x.errors;
-    if (errs && typeof errs === "object") {
-      const keys = Object.keys(errs as Record<string, unknown>);
-      if (keys.length > 0) {
-        const firstKey = keys[0];
-        const v = (errs as Record<string, unknown>)[firstKey];
-        if (Array.isArray(v) && typeof v[0] === "string" && v[0].trim() !== "") {
-          return v[0];
-        }
-      }
-    }
-
-    const m = x.message;
-    if (typeof m === "string" && m.trim() !== "") return m;
-  }
-
-  return fallback;
 }
 
 type MedicoWithEspecialidades = MedicoLookup & {
@@ -126,6 +105,7 @@ function getMedicoEspecialidadIds(m: MedicoLookup, allEspecialidades: Especialid
 }
 
 export function useProgramacionMedica() {
+  const toast = useToast();
   const svc = React.useMemo(() => programacionMedicaService(), []);
   const today = React.useMemo(() => new Date(), []);
 
@@ -136,7 +116,6 @@ export function useProgramacionMedica() {
 
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [notice, setNotice] = React.useState<Notice>(null);
 
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(50);
@@ -158,11 +137,12 @@ export function useProgramacionMedica() {
   const [rangeStart, setRangeStart] = React.useState<Date | null>(() => today);
   const [rangeEnd, setRangeEnd] = React.useState<Date | null>(() => today);
 
-  const [medicos, setMedicos] = React.useState<MedicoLookup[]>([]);
-  const [especialidades, setEspecialidades] = React.useState<EspecialidadLookup[]>([]);
+  const catalogSync = React.useMemo(() => getProgramacionCatalogSync(), []);
+  const [medicos, setMedicos] = React.useState<MedicoLookup[]>(() => catalogSync?.medicos ?? []);
+  const [especialidades, setEspecialidades] = React.useState<EspecialidadLookup[]>(() => catalogSync?.especialidades ?? []);
   const [especialidadesDelMedico, setEspecialidadesDelMedico] = React.useState<EspecialidadLookup[]>([]);
-  const [consultorios, setConsultorios] = React.useState<ConsultorioLookup[]>([]);
-  const [turnos, setTurnos] = React.useState<TurnoLookup[]>([]);
+  const [consultorios, setConsultorios] = React.useState<ConsultorioLookup[]>(() => catalogSync?.consultorios ?? []);
+  const [turnos, setTurnos] = React.useState<TurnoLookup[]>(() => catalogSync?.turnos ?? []);
 
   const [codigo, setCodigo] = React.useState<string>("");
   const [medicoId, setMedicoId] = React.useState<number>(0);
@@ -185,8 +165,6 @@ export function useProgramacionMedica() {
     tipo: TipoProgramacionMedica;
     estado: RecordStatus;
   } | null>(null);
-
-  const clearNotice = React.useCallback(() => setNotice(null), []);
 
   const fechaDisplay = React.useMemo(() => {
     if (mode === "edit") return formatDmyFromDate(selectedDate);
@@ -227,11 +205,11 @@ export function useProgramacionMedica() {
 
       setData(res);
     } catch (e) {
-      setNotice({ type: "error", text: errorMessage(e, "Error al listar.") });
+      toast.error(toUserFriendlyMessage(e, "No se pudo cargar el listado. Intenta de nuevo."));
     } finally {
       setLoading(false);
     }
-  }, [svc, page, perPage, statusFilter, from, to, q]);
+  }, [svc, page, perPage, statusFilter, from, to, q, toast]);
 
   const lastFiltersRef = React.useRef<string>("");
   React.useEffect(() => {
@@ -248,28 +226,22 @@ export function useProgramacionMedica() {
 
   React.useEffect(() => {
     let alive = true;
-    (async () => {
-      try {
-        const [m, e, c, t] = await Promise.all([
-          svc.listMedicosActivos(),
-          svc.listEspecialidadesActivas(),
-          svc.listConsultoriosActivos(),
-          svc.listTurnosActivos(),
-        ]);
+    getProgramacionCatalog()
+      .then((cat) => {
         if (!alive) return;
-        setMedicos(m);
-        setEspecialidades(e);
-        setConsultorios(c);
-        setTurnos(t);
-      } catch (err) {
+        setMedicos(cat.medicos);
+        setEspecialidades(cat.especialidades);
+        setConsultorios(cat.consultorios);
+        setTurnos(cat.turnos);
+      })
+      .catch((err) => {
         if (!alive) return;
-        setNotice({ type: "error", text: errorMessage(err, "Error cargando catálogos.") });
-      }
-    })();
+        toast.error(toUserFriendlyMessage(err, "No se pudieron cargar los catálogos. Intenta de nuevo."));
+      });
     return () => {
       alive = false;
     };
-  }, [svc]);
+  }, [toast]);
 
   const especialidadIdRef = React.useRef<number>(0);
   React.useEffect(() => {
@@ -355,13 +327,13 @@ export function useProgramacionMedica() {
       } catch (e) {
         if (!alive) return;
         setCupos(0);
-        setNotice({ type: "error", text: errorMessage(e, "No se pudo calcular cupos.") });
+        toast.error(toUserFriendlyMessage(e, "No se pudo obtener los cupos. Intenta de nuevo."));
       }
     })();
     return () => {
       alive = false;
     };
-  }, [svc, medicoId, turnoId]);
+  }, [svc, medicoId, turnoId, toast]);
 
   const batchCount = React.useMemo(() => {
     if (mode !== "new") return 1;
@@ -416,8 +388,6 @@ export function useProgramacionMedica() {
   const codigoDisplay = mode === "edit" ? codigo : codigoPreview;
 
   const resetToNew = React.useCallback(() => {
-    clearNotice();
-
     setMode("new");
     setSelected(null);
     originalRef.current = null;
@@ -441,12 +411,10 @@ export function useProgramacionMedica() {
     setEstado("ACTIVO");
 
     setConfirmDeactivateOpen(false);
-  }, [today, clearNotice]);
+  }, [today]);
 
   const loadForEdit = React.useCallback(
     (pm: ProgramacionMedica) => {
-      clearNotice();
-
       setMode("edit");
       setSelected(pm);
 
@@ -480,12 +448,10 @@ export function useProgramacionMedica() {
         estado: pm.estado,
       };
     },
-    [clearNotice]
+    []
   );
 
   const cancel = React.useCallback(() => {
-    clearNotice();
-
     if (mode === "new") {
       resetToNew();
       return;
@@ -493,26 +459,31 @@ export function useProgramacionMedica() {
     if (!selected || !originalRef.current) return;
 
     const o = originalRef.current;
-    const d = new Date(`${o.fecha}T00:00:00`);
+    const hadChanges =
+      ymdFromDate(selectedDate) !== o.fecha ||
+      medicoId !== o.medico_id ||
+      especialidadId !== o.especialidad_id ||
+      consultorioId !== o.consultorio_id ||
+      turnoId !== o.turno_id ||
+      tipo !== o.tipo ||
+      estado !== o.estado;
 
+    const d = new Date(`${o.fecha}T00:00:00`);
     setSelectedDate(d);
     setSelectedDates([d]);
     setRangeStart(d);
     setRangeEnd(d);
-
     setCodigo(selected.codigo);
-
     especialidadIdRef.current = o.especialidad_id;
     setMedicoId(o.medico_id);
     setEspecialidadId(o.especialidad_id);
     setConsultorioId(o.consultorio_id);
     setTurnoId(o.turno_id);
-
     setTipo(o.tipo);
     setEstado(o.estado);
-
     setConfirmDeactivateOpen(false);
-  }, [mode, resetToNew, selected, clearNotice]);
+    if (hadChanges) toast.info("Cambios descartados.");
+  }, [mode, resetToNew, selected, medicoId, especialidadId, consultorioId, turnoId, tipo, estado, selectedDate, toast]);
 
   const canDeactivate = !!selected && selected.estado !== "INACTIVO";
 
@@ -562,8 +533,6 @@ export function useProgramacionMedica() {
     if (!isValid) return;
 
     setSaving(true);
-    clearNotice();
-
     try {
       if (mode === "new") {
         const base = {
@@ -595,14 +564,9 @@ export function useProgramacionMedica() {
         }
 
         const created = await svc.createBatch(payload);
-
-        await refresh();
-
-        if (created.length > 0) {
-          loadForEdit(created[0]);
-        } else {
-          resetToNew();
-        }
+        toast.success(created.length > 1 ? "Programaciones creadas." : "Programación guardada.");
+        resetToNew();
+        void refresh();
       } else {
         if (!selected) return;
 
@@ -615,12 +579,12 @@ export function useProgramacionMedica() {
           tipo,
           estado,
         });
-
+        toast.success("Cambios guardados.");
         await refresh();
         loadForEdit(upd);
       }
     } catch (e) {
-      setNotice({ type: "error", text: errorMessage(e, "Error al guardar.") });
+      toast.error(toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo."));
     } finally {
       setSaving(false);
     }
@@ -643,32 +607,30 @@ export function useProgramacionMedica() {
     loadForEdit,
     resetToNew,
     selected,
-    clearNotice,
+    toast,
   ]);
 
   const requestDeactivate = React.useCallback(() => {
     if (!canDeactivate) return;
-    clearNotice();
     setConfirmDeactivateOpen(true);
-  }, [canDeactivate, clearNotice]);
+  }, [canDeactivate]);
 
   const onDeactivateConfirmed = React.useCallback(async () => {
     if (!selected) return;
 
     setSaving(true);
-    clearNotice();
-
     try {
       const upd = await svc.deactivate(selected.id);
+      toast.success("Programación desactivada.");
       await refresh();
       loadForEdit(upd);
     } catch (e) {
-      setNotice({ type: "error", text: errorMessage(e, "Error al desactivar.") });
+      toast.error(toUserFriendlyMessage(e, "No se pudo desactivar. Intenta de nuevo."));
     } finally {
       setSaving(false);
       setConfirmDeactivateOpen(false);
     }
-  }, [svc, selected, refresh, loadForEdit, clearNotice]);
+  }, [svc, selected, refresh, loadForEdit, toast]);
 
   const onPickDaily = React.useCallback(
     (d: Date) => {
@@ -718,7 +680,6 @@ export function useProgramacionMedica() {
 
   const onModalidadChange = React.useCallback(
     (m: ModalidadFechasProgramacion) => {
-      clearNotice();
       setModalidad(m);
 
       if (m === "DIARIA") {
@@ -738,7 +699,7 @@ export function useProgramacionMedica() {
         setSelectedDates([today]);
       }
     },
-    [today, clearNotice]
+    [today]
   );
 
   const medicoOptions = React.useMemo(
@@ -772,8 +733,6 @@ export function useProgramacionMedica() {
   return {
     data,
     loading,
-    notice,
-    setNotice,
 
     page,
     setPage,

@@ -125,7 +125,7 @@ export default function AcreditacionPlanFormCard(props: {
   ];
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="h-full rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -178,38 +178,41 @@ export default function AcreditacionPlanFormCard(props: {
           </div>
         </div>
 
-        <div>
-          <label className="text-sm text-(--color-text-primary)">Fecha de afiliación</label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-sm text-(--color-text-primary)">Fecha de afiliación</label>
 
-          {isTouchUi ? (
-            <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-              <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
-                <span className={fechaAfiliacion ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
-                  {fechaAfiliacion ? formatDateForDisplay(fechaAfiliacion) : "dd/mm/aaaa"}
-                </span>
+            {isTouchUi ? (
+              <div className="group relative mt-1 rounded-md">
+                <div className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center group-focus-within:border-(--color-primary)">
+                  <span className={fechaAfiliacion ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
+                    {fechaAfiliacion ? formatDateForDisplay(fechaAfiliacion) : "dd/mm/aaaa"}
+                  </span>
+                </div>
+
+                <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
+
+                <input
+                  type="date"
+                  value={fechaAfiliacion}
+                  onChange={(e) => onFechaAfiliacionChange(e.target.value)}
+                  className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                  aria-label="Fecha de afiliación"
+                  disabled={Boolean(disabled)}
+                />
               </div>
-
-              <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
-
+            ) : (
               <input
                 type="date"
                 value={fechaAfiliacion}
                 onChange={(e) => onFechaAfiliacionChange(e.target.value)}
-                className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
-                aria-label="Fecha de afiliación"
+                className="mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                 disabled={Boolean(disabled)}
               />
-            </div>
-          ) : (
-            <input
-              type="date"
-              value={fechaAfiliacion}
-              onChange={(e) => onFechaAfiliacionChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-              disabled={Boolean(disabled)}
-            />
-          )}
+            )}
+          </div>
         </div>
+        
       </div>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">

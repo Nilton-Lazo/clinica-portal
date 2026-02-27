@@ -74,15 +74,9 @@ export default function AgendaMedicaPage() {
     setCitaIdToSelect(null);
   }, [citaIdToSelect, vm.data.data]);
 
-  const onPickDate = React.useCallback(
-    (d: Date) => {
-      vm.setSelectedDate(d);
-      vm.setNotice(null);
-      // No limpiar especialidadId/medicoId: se actualizan al llegar la nueva data.
-      // Así se evita el parpadeo (vacío → tabla) y se mantiene el layout con overlay de carga.
-    },
-    [vm]
-  );
+  const onPickDate = React.useCallback((d: Date) => {
+    vm.setSelectedDate(d);
+  }, [vm]);
 
   const onNuevaCita = React.useCallback(() => {
     const params = new URLSearchParams();
@@ -110,34 +104,10 @@ export default function AgendaMedicaPage() {
     : "—";
 
   return (
-    <div className="flex w-full min-w-0 flex-col space-y-4">
-      {vm.notice ? (
-        <div
-          role="status"
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm",
-            vm.notice.type === "success"
-              ? "border-(--color-success) text-(--color-success)"
-              : "border-(--color-danger) text-(--color-danger)",
-          ].join(" ")}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">{vm.notice.text}</div>
-            <button
-              type="button"
-              aria-label="Cerrar notificación"
-              onClick={vm.clearNotice}
-              className="text-base font-semibold leading-none"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
-        <div className="min-w-0">
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-4">
+    <div className="flex w-full min-w-0 flex-col gap-4 lg:h-full lg:max-h-full lg:shrink-0 lg:overflow-hidden lg:gap-2">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch lg:gap-2">
+        <div className="flex min-w-0 flex-col lg:min-h-0">
+          <div className="flex flex-col space-y-4 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:app-scrollbar">
             <AgendaMedicaCalendarCard
               selectedDate={vm.selectedDate}
               onPick={onPickDate}
@@ -191,8 +161,8 @@ export default function AgendaMedicaPage() {
           </div>
         </div>
 
-        <div className="min-w-0 h-full">
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 space-y-4">
+        <div className="flex min-w-0 flex-col lg:min-h-0">
+          <div className="flex flex-col space-y-4 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:app-scrollbar">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="text-sm font-semibold text-(--color-text-primary)">Agenda médica</div>
@@ -244,22 +214,33 @@ export default function AgendaMedicaPage() {
                   </div>
                 </div>
 
-                <AgendaMedicaTable
+                <div className="flex min-h-[380px] min-w-0 flex-1 flex-col overflow-hidden">
+                  <AgendaMedicaTable
+                    data={vm.data}
+                    loading={vm.loading}
+                    page={vm.page}
+                    onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+                    onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                    onFirst={() => vm.setPage(1)}
+                    onLast={() => vm.setPage(vm.data.meta.last_page)}
+                    selectedId={vm.selectedCita?.id ?? null}
+                    onSelect={(row) => {
+                      vm.setSelectedCita(row);
+                      navigate(`/admision/citas/agenda/${row.id}/atencion`);
+                    }}
+                    onDoubleClick={(row) => {
+                      vm.setSelectedCita(row);
+                      vm.setConfirmEliminarOpen(true);
+                    }}
+                  />
+                  <AgendaMedicaMobileList
                   data={vm.data}
                   loading={vm.loading}
                   page={vm.page}
                   onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                   onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-                  selectedId={vm.selectedCita?.id ?? null}
-                  onSelect={(row) => vm.setSelectedCita(row)}
-                  onDoubleClick={(row) => navigate(`/admision/citas/agenda/${row.id}/atencion`)}
-                />
-                <AgendaMedicaMobileList
-                  data={vm.data}
-                  loading={vm.loading}
-                  page={vm.page}
-                  onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-                  onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                  onFirst={() => vm.setPage(1)}
+                  onLast={() => vm.setPage(vm.data.meta.last_page)}
                   selectedId={vm.selectedCita?.id ?? null}
                   onSelect={(row) => {
                     vm.setSelectedCita(row);
@@ -270,9 +251,10 @@ export default function AgendaMedicaPage() {
                     vm.setConfirmEliminarOpen(true);
                   }}
                 />
+                </div>
               </>
             ) : (
-              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border border-(--border-color-default) bg-(--color-surface) py-8 text-center">
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-(--border-color-default) bg-(--color-surface) py-8 text-center">
                 <p className="text-sm text-(--color-text-secondary)">
                   {!vm.selectedDateStr
                     ? "Seleccione una fecha en el calendario para cargar la programación."

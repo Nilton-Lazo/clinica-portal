@@ -8,7 +8,7 @@ type BaseFieldProps = {
 };
 
 const inputBase =
-  "mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)";
+  "mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 
 function useIsTouchUi(): boolean {
   const [isTouch, setIsTouch] = React.useState(() => {
@@ -38,7 +38,7 @@ export function FormCard(props: { title: string; subtitle?: string; children: Re
   const { title, subtitle, children } = props;
 
   return (
-    <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="min-w-0">
         <div className="text-sm font-semibold text-(--color-text-primary)">{title}</div>
         {subtitle ? <div className="text-xs text-(--color-text-secondary)">{subtitle}</div> : null}
@@ -60,11 +60,13 @@ export function TextField(
   }
 ) {
   const { label, value, onChange, placeholder, inputMode, disabled, type = "text", readOnly } = props;
+  const id = React.useId();
 
   return (
     <div>
-      <label className="text-sm text-(--color-text-primary)">{label}</label>
+      <label htmlFor={id} className="text-sm text-(--color-text-primary)">{label}</label>
       <input
+        id={id}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -88,11 +90,13 @@ export function NumberField(
   }
 ) {
   const { label, value, onChange, min, step, disabled, placeholder } = props;
+  const id = React.useId();
 
   return (
     <div>
-      <label className="text-sm text-(--color-text-primary)">{label}</label>
+      <label htmlFor={id} className="text-sm text-(--color-text-primary)">{label}</label>
       <input
+        id={id}
         type="number"
         min={min}
         step={step}
@@ -149,14 +153,15 @@ export function DateField(
   }
 ) {
   const { label, value, onChange, ariaLabel, disabled, placeholder } = props;
-
+  const id = React.useId();
   const isTouchUi = useIsTouchUi();
 
   if (!isTouchUi) {
     return (
       <div>
-        <label className="text-sm text-(--color-text-primary)">{label}</label>
+        <label htmlFor={id} className="text-sm text-(--color-text-primary)">{label}</label>
         <input
+          id={id}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -170,10 +175,10 @@ export function DateField(
 
   return (
     <div>
-      <label className="text-sm text-(--color-text-primary)">{label}</label>
+      <label htmlFor={id} className="text-sm text-(--color-text-primary)">{label}</label>
 
-      <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-        <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+      <div className="group relative mt-1 rounded-md">
+        <div className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center group-focus-within:border-(--color-primary)">
           <span className={value ? "text-(--color-text-primary)" : "text-(--color-text-secondary)"}>
             {value ? formatDateForDisplay(value) : placeholder ?? "dd/mm/aaaa"}
           </span>
@@ -182,6 +187,7 @@ export function DateField(
         <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
 
         <input
+          id={id}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -36,7 +36,7 @@ export function PacienteSummaryBar() {
   const estado = labelEstado(d.estado);
 
   return (
-    <div className="w-full rounded-2xl bg-(--color-primary) text-(--color-text-inverse) px-4 py-3">
+    <div className="w-full rounded-lg bg-(--color-primary) text-(--color-text-inverse) px-4 py-3">
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:hidden text-sm">
         <SummaryItem label="HC:" value={hc} />
         <SummaryItem label="NR:" value={nr} />

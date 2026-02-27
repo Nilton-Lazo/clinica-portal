@@ -9,7 +9,7 @@ type Props = {
 };
 
 const base =
-  "h-10 rounded-xl px-4 text-sm font-medium transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]";
+  "h-10 rounded-md px-4 text-sm font-medium transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]";
 
 export function PrimaryButton(props: Props) {
   const { children, onClick, disabled, type = "button", className } = props;

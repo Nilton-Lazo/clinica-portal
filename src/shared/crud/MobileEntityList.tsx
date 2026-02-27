@@ -51,7 +51,7 @@ export function MobileEntityList<T>(props: {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
+      <div className="rounded-lg border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
         Cargando…
       </div>
     );
@@ -59,7 +59,7 @@ export function MobileEntityList<T>(props: {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
+      <div className="rounded-lg border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
         {emptyText ?? "No hay registros."}
       </div>
     );
@@ -92,7 +92,7 @@ export function MobileEntityList<T>(props: {
             onTouchCancel={handleTouchEnd}
             onTouchMove={handleTouchMove}
             className={[
-              "w-full cursor-pointer rounded-2xl border border-(--border-color-default) p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)",
+              "w-full cursor-pointer rounded-lg border border-(--border-color-default) p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)",
               "transition-transform duration-150 active:scale-[0.99]",
               active ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
             ].join(" ")}

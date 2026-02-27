@@ -33,11 +33,12 @@ function withPlaceholder(options: SelectOption[], placeholder: string): SelectOp
   return [{ value: "", label: placeholder, disabled: true }, ...options];
 }
 
+/** Añade el valor actual al final de la lista si no está (para que se muestre sin reordenar; la opción seleccionada no va primero). */
 function ensureSelectedOption(options: SelectOption[], value: string, label?: string): SelectOption[] {
   const v = value.trim();
   if (!v) return options;
   if (options.some((opt) => String(opt.value) === v)) return options;
-  return [{ value: v, label: label ?? v }, ...options];
+  return [...options, { value: v, label: label ?? v }];
 }
 
 function readArray(src: unknown, keys: string[]): unknown[] {
@@ -175,9 +176,13 @@ export function DatosGeneralesStep({
     [catalog]
   );
 
-  const sexoOptions = useMemo(
+  const sexoOptionsBase = useMemo(
     () => withPlaceholder(optionsFrom(catalog?.sexo), catalog ? "Selecciona sexo" : "Cargando sexos…"),
     [catalog]
+  );
+  const sexoOptions = useMemo(
+    () => ensureSelectedOption(sexoOptionsBase, String(d.sexo ?? "").trim()),
+    [sexoOptionsBase, d.sexo]
   );
 
   const parentescoSeguroOptions = useMemo(
@@ -249,7 +254,7 @@ export function DatosGeneralesStep({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4 lg:gap-2">
       <FormCard title="Información primaria">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <SelectField
@@ -290,7 +295,7 @@ export function DatosGeneralesStep({
 
           <SelectField
             label="Sexo"
-            value={d.sexo}
+            value={String(d.sexo ?? "").trim()}
             onChange={(v) => actions.set({ sexo: v })}
             options={sexoOptions}
             ariaLabel="Sexo"
@@ -303,7 +308,7 @@ export function DatosGeneralesStep({
         </div>
       </FormCard>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-2">
         <FormCard title="Datos de procedencia">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectField
@@ -378,7 +383,7 @@ export function DatosGeneralesStep({
         </FormCard>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-2">
         <FormCard title="Atención">
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <SelectField

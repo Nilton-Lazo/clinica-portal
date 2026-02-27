@@ -406,6 +406,8 @@ export default function BuscarServiciosPage() {
               variant="desktop"
               onPrev={() => setPage((p) => Math.max(1, p - 1))}
               onNext={() => setPage((p) => Math.min(meta.last_page, p + 1))}
+              onFirst={() => setPage(1)}
+              onLast={() => setPage(meta.last_page)}
             />
           )}
         </>
@@ -473,6 +475,8 @@ export default function BuscarServiciosPage() {
               variant="mobile"
               onPrev={() => setPage((p) => Math.max(1, p - 1))}
               onNext={() => setPage((p) => Math.min(meta.last_page, p + 1))}
+              onFirst={() => setPage(1)}
+              onLast={() => setPage(meta.last_page)}
             />
           )}
         </>

@@ -53,11 +53,13 @@ export default function AcreditacionPlanesMobileList(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
   emptyText?: string;
   iafaById: Record<number, IafaLookup>;
   contratanteById: Record<number, ContratanteLookup>;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, emptyText, iafaById, contratanteById } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast, emptyText, iafaById, contratanteById } = props;
 
   return (
     <div className="lg:hidden">
@@ -79,7 +81,7 @@ export default function AcreditacionPlanesMobileList(props: {
         renderRight={(p) => <StatusBadge status={p.estado} />}
       />
 
-      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} />
+      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
     </div>
   );
 }

@@ -51,8 +51,8 @@ export default function ProgramacionMedicaListBar(props: {
   ];
 
   const inputCls = [
-    "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
-    "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
+    "h-10 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3",
+    "text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)",
     "w-full min-w-0",
   ].join(" ");
 
@@ -95,8 +95,8 @@ export default function ProgramacionMedicaListBar(props: {
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
             <div className="text-xs text-(--color-text-secondary)">Desde</div>
             {isTouchUi ? (
-              <div className="relative rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary) w-full sm:w-auto">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+              <div className="group relative rounded-md w-full sm:w-auto">
+                <div className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center group-focus-within:border-(--color-primary)">
                   <span className={from ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
                     {from ? formatDateForDisplay(from) : "dd/mm/aaaa"}
                   </span>
@@ -126,8 +126,8 @@ export default function ProgramacionMedicaListBar(props: {
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
             <div className="text-xs text-(--color-text-secondary)">Hasta</div>
             {isTouchUi ? (
-              <div className="relative rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary) w-full sm:w-auto">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+              <div className="group relative rounded-md w-full sm:w-auto">
+                <div className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center group-focus-within:border-(--color-primary)">
                   <span className={to ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
                     {to ? formatDateForDisplay(to) : "dd/mm/aaaa"}
                   </span>
@@ -175,7 +175,7 @@ export default function ProgramacionMedicaListBar(props: {
 
         <button
           type="button"
-          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full lg:w-auto lg:ml-auto"
+          className="h-10 rounded-md px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full lg:w-auto lg:ml-auto"
           onClick={onNew}
         >
           Nuevo
