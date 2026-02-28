@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: "admision", label: "Admisión", to: "/admision", icon: { kind: "lucide", icon: ClipboardPlus }, end: true },
+  { id: "admision", label: "Admisión", to: "/admision", icon: { kind: "lucide", icon: ClipboardPlus } },
   { id: "caja", label: "Caja", to: "/caja", icon: { kind: "lucide", icon: CreditCard } },
   { id: "facturacion", label: "Facturación", to: "/facturacion", icon: { kind: "lucide", icon: ReceiptText } },
   { id: "farmacia", label: "Farmacia", to: "/farmacia", icon: { kind: "lucide", icon: Pill } },

@@ -6,12 +6,28 @@ import { facturacionMeta } from "../../modules/facturacion/meta";
 import { admisionMeta } from "../../modules/admision/meta";
 import { ficherosMeta } from "../../modules/ficheros/meta";
 
+const comingSoonMeta: Record<string, RouteMeta> = {
+  "/caja":                { title: "Caja",                subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Caja" }] },
+  "/caja/*":              { title: "Caja",                subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Caja" }] },
+  "/farmacia":            { title: "Farmacia",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Farmacia" }] },
+  "/farmacia/*":          { title: "Farmacia",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Farmacia" }] },
+  "/hospital":            { title: "Hospital",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Hospital" }] },
+  "/hospital/*":          { title: "Hospital",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Hospital" }] },
+  "/diagnostico-clinico": { title: "D. clínico",         subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "D. clínico" }] },
+  "/diagnostico-clinico/*":{ title: "D. clínico",        subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "D. clínico" }] },
+  "/gerencia":            { title: "Gerencia",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Gerencia" }] },
+  "/gerencia/*":          { title: "Gerencia",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Gerencia" }] },
+  "/seguridad":           { title: "Seguridad",           subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Seguridad" }] },
+  "/seguridad/*":         { title: "Seguridad",           subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Seguridad" }] },
+};
+
 export const ROUTE_META: Record<string, RouteMeta> = {
   ...authMeta,
   ...inicioMeta,
   ...facturacionMeta,
   ...admisionMeta,
   ...ficherosMeta,
+  ...comingSoonMeta,
 };
 
 type Entry = [pattern: string, meta: RouteMeta];

@@ -7,11 +7,11 @@ import FacturacionHubCard from "../components/FacturacionHubCard";
 import FacturacionActionsPanel from "../components/FacturacionActionsPanel";
 
 function useIsLgUp() {
-  const [isLgUp, setIsLgUp] = React.useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.matchMedia("(min-width: 1024px)").matches;
-  });
-
+  const [isLgUp, setIsLgUp] = React.useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(min-width: 1024px)").matches
+      : true
+  );
   React.useEffect(() => {
     const mql = window.matchMedia("(min-width: 1024px)");
     const onChange = () => setIsLgUp(mql.matches);
@@ -19,7 +19,6 @@ function useIsLgUp() {
     mql.addEventListener("change", onChange);
     return () => mql.removeEventListener("change", onChange);
   }, []);
-
   return isLgUp;
 }
 
@@ -36,28 +35,29 @@ export default function FacturacionHomePage() {
   );
 
   React.useEffect(() => {
-    if (isLgUp) {
-      setSheetOpen(false);
-      return;
-    }
-    setSheetOpen(true);
+    if (isLgUp) setSheetOpen(false);
+    else setSheetOpen(true);
   }, [selectedId, isLgUp]);
 
   const go = React.useCallback(
-    (to: string, screen: string) => {
-      clientContext.set({ path: to, screen });
-      void navigationService.track({ path: to, screen }).catch(() => {});
+    (to: string) => {
+      clientContext.set({ path: to, screen: `Facturacion:${to}` });
+      void navigationService.track({ path: to, screen: `Facturacion:${to}` }).catch(() => {});
       navigate(to);
     },
     [navigate]
   );
 
+  const half = Math.ceil(FACTURACION_HUB.length / 2);
+  const col1 = FACTURACION_HUB.slice(0, half);
+  const col2 = FACTURACION_HUB.slice(half);
+
   return (
     <div className="w-full h-full">
-      {/* ================= DESKTOP ================= */}
-      <div className="hidden lg:grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(420px,520px)] h-full">
-        <div className="grid grid-rows-4 gap-6 h-full min-h-0">
-          {FACTURACION_HUB.slice(0, 4).map((item) => (
+      {/* ── Desktop ── */}
+      <div className="hidden lg:grid gap-4 lg:grid-cols-[1fr_1fr_minmax(320px,400px)] h-full">
+        <div className="grid gap-3 auto-rows-fr">
+          {col1.map((item) => (
             <FacturacionHubCard
               key={item.id}
               item={item}
@@ -67,8 +67,8 @@ export default function FacturacionHomePage() {
           ))}
         </div>
 
-        <div className="grid grid-rows-4 gap-6 h-full min-h-0">
-          {FACTURACION_HUB.slice(4, 8).map((item) => (
+        <div className="grid gap-3 auto-rows-fr">
+          {col2.map((item) => (
             <FacturacionHubCard
               key={item.id}
               item={item}
@@ -80,16 +80,15 @@ export default function FacturacionHomePage() {
 
         <FacturacionActionsPanel
           item={selected}
-          onEnter={() => go(selected.to, `Facturacion:${selected.id}`)}
-          onAction={(to, label) => go(to, `Facturacion:${selected.id}:${label}`)}
+          onEnter={() => go(selected.to)}
+          onAction={(to) => go(to)}
         />
       </div>
 
-      {/* ================= MOBILE / TABLET ================= */}
+      {/* ── Mobile / Tablet ── */}
       <div
         className={[
-          "lg:hidden",
-          "grid grid-cols-1 sm:grid-cols-2 gap-4",
+          "lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3",
           sheetOpen ? "pb-[calc(60vh+24px)]" : "pb-4",
         ].join(" ")}
       >
@@ -106,14 +105,13 @@ export default function FacturacionHomePage() {
         ))}
       </div>
 
-      {/* Sheet de acciones (mobile) */}
       <FacturacionActionsPanel
         mode="sheet"
         isOpen={sheetOpen && !isLgUp}
         onClose={() => setSheetOpen(false)}
         item={selected}
-        onEnter={() => go(selected.to, `Facturacion:${selected.id}`)}
-        onAction={(to, label) => go(to, `Facturacion:${selected.id}:${label}`)}
+        onEnter={() => go(selected.to)}
+        onAction={(to) => go(to)}
       />
     </div>
   );

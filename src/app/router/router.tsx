@@ -4,6 +4,7 @@ import RequireGuest from "./RequireGuest";
 import AppBootstrap from "./AppBootstrap";
 import AppShell from "../layout/AppShell";
 
+import ComingSoonPage from "../../shared/ui/ComingSoonPage";
 import LoginPage from "../../modules/login/pages/LoginPage";
 import HomePage from "../../modules/inicio/pages/HomePage";
 import FacturacionHomePage from "../../modules/facturacion/pages/FacturacionHomePage";
@@ -55,6 +56,21 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: "inicio", element: <HomePage /> },
+
+              { path: "caja",                element: <ComingSoonPage /> },
+              { path: "caja/*",              element: <ComingSoonPage /> },
+              { path: "farmacia",            element: <ComingSoonPage /> },
+              { path: "farmacia/*",          element: <ComingSoonPage /> },
+              { path: "hospital",            element: <ComingSoonPage /> },
+              { path: "hospital/*",          element: <ComingSoonPage /> },
+              { path: "diagnostico-clinico", element: <ComingSoonPage /> },
+              { path: "diagnostico-clinico/*", element: <ComingSoonPage /> },
+              { path: "gerencia",            element: <ComingSoonPage /> },
+              { path: "gerencia/*",          element: <ComingSoonPage /> },
+              { path: "seguridad",           element: <ComingSoonPage /> },
+              { path: "seguridad/*",         element: <ComingSoonPage /> },
+              { path: "*",                   element: <ComingSoonPage /> },
+
               {
                 path: "ficheros",
                 element: <FicherosPage />,
