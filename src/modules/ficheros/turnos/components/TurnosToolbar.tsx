@@ -2,6 +2,7 @@ import * as React from "react";
 import type { RecordStatus } from "../../types/turnos.types";
 import type { StatusFilter } from "../hooks/useTurnos";
 import { SelectMenu } from "../../../../shared/ui/SelectMenu";
+import { inputBase } from "../../utils/crudShared";
 
 type Opt = { value: string; label: string; disabled?: boolean };
 
@@ -36,11 +37,7 @@ export default function TurnosToolbar(props: {
           value={q}
           onChange={(e) => onQChange(e.target.value)}
           placeholder="Buscar por código o descripción"
-          className={[
-            "h-10 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3",
-            "text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)",
-            "basis-full lg:basis-auto lg:flex-1 min-w-65",
-          ].join(" ")}
+          className={`h-10 basis-full lg:basis-auto lg:flex-1 min-w-65 ${inputBase}`}
         />
 
         <SelectMenu
@@ -48,8 +45,8 @@ export default function TurnosToolbar(props: {
           onChange={(v) => onStatusChange(v === "ALL" ? "ALL" : (v as RecordStatus))}
           options={statusOptions}
           ariaLabel="Filtrar por estado"
-          buttonClassName="w-full sm:w-auto min-w-[160px]"
-          menuClassName="min-w-[150px]"
+          buttonClassName={`w-full sm:w-auto min-w-[160px] h-10 ${inputBase}`}
+          menuClassName="min-w-[120px]"
         />
 
         <SelectMenu
@@ -57,13 +54,13 @@ export default function TurnosToolbar(props: {
           onChange={(v) => onPerPageChange(Number(v))}
           options={perPageOptions}
           ariaLabel="Registros por página"
-          buttonClassName="w-full sm:w-auto min-w-[96px]"
+          buttonClassName={`w-full sm:w-auto min-w-[96px] h-10 ${inputBase}`}
           menuClassName="min-w-[90px]"
         />
 
         <button
           type="button"
-          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
+          className="h-10 rounded px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
           onClick={onNew}
         >
           Nuevo

@@ -9,6 +9,7 @@ import {
 } from "../../services/consultorios.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -53,6 +54,7 @@ function isAbreviaturaComplete(a: string): boolean {
 }
 
 export function useConsultorios() {
+  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Consultorio>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -197,7 +199,8 @@ export function useConsultorios() {
     descripcionAutoRef.current.lastAuto = auto;
 
     setNotice(null);
-  }, [mode, resetToNew, selected]);
+    toast.success("Cambios cancelados.");
+  }, [mode, resetToNew, selected, toast]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {

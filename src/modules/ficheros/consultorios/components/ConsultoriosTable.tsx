@@ -11,8 +11,10 @@ export default function ConsultoriosTable(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
 
   const columns: DataTableColumn<Consultorio>[] = [
     {
@@ -50,7 +52,7 @@ export default function ConsultoriosTable(props: {
   ];
 
   return (
-    <div className="hidden h-full min-h-0 flex-col lg:flex">
+    <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
       <DataTable
         rows={data.data}
         columns={columns}
@@ -60,7 +62,7 @@ export default function ConsultoriosTable(props: {
         onSelect={onSelect}
       />
 
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} />
+      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
     </div>
   );
 }

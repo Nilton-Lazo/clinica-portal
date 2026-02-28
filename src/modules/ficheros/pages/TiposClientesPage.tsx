@@ -1,6 +1,8 @@
 import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useTiposClientes } from "../tiposClientes/hooks/useTiposClientes";
+import { useNoticeToToast } from "../utils/crudShared";
 import TiposClientesToolbar from "../tiposClientes/components/TiposClientesToolbar";
 import TiposClientesTable from "../tiposClientes/components/TiposClientesTable";
 import TiposClientesMobileList from "../tiposClientes/components/TiposClientesMobileList";
@@ -26,6 +28,7 @@ function useIsLgUp(): boolean {
 export default function TiposClientesPage() {
   const title = "Tipos de cliente";
   const vm = useTiposClientes();
+  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
@@ -43,42 +46,26 @@ export default function TiposClientesPage() {
   }, [vm, isLgUp]);
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
           <div className="text-sm text-(--color-text-secondary)">CRUD con paginación y estados</div>
         </div>
-
-        <div className="w-full lg:max-w-190">
-          <TiposClientesToolbar
-            q={vm.q}
-            onQChange={vm.setQ}
-            statusFilter={vm.statusFilter}
-            onStatusChange={vm.setStatusFilter}
-            perPage={vm.perPage}
-            onPerPageChange={(n) => vm.setPerPage(n)}
-            onNew={handleNew}
-          />
-        </div>
+      </div>
+      <div className="w-full shrink-0">
+        <TiposClientesToolbar
+          q={vm.q}
+          onQChange={vm.setQ}
+          statusFilter={vm.statusFilter}
+          onStatusChange={vm.setStatusFilter}
+          perPage={vm.perPage}
+          onPerPageChange={(n) => vm.setPerPage(n)}
+          onNew={handleNew}
+        />
       </div>
 
-      {vm.notice ? (
-        <div
-          role="status"
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm",
-            vm.notice.type === "success"
-              ? "border-(--color-success) text-(--color-success)"
-              : "border-(--color-danger) text-(--color-danger)",
-          ].join(" ")}
-        >
-          {vm.notice.text}
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:items-start">
-        <div className="min-w-0">
+      <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<>
           <TiposClientesTable
             data={vm.data}
             loading={vm.loading}
@@ -87,6 +74,8 @@ export default function TiposClientesPage() {
             page={vm.page}
             onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
             onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            onFirst={() => vm.setPage(1)}
+            onLast={() => vm.setPage(vm.data.meta.last_page)}
           />
 
           <TiposClientesMobileList
@@ -97,11 +86,10 @@ export default function TiposClientesPage() {
             page={vm.page}
             onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
             onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            onFirst={() => vm.setPage(1)}
+            onLast={() => vm.setPage(vm.data.meta.last_page)}
           />
-        </div>
-
-        <div ref={formRef} className="min-w-0">
-          <TipoClienteFormCard
+        </>} right={<TipoClienteFormCard
             mode={vm.mode}
             selected={vm.selected ? { codigo: vm.selected.codigo, estado: vm.selected.estado } : null}
             codigo={vm.codigo}
@@ -123,9 +111,7 @@ export default function TiposClientesPage() {
             onSave={vm.onSave}
             onCancel={vm.cancel}
             onDeactivate={vm.requestDeactivate}
-          />
-        </div>
-      </div>
+          />} />
 
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}

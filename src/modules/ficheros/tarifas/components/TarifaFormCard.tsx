@@ -5,6 +5,7 @@ import type { Mode } from "../hooks/useTarifas";
 import { Calendar, ChevronDown } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
+import { inputBase } from "../../utils/crudShared";
 
 function useIsTouchUi(): boolean {
   const [isTouch, setIsTouch] = React.useState(() => {
@@ -57,7 +58,7 @@ function FactorInput(props: {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
-        className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+        className={`mt-1 h-10 w-full ${inputBase}`}
       />
     </div>
   );
@@ -278,7 +279,7 @@ export default function TarifaFormCard(props: {
   }, []);
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -292,7 +293,8 @@ export default function TarifaFormCard(props: {
         {selected ? <StatusBadge status={selected.estado} /> : null}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4">
+      <div className="mt-4 flex flex-1 flex-col min-h-0">
+        <div className="grid grid-cols-1 gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="text-sm text-(--color-text-primary)">Código</label>
@@ -300,7 +302,7 @@ export default function TarifaFormCard(props: {
               value={codigo}
               readOnly
               placeholder={mode === "new" ? "Generando" : ""}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
@@ -315,7 +317,7 @@ export default function TarifaFormCard(props: {
                 }}
                 options={estadoOptions}
                 ariaLabel="Estado"
-                buttonClassName={["w-full", estadoDisabled ? "pointer-events-none opacity-60" : ""].join(" ")}
+                buttonClassName={`w-full h-10 ${inputBase} ${estadoDisabled ? "pointer-events-none opacity-60" : ""}`}
                 menuClassName="min-w-full"
               />
             </div>
@@ -327,7 +329,7 @@ export default function TarifaFormCard(props: {
           <input
             value={descripcionTarifa}
             onChange={(e) => onDescripcionTarifaChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className={`mt-1 h-10 w-full ${inputBase}`}
           />
         </div>
 
@@ -339,7 +341,7 @@ export default function TarifaFormCard(props: {
               onChange={(v) => onIafaIdChange(Number(v))}
               options={iafaOptions}
               ariaLabel="IAFAS"
-              buttonClassName="w-full"
+              buttonClassName={`w-full h-10 ${inputBase}`}
               menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
             />
           </div>
@@ -352,8 +354,8 @@ export default function TarifaFormCard(props: {
           <label className="text-sm text-(--color-text-primary)">Fecha de creación</label>
 
           {isTouchUi ? (
-            <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-              <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center opacity-90">
+            <div className="relative mt-1 rounded border border-(--border-color-default) bg-(--color-surface) focus-within:border-(--color-primary) focus-within:ring-0">
+              <div className="h-10 w-full rounded border-0 bg-transparent px-3 pr-10 text-sm flex items-center text-(--color-text-primary)">
                 <span className={fechaCreacion ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
                   {fechaCreacion ? formatDateForDisplay(fechaCreacion) : "dd/mm/aaaa"}
                 </span>
@@ -368,7 +370,7 @@ export default function TarifaFormCard(props: {
               type="date"
               value={fechaCreacion}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           )}
         </div>
@@ -444,20 +446,19 @@ export default function TarifaFormCard(props: {
           />
           Tarifario base
         </label>
-      </div>
+        </div>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <PrimaryButton disabled={!saveEnabled} onClick={onSave}>
-          {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
+        <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+          {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar"}
         </PrimaryButton>
-
-        <SecondaryButton disabled={saving} onClick={onCancel}>
+        <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
           Cancelar
         </SecondaryButton>
-
-        <DangerButton disabled={!canDeactivate || saving} onClick={onDeactivate}>
+        <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
           Desactivar
         </DangerButton>
+        </div>
       </div>
     </div>
   );

@@ -1,13 +1,20 @@
 import type { RecargoNocheRegla } from "../../services/recargoNoche.service";
+import type { PaginationMeta } from "../../../../shared/types/pagination";
 import { StatusBadge } from "../../components/StatusBadge";
+import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
 
 export default function RecargoNocheMobileList(props: {
   reglas: RecargoNocheRegla[];
   loading: boolean;
   selectedId: number | null;
   onSelect: (r: RecargoNocheRegla) => void;
+  paginationMeta?: PaginationMeta | null;
+  onPrev: () => void;
+  onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
 }) {
-  const { reglas, loading, selectedId, onSelect } = props;
+  const { reglas, loading, selectedId, onSelect, paginationMeta, onPrev, onNext, onFirst, onLast } = props;
 
   return (
     <div className="lg:hidden">
@@ -51,6 +58,14 @@ export default function RecargoNocheMobileList(props: {
           })
         )}
       </div>
+      <PaginationFooter
+        meta={paginationMeta}
+        variant="mobile"
+        onPrev={onPrev}
+        onNext={onNext}
+        onFirst={onFirst}
+        onLast={onLast}
+      />
     </div>
   );
 }

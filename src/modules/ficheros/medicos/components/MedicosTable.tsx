@@ -18,8 +18,10 @@ export default function MedicosTable(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
 
   const columns: DataTableColumn<Medico>[] = [
     {
@@ -67,7 +69,7 @@ export default function MedicosTable(props: {
         onSelect={onSelect}
       />
 
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} />
+      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
     </div>
   );
 }

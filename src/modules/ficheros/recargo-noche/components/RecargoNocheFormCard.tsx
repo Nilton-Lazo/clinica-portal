@@ -1,7 +1,9 @@
 import * as React from "react";
 import { Clock } from "lucide-react";
 import { SelectMenu } from "../../../../shared/ui/SelectMenu";
+import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { StatusBadge } from "../../components/StatusBadge";
+import { inputBase } from "../../utils/crudShared";
 import type { RecargoNocheRegla } from "../../services/recargoNoche.service";
 import type { CategoriaLookupItem } from "../../services/recargoNoche.service";
 
@@ -164,7 +166,7 @@ function TimeMaskedInput(props: {
         onChange(`${h2}:${m2}`);
       }}
       onBlur={() => onChange(normalizeTimeOnBlur(value))}
-      className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+      className={`mt-1 h-10 w-full ${inputBase}`}
     />
   );
 }
@@ -236,7 +238,7 @@ export default function RecargoNocheFormCard(props: {
   );
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -251,7 +253,8 @@ export default function RecargoNocheFormCard(props: {
         {selected ? <StatusBadge status={selected.estado} /> : null}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4">
+      <div className="mt-4 flex flex-1 flex-col min-h-0">
+        <div className="grid grid-cols-1 gap-4">
         {mode === "new" ? (
           <div>
             <label className="text-sm text-(--color-text-primary)">Categoría</label>
@@ -260,7 +263,7 @@ export default function RecargoNocheFormCard(props: {
               onChange={(v) => onFormCategoriaIdChange(v ? Number(v) : null)}
               options={[{ value: "", label: "Seleccionar categoría" }, ...categoriaOptions]}
               ariaLabel="Categoría"
-              buttonClassName="mt-1 w-full"
+              buttonClassName={`mt-1 w-full h-10 ${inputBase}`}
               menuClassName="w-full min-w-0"
             />
           </div>
@@ -276,7 +279,7 @@ export default function RecargoNocheFormCard(props: {
                       : selected.categoria_nombre) ?? `Categoría ${selected.tarifa_categoria_id}`
                   : ""
               }
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
         )}
@@ -291,7 +294,7 @@ export default function RecargoNocheFormCard(props: {
               step={1}
               value={formPorcentaje}
               onChange={(e) => onFormPorcentajeChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
@@ -329,8 +332,8 @@ export default function RecargoNocheFormCard(props: {
           <div>
             <label className="text-sm text-(--color-text-primary)">Hora hasta</label>
             {isTouchUi ? (
-              <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+              <div className="relative mt-1 rounded border border-(--border-color-default) focus-within:ring-0 focus-within:border-(--color-primary)">
+                <div className="h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
                   <span className={formHoraHasta ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
                     {formHoraHasta ? normalizeTimeOnBlur(formHoraHasta) : "HH:mm"}
                   </span>
@@ -366,47 +369,20 @@ export default function RecargoNocheFormCard(props: {
               menuClassName="w-full min-w-0"
             />
           </div>
-        </div>  
-      </div>
+        </div>
+        </div>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          className={[
-            "h-10 rounded-xl px-4 text-sm font-medium text-(--color-text-inverse)",
-            "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-            saveEnabled
-              ? "bg-(--color-primary)"
-              : "bg-(--color-panel-context) text-(--color-text-secondary) cursor-not-allowed hover:scale-100",
-          ].join(" ")}
-          disabled={!saveEnabled}
-          onClick={onSave}
-        >
-          {saving ? "Guardando…" : mode === "new" ? "Crear" : "Guardar cambios"}
-        </button>
-
-        <button
-          type="button"
-          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-          onClick={onCancel}
-        >
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
+        <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+          {mode === "new" ? (saving ? "Creando…" : "Crear") : saving ? "Guardando…" : "Guardar cambios"}
+        </PrimaryButton>
+        <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
           Cancelar
-        </button>
-
-        <button
-          type="button"
-          className={[
-            "h-10 rounded-xl px-4 text-sm font-medium text-(--color-text-inverse)",
-            "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-            canDeactivate
-              ? "bg-(--color-danger)"
-              : "bg-(--color-panel-context) text-(--color-text-secondary) cursor-not-allowed hover:scale-100",
-          ].join(" ")}
-          disabled={!canDeactivate}
-          onClick={onDeactivate}
-        >
+        </SecondaryButton>
+        <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
           Desactivar
-        </button>
+        </DangerButton>
+        </div>
       </div>
     </div>
   );

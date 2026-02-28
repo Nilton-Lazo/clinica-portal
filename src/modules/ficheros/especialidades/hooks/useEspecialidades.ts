@@ -10,6 +10,7 @@ import {
 } from "../../services/especialidades.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -29,6 +30,7 @@ function isApiError(e: unknown): e is ApiError {
 }
 
 export function useEspecialidades() {
+  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Especialidad>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -157,7 +159,8 @@ export function useEspecialidades() {
     setEstado(o.estado);
 
     setNotice(null);
-  }, [mode, resetToNew, selected]);
+    toast.success("Cambios cancelados.");
+  }, [mode, resetToNew, selected, toast]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {

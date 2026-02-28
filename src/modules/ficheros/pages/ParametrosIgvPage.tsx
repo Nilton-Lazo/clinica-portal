@@ -1,12 +1,14 @@
 import * as React from "react";
 import { PrimaryButton } from "../../../shared/ui/buttons";
 import { api } from "../../../shared/api";
+import { useNoticeToToast, inputBase } from "../utils/crudShared";
 
 export default function ParametrosIgvPage() {
   const [igv, setIgv] = React.useState<string>("18");
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
+  useNoticeToToast(notice);
 
   React.useEffect(() => {
     setLoading(true);
@@ -54,20 +56,6 @@ export default function ParametrosIgvPage() {
         </div>
       </div>
 
-      {notice ? (
-        <div
-          role="status"
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm",
-            notice.type === "success"
-              ? "border-(--color-success) text-(--color-success)"
-              : "border-(--color-danger) text-(--color-danger)",
-          ].join(" ")}
-        >
-          {notice.text}
-        </div>
-      ) : null}
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1 min-w-0">
           <label className="text-xs text-(--color-text-secondary)">Porcentaje de IGV (%)</label>
@@ -78,10 +66,10 @@ export default function ParametrosIgvPage() {
             step={1}
             value={igv}
             onChange={(e) => setIgv(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className={`mt-1 h-10 w-full ${inputBase}`}
           />
         </div>
-        <PrimaryButton onClick={handleSave} disabled={saving}>
+        <PrimaryButton className="rounded" onClick={handleSave} disabled={saving}>
           {saving ? "Guardando…" : "Guardar"}
         </PrimaryButton>
       </div>

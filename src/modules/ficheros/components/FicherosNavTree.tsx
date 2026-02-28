@@ -53,7 +53,7 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
         const open = openByLabel[g.label] ?? isActiveGroup;
 
         return (
-          <div key={g.label} className="rounded-2xl">
+          <div key={g.label} className="rounded-md">
             <button
               type="button"
               onClick={() =>
@@ -63,7 +63,7 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
                 }))
               }
               className={[
-                "flex w-full items-center justify-between rounded-xl px-2 py-2 text-left",
+                "flex w-full items-center justify-between rounded-md px-2 py-2 text-left",
                 "text-sm font-semibold text-(--color-text-primary)",
                 "hover:bg-(--color-surface-hover) transition-colors",
               ].join(" ")}
@@ -89,7 +89,7 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
                     it.disabled ? (
                       <div
                         key={it.to}
-                        className="cursor-not-allowed rounded-xl px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
+                        className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
                       >
                         {it.label}
                       </div>
@@ -100,7 +100,7 @@ export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           [
-                            "block rounded-xl px-3 py-2 text-sm transition-colors",
+                            "block rounded-md px-3 py-2 text-sm transition-colors",
                             isActive
                               ? "bg-(--color-primary) text-(--color-text-inverse)"
                               : "text-(--color-text-primary) hover:bg-(--color-surface-hover)",

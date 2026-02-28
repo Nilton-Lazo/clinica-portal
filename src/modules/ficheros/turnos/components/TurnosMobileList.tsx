@@ -1,5 +1,6 @@
 import type { PaginatedResponse, Turno } from "../../types/turnos.types";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
 function duracionLabel(x: Turno): string {
   const d = (x.duracion_hhmm ?? "").trim();
@@ -18,8 +19,10 @@ export default function TurnosMobileList(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
 }) {
-  const { data, loading, selectedId, onSelect, page, onPrev, onNext } = props;
+  const { data, loading, selectedId, onSelect, page, onPrev, onNext, onFirst, onLast } = props;
 
   return (
     <div className="lg:hidden">
@@ -63,26 +66,50 @@ export default function TurnosMobileList(props: {
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2 text-sm text-(--color-text-secondary)">
-        <button
-          type="button"
-          className="h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-          disabled={page <= 1}
-          onClick={onPrev}
-        >
-          Anterior
-        </button>
-        <div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-(--color-text-secondary)">
+        <div className="text-xs tabular-nums">
           {data.meta.current_page} / {data.meta.last_page}
         </div>
-        <button
-          type="button"
-          className="h-9 rounded-xl px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-          disabled={page >= data.meta.last_page}
-          onClick={onNext}
-        >
-          Siguiente
-        </button>
+        <div className="flex items-center gap-1">
+          {onFirst != null ? (
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-(--color-panel-context) text-(--color-base-primary) transition-colors hover:bg-(--color-surface-hover) active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              disabled={page <= 1}
+              onClick={onFirst}
+              aria-label="Primera página"
+            >
+              <ChevronsLeft className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="h-9 rounded-md px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-colors hover:bg-(--color-surface-hover) active:scale-[0.98] disabled:opacity-50"
+            disabled={page <= 1}
+            onClick={onPrev}
+          >
+            Anterior
+          </button>
+          <button
+            type="button"
+            className="h-9 rounded-md px-3 bg-(--color-panel-context) text-(--color-base-primary) transition-colors hover:bg-(--color-surface-hover) active:scale-[0.98] disabled:opacity-50"
+            disabled={page >= data.meta.last_page}
+            onClick={onNext}
+          >
+            Siguiente
+          </button>
+          {onLast != null ? (
+            <button
+              type="button"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-(--color-panel-context) text-(--color-base-primary) transition-colors hover:bg-(--color-surface-hover) active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              disabled={page >= data.meta.last_page}
+              onClick={onLast}
+              aria-label="Última página"
+            >
+              <ChevronsRight className="h-4 w-4" strokeWidth={2} />
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

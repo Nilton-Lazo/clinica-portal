@@ -1,7 +1,8 @@
 import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useEspecialidades } from "../especialidades/hooks/useEspecialidades";
-import NoticeBanner from "../especialidades/components/NoticeBanner";
+import { useNoticeToToast } from "../utils/crudShared";
 import EspecialidadesToolbar from "../especialidades/components/EspecialidadesToolbar";
 import EspecialidadesTable from "../especialidades/components/EspecialidadesTable";
 import EspecialidadesMobileList from "../especialidades/components/EspecialidadesMobileList";
@@ -27,6 +28,7 @@ function useIsLgUp(): boolean {
 export default function EspecialidadesPage() {
   const title = "Especialidades";
   const vm = useEspecialidades();
+  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
@@ -44,17 +46,17 @@ export default function EspecialidadesPage() {
   }, [vm, isLgUp]);
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
           <div className="text-sm text-(--color-text-secondary)">
             CRUD con paginación y estados
           </div>
         </div>
-
-        <div className="w-full lg:max-w-190">
-          <EspecialidadesToolbar
+      </div>
+      <div className="w-full shrink-0">
+        <EspecialidadesToolbar
             q={vm.q}
             onQChange={vm.setQ}
             statusFilter={vm.statusFilter}
@@ -63,13 +65,9 @@ export default function EspecialidadesPage() {
             onPerPageChange={(n) => vm.setPerPage(n)}
             onNew={handleNew}
           />
-        </div>
       </div>
 
-      <NoticeBanner notice={vm.notice} />
-
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-        <div className="min-w-0">
+      <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<>
           <EspecialidadesTable
             data={vm.data}
             loading={vm.loading}
@@ -78,6 +76,8 @@ export default function EspecialidadesPage() {
             page={vm.page}
             onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
             onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            onFirst={() => vm.setPage(1)}
+            onLast={() => vm.setPage(vm.data.meta.last_page)}
           />
 
           <EspecialidadesMobileList
@@ -88,11 +88,10 @@ export default function EspecialidadesPage() {
             page={vm.page}
             onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
             onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+            onFirst={() => vm.setPage(1)}
+            onLast={() => vm.setPage(vm.data.meta.last_page)}
           />
-        </div>
-
-        <div ref={formRef} className="min-w-0">
-          <EspecialidadFormCard
+        </>} right={<EspecialidadFormCard
             mode={vm.mode}
             selected={vm.selected}
             codigo={vm.codigo}
@@ -107,9 +106,7 @@ export default function EspecialidadesPage() {
             onSave={vm.onSave}
             onCancel={vm.cancel}
             onDeactivate={vm.requestDeactivate}
-          />
-        </div>
-      </div>
+          />} />
 
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}

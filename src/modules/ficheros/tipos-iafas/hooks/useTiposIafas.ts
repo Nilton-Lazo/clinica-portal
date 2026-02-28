@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PaginatedResponse, RecordStatus, TipoIafa, TiposIafasQuery } from "../../types/tiposIafas.types";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 import type { ApiError } from "../../../../shared/api/apiError";
 import {
   createTipoIafa,
@@ -27,6 +28,7 @@ function isApiError(e: unknown): e is ApiError {
 }
 
 export function useTiposIafas() {
+  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<TipoIafa>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -126,7 +128,8 @@ export function useTiposIafas() {
     setDescripcion(o.descripcion);
     setEstado(o.estado);
     setNotice(null);
-  }, [mode, resetToNew, selected]);
+    toast.success("Cambios cancelados.");
+  }, [mode, resetToNew, selected, toast]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {

@@ -13,6 +13,7 @@ import {
 } from "../../services/tarifas.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -63,6 +64,7 @@ function isFactorOk(v: string): boolean {
 const MSG_BASE_REQUIERE_ACTIVO = "Para cambiar a tarifario base, el tarifario seleccionado debe estar ACTIVO.";
 
 export function useTarifas() {
+  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Tarifa>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -515,7 +517,8 @@ export function useTarifas() {
     setEstado(o.estado);
 
     setNotice(null);
-  }, [mode, resetToNew, selected]);
+    toast.success("Cambios cancelados.");
+  }, [mode, resetToNew, selected, toast]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {

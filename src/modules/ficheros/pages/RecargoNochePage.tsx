@@ -1,13 +1,12 @@
 import * as React from "react";
-import { X } from "lucide-react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { CrudSplitLayout } from "../components/CrudSplitLayout";
+import { useNoticeToToast } from "../utils/crudShared";
 import { useRecargoNoche } from "../recargo-noche/hooks/useRecargoNoche";
 import RecargoNocheToolbar from "../recargo-noche/components/RecargoNocheToolbar";
 import RecargoNocheTable from "../recargo-noche/components/RecargoNocheTable";
 import RecargoNocheMobileList from "../recargo-noche/components/RecargoNocheMobileList";
 import RecargoNocheFormCard from "../recargo-noche/components/RecargoNocheFormCard";
-
-const NOTICE_AUTO_HIDE_MS = 10_000;
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -26,26 +25,29 @@ function useIsLgUp(): boolean {
   return isLgUp;
 }
 
+const PER_PAGE = 25;
+
 export default function RecargoNochePage() {
   const title = "Recargo nocturno";
   const vm = useRecargoNoche();
+  useNoticeToToast(vm.notice);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  const noticeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [page, setPage] = React.useState(1);
 
   React.useEffect(() => {
-    if (!vm.notice) return;
-    noticeTimeoutRef.current = setTimeout(() => {
-      vm.setNotice(null);
-      noticeTimeoutRef.current = null;
-    }, NOTICE_AUTO_HIDE_MS);
-    return () => {
-      if (noticeTimeoutRef.current) {
-        clearTimeout(noticeTimeoutRef.current);
-        noticeTimeoutRef.current = null;
-      }
-    };
-  }, [vm.notice, vm.setNotice]);
+    setPage(1);
+  }, [vm.tarifaId, vm.statusFilter]);
+
+  const total = vm.reglas.length;
+  const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
+  const slicedReglas = vm.reglas.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paginationMeta = {
+    current_page: page,
+    per_page: PER_PAGE,
+    total,
+    last_page: lastPage,
+  };
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();
@@ -58,70 +60,53 @@ export default function RecargoNochePage() {
   }, [vm, isLgUp]);
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
           <div className="text-sm text-(--color-text-secondary)">
             Configure por tarifario qué categorías llevan recargo y desde qué hora.
           </div>
         </div>
-
-        <div className="w-full lg:max-w-[420px]">
-          <RecargoNocheToolbar
-            tarifas={vm.tarifas}
-            tarifasLoading={vm.tarifasLoading}
-            tarifaId={vm.tarifaId}
-            onTarifaChange={vm.setTarifaId}
-            statusFilter={vm.statusFilter}
-            onStatusChange={vm.setStatusFilter}
-            onNew={handleNew}
-          />
-        </div>
+      </div>
+      <div className="w-full shrink-0">
+        <RecargoNocheToolbar
+          tarifas={vm.tarifas}
+          tarifasLoading={vm.tarifasLoading}
+          tarifaId={vm.tarifaId}
+          onTarifaChange={vm.setTarifaId}
+          statusFilter={vm.statusFilter}
+          onStatusChange={vm.setStatusFilter}
+          onNew={handleNew}
+        />
       </div>
 
-      {vm.notice ? (
-        <div
-          role="status"
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm flex items-center justify-between gap-3",
-            vm.notice.type === "success"
-              ? "border-(--color-success) text-(--color-success)"
-              : "border-(--color-danger) text-(--color-danger)",
-          ].join(" ")}
-        >
-          <span className="min-w-0">{vm.notice.text}</span>
-          <button
-            type="button"
-            onClick={() => vm.setNotice(null)}
-            className="shrink-0 p-1 rounded-lg hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
-            aria-label="Cerrar notificación"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
-
       {vm.tarifaId ? (
-        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-          <div className="min-w-0">
+        <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<>
             <RecargoNocheTable
-              reglas={vm.reglas}
+              reglas={slicedReglas}
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               onSelect={vm.loadForEdit}
+              paginationMeta={paginationMeta}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
+              onFirst={() => setPage(1)}
+              onLast={() => setPage(lastPage)}
             />
 
             <RecargoNocheMobileList
-              reglas={vm.reglas}
+              reglas={slicedReglas}
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               onSelect={vm.loadForEdit}
+              paginationMeta={paginationMeta}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
+              onFirst={() => setPage(1)}
+              onLast={() => setPage(lastPage)}
             />
-          </div>
-
-          <div ref={formRef} className="min-w-0">
-            <RecargoNocheFormCard
+          </>} right={<RecargoNocheFormCard
               mode={vm.mode}
               selected={vm.selected}
               categoriasDisponibles={vm.categoriasDisponiblesParaNuevo}
@@ -142,11 +127,9 @@ export default function RecargoNochePage() {
               onSave={vm.onSave}
               onCancel={vm.cancel}
               onDeactivate={vm.requestDeactivate}
-            />
-          </div>
-        </div>
+            />} />
       ) : (
-        <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-6 text-center text-sm text-(--color-text-secondary)">
+        <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-6 text-center text-sm text-(--color-text-secondary)">
           Seleccione un tarifario para gestionar las reglas de recargo nocturno.
         </div>
       )}

@@ -2,6 +2,7 @@ import * as React from "react";
 import type { StatusFilter } from "../hooks/useRecargoNoche";
 import type { TarifaOperativa } from "../../services/recargoNoche.service";
 import { SelectMenu } from "../../../../shared/ui/SelectMenu";
+import { PrimaryButton } from "../../../../shared/ui/buttons";
 
 type Opt = { value: string; label: string };
 
@@ -70,16 +71,9 @@ export default function RecargoNocheToolbar(props: {
           />
         </div>
 
-        <div>
-          <button
-            type="button"
-            className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
-            onClick={onNew}
-            disabled={!tarifaId}
-          >
-            Nuevo
-          </button>
-        </div>
+        <PrimaryButton className="w-full sm:w-auto" onClick={onNew} disabled={!tarifaId}>
+          Nuevo
+        </PrimaryButton>
       </div>
     </div>
   );

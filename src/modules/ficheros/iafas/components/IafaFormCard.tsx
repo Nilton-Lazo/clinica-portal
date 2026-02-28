@@ -5,6 +5,7 @@ import type { Mode } from "../hooks/useIafas";
 import { Calendar } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
+import { inputBase } from "../../utils/crudShared";
 
 function useIsTouchUi(): boolean {
   const [isTouch, setIsTouch] = React.useState(() => {
@@ -148,7 +149,7 @@ export default function IafaFormCard(props: {
   ];
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="flex min-h-full w-full min-w-0 flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -162,15 +163,16 @@ export default function IafaFormCard(props: {
         {selected ? <StatusBadge status={selected.estado} /> : null}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mt-4 flex flex-1 flex-col min-h-0">
+        <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="text-sm text-(--color-text-primary)">Código</label>
             <input
               value={codigo}
               readOnly
               placeholder={mode === "new" ? "Generando" : ""}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
@@ -182,7 +184,7 @@ export default function IafaFormCard(props: {
                 onChange={(v) => onEstadoChange(v as RecordStatus)}
                 options={estadoOptions}
                 ariaLabel="Estado"
-                buttonClassName="w-full"
+                buttonClassName={`w-full h-10 ${inputBase}`}
                 menuClassName="min-w-full"
               />
             </div>
@@ -197,7 +199,7 @@ export default function IafaFormCard(props: {
               onChange={(v) => onTipoIafaIdChange(Number(v))}
               options={tipoOptions}
               ariaLabel="Tipo de IAFAS"
-              buttonClassName="w-full"
+              buttonClassName={`w-full h-10 ${inputBase}`}
               menuClassName="min-w-full max-w-[calc(100vw-2rem)]"
             />
           </div>
@@ -208,7 +210,7 @@ export default function IafaFormCard(props: {
           <input
             value={razonSocial}
             onChange={(e) => onRazonSocialChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className={`mt-1 h-10 w-full ${inputBase}`}
           />
         </div>
 
@@ -218,7 +220,7 @@ export default function IafaFormCard(props: {
             <input
               value={descripcionCorta}
               onChange={(e) => onDescripcionCortaChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
@@ -228,7 +230,7 @@ export default function IafaFormCard(props: {
               value={ruc}
               inputMode="numeric"
               onChange={(e) => onRucChange(e.target.value.replace(/\D/g, "").slice(0, 11))}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
         </div>
@@ -238,7 +240,7 @@ export default function IafaFormCard(props: {
           <input
             value={direccion}
             onChange={(e) => onDireccionChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className={`mt-1 h-10 w-full ${inputBase}`}
           />
         </div>
 
@@ -248,7 +250,7 @@ export default function IafaFormCard(props: {
             <input
               value={representanteLegal}
               onChange={(e) => onRepresentanteLegalChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
@@ -257,7 +259,7 @@ export default function IafaFormCard(props: {
             <input
               value={telefono}
               onChange={(e) => onTelefonoChange(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
         </div>
@@ -268,7 +270,7 @@ export default function IafaFormCard(props: {
             type="url"
             value={paginaWeb}
             onChange={(e) => onPaginaWebChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className={`mt-1 h-10 w-full ${inputBase}`}
           />
         </div>
 
@@ -277,8 +279,8 @@ export default function IafaFormCard(props: {
             <label className="text-sm text-(--color-text-primary)">Inicio de cobertura</label>
 
             {isTouchUi ? (
-              <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+              <div className="relative mt-1 rounded border border-(--border-color-default) bg-(--color-surface) focus-within:border-(--color-primary) focus-within:ring-0">
+                <div className="h-10 w-full rounded border-0 bg-transparent px-3 pr-10 text-sm flex items-center text-(--color-text-primary)">
                   <span className={fechaInicio ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
                     {fechaInicio ? formatDateForDisplay(fechaInicio) : "dd/mm/aaaa"}
                   </span>
@@ -299,7 +301,7 @@ export default function IafaFormCard(props: {
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => onFechaInicioChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                className={`mt-1 h-10 w-full ${inputBase}`}
               />
             )}
           </div>
@@ -308,8 +310,8 @@ export default function IafaFormCard(props: {
             <label className="text-sm text-(--color-text-primary)">Fin de cobertura</label>
 
             {isTouchUi ? (
-              <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
+              <div className="relative mt-1 rounded border border-(--border-color-default) bg-(--color-surface) focus-within:border-(--color-primary) focus-within:ring-0">
+                <div className="h-10 w-full rounded border-0 bg-transparent px-3 pr-10 text-sm flex items-center text-(--color-text-primary)">
                   <span className={fechaFin ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
                     {fechaFin ? formatDateForDisplay(fechaFin) : "dd/mm/aaaa"}
                   </span>
@@ -330,25 +332,24 @@ export default function IafaFormCard(props: {
                 type="date"
                 value={fechaFin}
                 onChange={(e) => onFechaFinChange(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                className={`mt-1 h-10 w-full ${inputBase}`}
               />
             )}
           </div>
         </div>
-      </div>
+        </div>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <PrimaryButton disabled={!saveEnabled} onClick={onSave}>
-          {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
+        <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+          {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar"}
         </PrimaryButton>
-
-        <SecondaryButton disabled={saving} onClick={onCancel}>
+        <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
           Cancelar
         </SecondaryButton>
-
-        <DangerButton disabled={!canDeactivate || saving} onClick={onDeactivate}>
+        <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
           Desactivar
         </DangerButton>
+        </div>
       </div>
     </div>
   );

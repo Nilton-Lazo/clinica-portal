@@ -17,6 +17,7 @@ import {
 } from "../../services/medicos.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -80,6 +81,7 @@ function fullName(m: { apellido_paterno: string; apellido_materno: string; nombr
 }
 
 export function useMedicos() {
+  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Medico>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -451,7 +453,8 @@ export function useMedicos() {
     setEstado(o.estado);
 
     setNotice(null);
-  }, [mode, resetToNew, selected]);
+    toast.success("Cambios cancelados.");
+  }, [mode, resetToNew, selected, toast]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {

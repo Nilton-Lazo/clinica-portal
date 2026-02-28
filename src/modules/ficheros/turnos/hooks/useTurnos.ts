@@ -4,6 +4,7 @@ import type { JornadaTurno, PaginatedResponse, RecordStatus, TipoTurno, Turno } 
 import { createTurno, deactivateTurno, getNextTurnoCodigo, listTurnos, updateTurno } from "../../services/turnos.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
+import { useToast } from "../../../../shared/feedback";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -107,6 +108,7 @@ function calcDurationHHMM(horaInicio: string, horaFin: string): string | null {
 }
 
 export function useTurnos() {
+  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Turno>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -313,7 +315,8 @@ export function useTurnos() {
     setEstado(o.estado);
 
     setNotice(null);
-  }, [mode, resetToNew, selected]);
+    toast.success("Cambios cancelados.");
+  }, [mode, resetToNew, selected, toast]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {

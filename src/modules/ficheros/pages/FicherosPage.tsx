@@ -6,9 +6,9 @@ export default function FicherosPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <div className="flex h-full w-full min-h-0 flex-col gap-4 md:flex-row md:gap-4">
-      <aside className="hidden w-80 shrink-0 md:block">
-        <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 overflow-y-auto overflow-x-hidden app-scrollbar">
+    <div className="flex h-full w-full min-h-0 flex-col gap-4 md:flex-row md:gap-2">
+      <aside className="hidden w-64 shrink-0 md:block">
+        <div className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4 overflow-y-auto overflow-x-hidden app-scrollbar">
           <div className="text-sm font-semibold text-(--color-text-primary)">Ficheros</div>
           <div className="mt-4">
             <FicherosNavTree />
@@ -27,7 +27,7 @@ export default function FicherosPage() {
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 overflow-y-auto overflow-x-hidden app-scrollbar">
+        <div className="flex min-h-[70vh] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:overflow-hidden app-scrollbar">
           <Outlet />
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function FicherosPage() {
             onClick={() => setMobileNavOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+          <div className="absolute bottom-0 left-0 right-0 rounded-t border border-(--border-color-default) bg-(--color-surface) p-4">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-(--color-text-primary)">Ficheros</div>
               <button

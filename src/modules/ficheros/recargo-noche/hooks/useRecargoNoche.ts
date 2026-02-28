@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useToast } from "../../../../shared/feedback";
 import {
   getTarifasOperativas,
   getCategoriasLookup,
@@ -15,6 +16,7 @@ export type StatusFilter = "ALL" | "ACTIVO" | "INACTIVO" | "SUSPENDIDO";
 export type Notice = { type: "success" | "error"; text: string } | null;
 
 export function useRecargoNoche() {
+  const toast = useToast();
   const [tarifas, setTarifas] = React.useState<TarifaOperativa[]>([]);
   const [tarifasLoading, setTarifasLoading] = React.useState(true);
   const [tarifaId, setTarifaId] = React.useState<number | null>(null);
@@ -184,10 +186,11 @@ export function useRecargoNoche() {
       setFormHoraDesde(selected.hora_desde?.slice(0, 5) ?? "");
       setFormHoraHasta(selected.hora_hasta?.slice(0, 5) ?? "");
       setFormEstado(selected.estado ?? "");
+      toast.success("Cambios cancelados.");
     } else {
       resetToNew();
     }
-  }, [selected, resetToNew]);
+  }, [selected, resetToNew, toast]);
 
   const requestDeactivate = React.useCallback(() => {
     if (selected?.estado === "ACTIVO") setConfirmDeactivateOpen(true);

@@ -11,8 +11,10 @@ export default function TiposClientesMobileList(props: {
   page: number;
   onPrev: () => void;
   onNext: () => void;
+  onFirst?: () => void;
+  onLast?: () => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
 
   return (
     <div className="lg:hidden">
@@ -32,7 +34,7 @@ export default function TiposClientesMobileList(props: {
         renderRight={(x) => <StatusBadge status={x.estado} />}
       />
 
-      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} />
+      <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
     </div>
   );
 }

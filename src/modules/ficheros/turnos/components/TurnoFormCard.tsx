@@ -4,18 +4,20 @@ import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useTurnos";
 import { Clock } from "lucide-react";
 import { SelectMenu as SharedSelectMenu } from "../../../../shared/ui/SelectMenu";
+import { inputBase } from "../../utils/crudShared";
+import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 
 type Opt = { value: string; label: string; disabled?: boolean };
 
-function SelectMenu(props: { value: string; onChange: (v: string) => void; options: Opt[]; ariaLabel: string }) {
-  const { value, onChange, options, ariaLabel } = props;
+function SelectMenu(props: { value: string; onChange: (v: string) => void; options: Opt[]; ariaLabel: string; buttonClassName?: string }) {
+  const { value, onChange, options, ariaLabel, buttonClassName } = props;
   return (
     <SharedSelectMenu
       value={value}
       onChange={onChange}
       options={options}
       ariaLabel={ariaLabel}
-      buttonClassName="mt-1 w-full"
+      buttonClassName={buttonClassName ?? `mt-1 w-full h-10 ${inputBase}`}
       menuClassName="min-w-full w-full"
     />
   );
@@ -351,7 +353,7 @@ function TimeMaskedInput(props: {
         onChange(`${h2}:${m2}`);
       }}
       onBlur={() => onChange(normalizeTimeOnBlur(value))}
-      className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+      className={`mt-1 h-10 w-full ${inputBase}`}
     />
   );
 }
@@ -456,7 +458,7 @@ export default function TurnoFormCard(props: {
         : (descripcionPreview ?? "");
 
   return (
-    <div className="h-full rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -470,7 +472,8 @@ export default function TurnoFormCard(props: {
         {selected ? <StatusBadge status={selected.estado} /> : null}
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4">
+      <div className="mt-4 flex flex-1 flex-col min-h-0">
+        <div className="grid grid-cols-1 gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="text-sm text-(--color-text-primary)">Código</label>
@@ -478,7 +481,7 @@ export default function TurnoFormCard(props: {
               value={codigo}
               readOnly
               placeholder={mode === "new" ? "Generando" : ""}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
@@ -489,6 +492,7 @@ export default function TurnoFormCard(props: {
               onChange={(v) => onTipoTurnoChange(v as TipoTurno)}
               options={tipoOptions}
               ariaLabel="Tipo de turno"
+              buttonClassName={`mt-1 w-full h-10 ${inputBase}`}
             />
           </div>
 
@@ -499,6 +503,7 @@ export default function TurnoFormCard(props: {
               onChange={(v) => onEstadoChange(v as RecordStatus)}
               options={estadoOptions}
               ariaLabel="Estado"
+              buttonClassName={`mt-1 w-full h-10 ${inputBase}`}
             />
           </div>
         </div>
@@ -566,13 +571,13 @@ export default function TurnoFormCard(props: {
               value={duracionReadonly}
               readOnly
               placeholder="—"
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+              className={`mt-1 h-10 w-full ${inputBase}`}
             />
           </div>
 
           <div>
             <label className="text-sm text-(--color-text-primary)">Jornada</label>
-            <SelectMenu value={jornada} onChange={(v) => onJornadaChange(v as JornadaTurno)} options={jornadaOptions} ariaLabel="Jornada" />
+            <SelectMenu value={jornada} onChange={(v) => onJornadaChange(v as JornadaTurno)} options={jornadaOptions} ariaLabel="Jornada" buttonClassName={`mt-1 w-full h-10 ${inputBase}`} />
           </div>
         </div>
 
@@ -581,49 +586,22 @@ export default function TurnoFormCard(props: {
           <input
             value={descripcionValue}
             onChange={(e) => onDescripcionChange(e.target.value)}
-            className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className={`mt-1 h-10 w-full ${inputBase}`}
           />
         </div>
-      </div>
+        </div>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          className={[
-            "h-10 rounded-xl px-4 text-sm font-medium text-(--color-text-inverse)",
-            "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-            saveEnabled
-              ? "bg-(--color-primary)"
-              : "bg-(--color-panel-context) text-(--color-text-secondary) cursor-not-allowed hover:scale-100",
-          ].join(" ")}
-          disabled={!saveEnabled}
-          onClick={onSave}
-        >
-          {saving ? "Guardando..." : mode === "new" ? "Crear" : "Guardar cambios"}
-        </button>
-
-        <button
-          type="button"
-          className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-          onClick={onCancel}
-        >
+        <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
+        <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+          {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar"}
+        </PrimaryButton>
+        <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
           Cancelar
-        </button>
-
-        <button
-          type="button"
-          className={[
-            "h-10 rounded-xl px-4 text-sm font-medium text-(--color-text-inverse)",
-            "transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]",
-            canDeactivate
-              ? "bg-(--color-danger)"
-              : "bg-(--color-panel-context) text-(--color-text-secondary) cursor-not-allowed hover:scale-100",
-          ].join(" ")}
-          disabled={!canDeactivate}
-          onClick={onDeactivate}
-        >
+        </SecondaryButton>
+        <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
           Desactivar
-        </button>
+        </DangerButton>
+        </div>
       </div>
     </div>
   );
