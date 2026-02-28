@@ -9,7 +9,7 @@ export default function TarifarioCrudLayoutPage() {
 
   return (
     <div className="flex h-full w-full min-h-0 flex-col gap-4 md:flex-row md:gap-2">
-      <aside className="hidden w-80 shrink-0 md:block">
+      <aside className="hidden w-64 shrink-0 md:block">
         <div className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4 overflow-y-auto overflow-x-hidden app-scrollbar">
           <div className="text-sm font-semibold text-(--color-text-primary)">Tarifario</div>
           <div className="mt-4">

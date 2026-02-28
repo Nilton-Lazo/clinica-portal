@@ -92,7 +92,7 @@ export function TarifarioNavTree({
                     it.disabled ? (
                       <div
                         key={it.to}
-                        className="cursor-not-allowed rounded-xl px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
+                        className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
                       >
                         {it.label}
                       </div>
@@ -103,7 +103,7 @@ export function TarifarioNavTree({
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           [
-                            "block rounded-xl px-3 py-2 text-sm transition-colors",
+                            "block rounded-md px-3 py-2 text-sm transition-colors",
                             isActive
                               ? "bg-(--color-primary) text-(--color-text-inverse)"
                               : "text-(--color-text-primary) hover:bg-(--color-surface-hover)",

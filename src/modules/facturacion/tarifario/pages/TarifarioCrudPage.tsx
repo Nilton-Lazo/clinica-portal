@@ -1464,7 +1464,7 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
         onNew={handleNew}
       />
 
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
@@ -1565,14 +1565,14 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <PrimaryButton disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
-                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar cambios"}
+            <div className="mt-6 grid grid-cols-3 gap-2">
+              <PrimaryButton className="w-full min-w-0" disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
               </PrimaryButton>
-              <SecondaryButton disabled={vm.saving} onClick={vm.cancel}>
+              <SecondaryButton className="w-full min-w-0" disabled={vm.saving} onClick={vm.cancel}>
                 Cancelar
               </SecondaryButton>
-              <DangerButton disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+              <DangerButton className="w-full min-w-0" disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
                 Desactivar
               </DangerButton>
             </div>
@@ -1699,7 +1699,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
@@ -1830,14 +1830,14 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <PrimaryButton disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
-                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar cambios"}
+            <div className="mt-6 grid grid-cols-3 gap-2">
+              <PrimaryButton className="w-full min-w-0" disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
               </PrimaryButton>
-              <SecondaryButton disabled={vm.saving} onClick={vm.cancel}>
+              <SecondaryButton className="w-full min-w-0" disabled={vm.saving} onClick={vm.cancel}>
                 Cancelar
               </SecondaryButton>
-              <DangerButton disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+              <DangerButton className="w-full min-w-0" disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
                 Desactivar
               </DangerButton>
             </div>
@@ -2002,7 +2002,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-2 lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
@@ -2048,8 +2048,8 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
           </div>
         </div>
 
-        <div ref={formRef} className="min-w-0 shrink-0">
-          <div className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div ref={formRef} className="lg:w-[380px] lg:min-w-[380px] lg:flex-shrink-0 lg:max-h-full lg:overflow-y-auto app-scrollbar-thin">
+          <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -2200,18 +2200,18 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 Desea liberar el precio del servicio
               </label>
 
-            </div>
+              <div className="mt-6 grid grid-cols-3 gap-2">
+                <PrimaryButton className="w-full min-w-0" disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                  {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
+                </PrimaryButton>
+                <SecondaryButton className="w-full min-w-0" disabled={vm.saving} onClick={vm.cancel}>
+                  Cancelar
+                </SecondaryButton>
+                <DangerButton className="w-full min-w-0" disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+                  Desactivar
+                </DangerButton>
+              </div>
 
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <PrimaryButton disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
-                {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar cambios"}
-              </PrimaryButton>
-              <SecondaryButton disabled={vm.saving} onClick={vm.cancel}>
-                Cancelar
-              </SecondaryButton>
-              <DangerButton disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
-                Desactivar
-              </DangerButton>
             </div>
           </div>
         </div>
