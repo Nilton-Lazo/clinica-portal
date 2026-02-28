@@ -21,7 +21,6 @@ import {
   listAgendaCitas,
 } from "../services/agendaMedica.service";
 import type { AgendaInitData } from "../services/agendaMedica.service";
-import { toApiError } from "../../../../../shared/api/apiError";
 import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import { useToast } from "../../../../../shared/feedback";
 
@@ -49,6 +48,8 @@ export function useAgendaMedica() {
   const draftLoadedRef = React.useRef(false);
   const draftReadyRef = React.useRef(false);
   const opcionesCacheRef = React.useRef<Record<string, AgendaMedicoOption[]>>({});
+  /** Cache de init por fecha: al volver a una fecha ya visitada la carga es al instante. */
+  const initDataCacheRef = React.useRef<Record<string, AgendaInitData>>({});
   /** Número de respuestas de slots para las que NO resetear contadores (vuelta de Buscar paciente; evita que un 2.º .then por Strict Mode limpie la Hora). */
   const preserveVisibleCountersRef = React.useRef(0);
 
@@ -174,7 +175,7 @@ export function useAgendaMedica() {
     (slots?.slots_adicional ?? []).every((h) => takenSet.has(h));
   const canAddExtra = baseFull && adicionalesAllTaken && extraVisible < extrasTotal;
 
-  // Carga inicial consolidada: no vaciar listas/selección al iniciar para evitar parpadeo.
+  // Carga inicial consolidada: cache por fecha para respuesta al instante al volver a una fecha ya visitada.
   React.useEffect(() => {
     if (!selectedDateStr) {
       setEspecialidadesList([]);
@@ -188,11 +189,43 @@ export function useAgendaMedica() {
       return;
     }
 
+    const useCache = reloadFlag === 0;
+    const cached = useCache ? initDataCacheRef.current[selectedDateStr] : undefined;
+    if (cached) {
+      setEspecialidadesList(cached.opciones.especialidades);
+      setMedicosList(cached.opciones.medicos);
+      setEspecialidadId(cached.defaults.especialidad_id);
+      setMedicoId(cached.defaults.medico_id);
+      if (cached.defaults.especialidad_id != null) {
+        opcionesCacheRef.current[`${selectedDateStr}|${cached.defaults.especialidad_id}`] = cached.opciones.medicos;
+      }
+      setSlots(cached.slots);
+      setProgramacion(cached.programacion);
+      if (cached.citas?.paginator) {
+        const paginator = cached.citas.paginator as { data?: AgendaCita[]; current_page?: number; per_page?: number; total?: number; last_page?: number };
+        setData({
+          data: paginator.data ?? [],
+          meta: {
+            current_page: paginator.current_page ?? 1,
+            per_page: paginator.per_page ?? perPage,
+            total: paginator.total ?? 0,
+            last_page: paginator.last_page ?? 1,
+          },
+        });
+      } else {
+        setData({ data: [], meta: { current_page: 1, per_page: perPage, total: 0, last_page: 1 } });
+      }
+      setInitLoading(false);
+      setLoading(false);
+      return;
+    }
+
     setInitLoading(true);
     setLoading(true);
     getAgendaInitData(selectedDateStr)
       .then((res) => {
         const d = res.data;
+        initDataCacheRef.current[selectedDateStr] = d;
         setEspecialidadesList(d.opciones.especialidades);
         setMedicosList(d.opciones.medicos);
         setEspecialidadId(d.defaults.especialidad_id);
@@ -219,7 +252,7 @@ export function useAgendaMedica() {
       })
       .catch((e) => {
         toast.error(toUserFriendlyMessage(e, "No se pudo cargar la agenda."));
-        // Limpiar todo en caso de error
+        delete initDataCacheRef.current[selectedDateStr];
         setEspecialidadesList([]);
         setMedicosList([]);
         setEspecialidadId(null);

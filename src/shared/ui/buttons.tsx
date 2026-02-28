@@ -6,18 +6,21 @@ type Props = {
   disabled?: boolean;
   type?: "button" | "submit";
   className?: string;
+  /** Tooltip nativo (title) al pasar el mouse */
+  title?: string;
 };
 
 const base =
   "h-10 rounded-md px-4 text-sm font-medium transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]";
 
 export function PrimaryButton(props: Props) {
-  const { children, onClick, disabled, type = "button", className } = props;
+  const { children, onClick, disabled, type = "button", className, title } = props;
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={[
         base,
         disabled
@@ -32,12 +35,13 @@ export function PrimaryButton(props: Props) {
 }
 
 export function SecondaryButton(props: Props) {
-  const { children, onClick, disabled, type = "button", className } = props;
+  const { children, onClick, disabled, type = "button", className, title } = props;
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={[
         base,
         "bg-(--color-panel-context) text-(--color-base-primary)",

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DataTable } from "../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
@@ -9,6 +9,8 @@ import type { TarifaTreeCategoria } from "../types/tarifario.types";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { formatPrecioUnidad } from "../../../../shared/constants/decimalPrecision";
+import { useToast } from "../../../../shared/feedback";
+import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 
 const gestionOptions = [
   { value: "categorias", label: "Categorías" },
@@ -71,11 +73,12 @@ const TreeNode = React.memo(function TreeNode({
             <ChevronRight className="h-4 w-4 text-(--color-text-secondary)" />
           )}
         </button>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
             type="checkbox"
             checked={isCatChecked(cat.id)}
             onChange={() => onToggleCategoria(cat.id)}
+            className="h-4 w-4 rounded border border-(--border-color-default)"
           />
           <span className="font-semibold">
             {cat.codigo} - {cat.nombre}
@@ -102,11 +105,12 @@ const TreeNode = React.memo(function TreeNode({
                       <ChevronRight className="h-4 w-4 text-(--color-text-secondary)" />
                     )}
                   </button>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={isSubChecked(sub.id)}
                       onChange={() => onToggleSubcategoria(sub.id)}
+                      className="h-4 w-4 rounded border border-(--border-color-default)"
                     />
                     <span>
                       {cat.codigo}.{sub.codigo} - {sub.nombre}
@@ -117,11 +121,12 @@ const TreeNode = React.memo(function TreeNode({
                 {isSubOpen && (
                   <div className="pl-8 space-y-1">
                     {sub.servicios.map((sv) => (
-                      <label key={sv.id} className="flex items-center gap-2 text-sm">
+                      <label key={sv.id} className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
                           type="checkbox"
                           checked={selectedServicios.has(sv.id)}
                           onChange={() => onToggleServicio(sv.id)}
+                          className="h-4 w-4 rounded border border-(--border-color-default)"
                         />
                         <span className="truncate">
                           {sv.codigo} - {sv.descripcion}
@@ -139,14 +144,33 @@ const TreeNode = React.memo(function TreeNode({
   );
 });
 
+const inputBase =
+  "h-10 rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
+
 export default function TarifarioPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const toast = useToast();
   const vm = useTarifario();
-  const leftRef = React.useRef<HTMLDivElement | null>(null);
-  const [leftHeight, setLeftHeight] = React.useState<number | null>(null);
-  const rightHeight = leftHeight ? Math.max(leftHeight, 800) : 800;
-
   const [gestion, setGestion] = React.useState("categorias");
+
+  // Al volver desde CRUD (Volver a Tarifario) restaurar la tarifa seleccionada desde la URL al instante
+  const tarifaIdFromUrl = searchParams.get("tarifaId");
+  React.useLayoutEffect(() => {
+    if (!tarifaIdFromUrl) return;
+    const n = Number(tarifaIdFromUrl);
+    if (Number.isFinite(n) && n > 0) vm.setTarifaId(n);
+  }, [tarifaIdFromUrl, vm]);
+
+  const lastNoticeRef = React.useRef<typeof vm.notice>(null);
+  React.useEffect(() => {
+    const n = vm.notice;
+    if (!n || n === lastNoticeRef.current) return;
+    lastNoticeRef.current = n;
+    if (n.type === "success") toast.success(n.text);
+    else toast.error(n.text);
+    vm.setNotice(null);
+  }, [vm.notice, toast, vm]);
 
   const tarifaOptions = React.useMemo(() => {
     return vm.tarifas.map((t) => ({
@@ -168,129 +192,61 @@ export default function TarifarioPage() {
   const selectedCloneTarifaStr = vm.cloneTarifaId ? String(vm.cloneTarifaId) : "";
   const selectedTarifa = vm.tarifas.find((t) => t.id === vm.tarifaId) ?? null;
 
-  React.useLayoutEffect(() => {
-    const el = leftRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    let rafId = 0;
-    let lastHeight = 0;
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      const rect = (entry.target as HTMLElement).getBoundingClientRect();
-      const nextHeight = Math.round(rect.height);
-      if (nextHeight === lastHeight) return;
-      lastHeight = nextHeight;
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        setLeftHeight(nextHeight);
-      });
-    });
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, []);
-
   return (
-    <div className="flex h-full w-full flex-col gap-4">
-      {vm.notice ? (
-        <div
-          role="status"
-          className={[
-            "rounded-2xl border px-4 py-3 text-sm",
-            "flex items-start justify-between gap-4",
-            vm.notice.type === "success"
-              ? "border-(--color-success) text-(--color-success)"
-              : "border-(--color-danger) text-(--color-danger)",
-          ].join(" ")}
-        >
-          <span>{vm.notice.text}</span>
-          <button
-            type="button"
-            onClick={() => vm.setNotice(null)}
-            className="rounded-md px-2 text-base leading-none text-(--color-text-secondary) hover:text-(--color-text-primary)"
-            aria-label="Cerrar notificación"
-            title="Cerrar"
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] items-start">
-        {/* ===================== CONTENEDOR 1 ===================== */}
-        <section
-          ref={leftRef}
-          className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4"
-        >
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-(--color-text-primary) mb-1">
-                Seleccione una tarifa:
-              </label>
+    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:grid-rows-1 lg:gap-2">
+        {/* ===================== CONTENEDOR 1: Tarifa y servicios (en móvil: card; en desktop: panel que crece) ===================== */}
+        <section className="flex flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:overflow-hidden lg:p-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-2">
+            <div className="min-w-0 shrink-0 lg:w-max lg:min-w-[10rem] lg:max-w-[20rem]">
+              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Tarifa</label>
               <SelectMenu
                 value={selectedTarifaStr}
                 onChange={(v) => vm.setTarifaId(v ? Number(v) : null)}
                 options={tarifaOptions}
                 ariaLabel="Tarifa"
                 disabled={vm.tarifasLoading}
-                buttonClassName="w-full"
+                buttonClassName={`w-full lg:w-max lg:min-w-[10rem] lg:max-w-full ${inputBase}`}
                 menuClassName="min-w-full"
               />
             </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="w-full sm:w-40">
-                <label className="text-sm text-(--color-text-primary)">Nomenclador:</label>
-                <input
-                  value={vm.nomenclador}
-                  onChange={(e) => vm.setNomenclador(e.target.value)}
-                  placeholder="Ej. 102205"
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-              </div>
-              <div className="w-full sm:w-40">
-                <label className="text-sm text-(--color-text-primary)">Buscar:</label>
-                <input
-                  value={vm.codigo}
-                  onChange={(e) => vm.setCodigo(e.target.value)}
-                  placeholder="Ej. 01.02.03"
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-              </div>
-              <div className="w-full sm:w-40">
-                <label className="text-sm text-(--color-text-primary)">Estado:</label>
-                <div className="mt-1">
-                  <SelectMenu
-                    value={vm.statusFilter}
-                    onChange={(v) => vm.setStatusFilter(v as typeof vm.statusFilter)}
-                    options={statusOptions}
-                    ariaLabel="Filtrar por estado"
-                    buttonClassName="w-full"
-                    menuClassName="min-w-full"
-                  />
-                </div>
-              </div>
-              <div className="w-full sm:w-28">
-                <label className="text-sm text-(--color-text-primary)">Registros:</label>
-                <div className="mt-1">
-                  <SelectMenu
-                    value={String(vm.perPage)}
-                    onChange={(v) => vm.setPerPage(Number(v))}
-                    options={perPageOptions}
-                    ariaLabel="Registros por página"
-                    buttonClassName="w-full"
-                    menuClassName="min-w-full"
-                  />
-                </div>
-              </div>
+            <div className="min-w-0 flex-1 sm:min-w-48">
+              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Buscar</label>
+              <input
+                value={vm.q}
+                onChange={(e) => vm.setQ(e.target.value)}
+                placeholder="Buscar por código, descripción o nomenclador"
+                className={`w-full ${inputBase}`}
+                aria-label="Buscar por código, descripción o nomenclador"
+              />
+            </div>
+            <div className="w-28 shrink-0">
+              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Estado</label>
+              <SelectMenu
+                value={vm.statusFilter}
+                onChange={(v) => vm.setStatusFilter(v as typeof vm.statusFilter)}
+                options={statusOptions}
+                ariaLabel="Filtrar por estado"
+                buttonClassName={`w-full ${inputBase}`}
+                menuClassName="min-w-full"
+              />
+            </div>
+            <div className="w-24 shrink-0">
+              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Registros</label>
+              <SelectMenu
+                value={String(vm.perPage)}
+                onChange={(v) => vm.setPerPage(Number(v))}
+                options={perPageOptions}
+                ariaLabel="Registros por página"
+                buttonClassName={`w-full ${inputBase}`}
+                menuClassName="min-w-full"
+              />
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="mt-4 lg:mt-2 grid grid-cols-1 gap-3 lg:gap-2 lg:grid-cols-2">
             <div>
-              <label className="text-sm text-(--color-text-primary)">Categoría:</label>
+              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Categoría</label>
               <input
                 value={
                   vm.selected
@@ -298,11 +254,11 @@ export default function TarifarioPage() {
                     : ""
                 }
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                className={`w-full ${inputBase}`}
               />
             </div>
             <div>
-              <label className="text-sm text-(--color-text-primary)">Subcategoría:</label>
+              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Subcategoría</label>
               <input
                 value={
                   vm.selected
@@ -310,13 +266,13 @@ export default function TarifarioPage() {
                     : ""
                 }
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                className={`w-full ${inputBase}`}
               />
             </div>
           </div>
 
-          <div className="mt-4">
-            <div className="hidden h-full min-h-0 flex-col lg:flex">
+          <div className="mt-4 flex flex-col lg:mt-2 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+            <div className="hidden min-h-0 flex-1 flex-col lg:flex">
               <DataTable
                 rows={vm.data.data}
                 loading={vm.loading}
@@ -364,6 +320,8 @@ export default function TarifarioPage() {
                 variant="desktop"
                 onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                 onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                onFirst={() => vm.setPage(1)}
+                onLast={() => vm.setPage(vm.data.meta.last_page)}
               />
             </div>
 
@@ -386,57 +344,51 @@ export default function TarifarioPage() {
                 variant="mobile"
                 onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                 onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
+                onFirst={() => vm.setPage(1)}
+                onLast={() => vm.setPage(vm.data.meta.last_page)}
               />
             </div>
           </div>
         </section>
 
-        {/* ===================== CONTENEDOR 2 y 3 ===================== */}
-        <section
-          className="flex flex-col gap-4 box-border self-stretch"
-          style={{ height: rightHeight, minHeight: rightHeight }}
-        >
-          {/* Contenedor 2 */}
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
-            <div className="flex flex-col gap-4">
-              <div className="text-sm font-semibold text-(--color-text-primary)">
-                Seleccione una opción:
-              </div>
-              <div className="flex flex-col gap-3">
-                <SelectMenu
-                  value={gestion}
-                  onChange={setGestion}
-                  options={gestionOptions}
-                  ariaLabel="Seleccionar opción de gestión"
-                  buttonClassName="w-full"
-                  menuClassName="min-w-full"
-                />
-                <button
-                  type="button"
-                  className="h-10 rounded-xl px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-                  onClick={() => {
-                    if (!vm.tarifaId) {
-                      vm.setNotice({ type: "error", text: "Selecciona una tarifa primero." });
-                      return;
-                    }
-                    const params = new URLSearchParams({
-                      tarifaId: String(vm.tarifaId),
-                      tarifaLabel: selectedTarifa?.descripcion_tarifa ?? "",
-                    });
-                    navigate(`/facturacion/tarifario/gestion/${gestion}?${params.toString()}`);
-                  }}
-                >
-                  Gestionar
-                </button>
-              </div>
+        {/* ===================== CONTENEDOR 2: Gestionar + Clonación (en móvil: cards; en desktop: panel que crece) ===================== */}
+        <section className="flex flex-col gap-4 lg:min-h-0 lg:gap-2 lg:overflow-hidden">
+          <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
+            <h2 className="text-sm font-semibold text-(--color-text-primary)">Gestionar</h2>
+            <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-2">
+              <SelectMenu
+                value={gestion}
+                onChange={setGestion}
+                options={gestionOptions}
+                ariaLabel="Seleccionar opción de gestión"
+                buttonClassName={`w-full lg:w-auto lg:min-w-[180px] ${inputBase}`}
+                menuClassName="min-w-full"
+              />
+              <PrimaryButton
+                className="w-full lg:w-auto lg:shrink-0"
+                onClick={() => {
+                  if (!vm.tarifaId) {
+                    toast.error("Selecciona una tarifa primero.");
+                    return;
+                  }
+                  const params = new URLSearchParams({
+                    tarifaId: String(vm.tarifaId),
+                    tarifaLabel: selectedTarifa?.descripcion_tarifa ?? "",
+                  });
+                  navigate(`/facturacion/tarifario/gestion/${gestion}?${params.toString()}`);
+                }}
+              >
+                Ir a gestionar
+              </PrimaryButton>
             </div>
           </div>
 
-          {/* Contenedor 3 */}
-          <div className="flex-1 min-h-0 rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 flex flex-col">
-            <div className="text-sm font-semibold text-(--color-text-primary)">
-              ¿Hacia qué tarifa desea clonar?
-            </div>
+          {/* ===================== CONTENEDOR 3: Clonación (panel como Buscar servicios en Atención) ===================== */}
+          <div className="flex flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:flex-1 lg:p-3">
+            <h2 className="text-sm font-semibold text-(--color-text-primary)">Clonación de tarifario</h2>
+            <p className="mt-1 text-xs text-(--color-text-secondary)">
+              Elija tarifa destino. «Clonar todo» o marque en el árbol y «Clonar selección».
+            </p>
 
             <div className="mt-3 flex flex-col gap-3">
               <SelectMenu
@@ -444,40 +396,27 @@ export default function TarifarioPage() {
                 onChange={(v) => vm.setCloneTarifaId(v ? Number(v) : null)}
                 options={cloneTarifaOptions}
                 ariaLabel="Tarifa destino"
-                buttonClassName="w-full"
+                buttonClassName={`w-full ${inputBase}`}
                 menuClassName="min-w-full"
               />
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="h-10 px-4 rounded-xl text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-                  onClick={vm.onCloneAll}
-                >
+                <PrimaryButton onClick={vm.onCloneAll}>
                   Clonar todo
-                </button>
-                <button
-                  type="button"
-                  className="h-10 px-4 rounded-xl text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                </PrimaryButton>
+                <SecondaryButton
                   onClick={vm.onCloneSelected}
                   disabled={!vm.canCloneSelected}
+                  title={!vm.canCloneSelected ? "Marque categorías, subcategorías o servicios en el árbol" : undefined}
                 >
                   Clonar selección
-                </button>
-                <button
-                  type="button"
-                  className="h-10 px-4 rounded-xl text-sm font-medium bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-                  onClick={vm.clearSelection}
-                >
+                </SecondaryButton>
+                <SecondaryButton onClick={vm.clearSelection}>
                   Limpiar selección
-                </button>
+                </SecondaryButton>
               </div>
             </div>
 
-            <div className="mt-4 text-sm font-semibold text-(--color-text-primary)">
-              Clonación de tarifario
-            </div>
-
-            <div className="mt-3 flex-1 min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
+            <div className="mt-4 overflow-auto app-scrollbar app-scrollbar-no-gutter lg:min-h-0 lg:flex-1">
               {vm.baseTreeLoading ? (
                 <div className="text-sm text-(--color-text-secondary)">Cargando árbol base…</div>
               ) : vm.baseTree ? (

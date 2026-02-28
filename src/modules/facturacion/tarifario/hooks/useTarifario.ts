@@ -17,6 +17,9 @@ import {
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../shared/api/apiError";
 
+/** Cache del árbol base para mostrar al instante al volver a Tarifario (revalidación en segundo plano). */
+let baseTreeCache: TarifaBaseTree | null = null;
+
 function isApiError(e: unknown): e is ApiError {
   if (!e || typeof e !== "object") return false;
   const x = e as Record<string, unknown>;
@@ -53,20 +56,16 @@ export function useTarifario() {
   const [perPage, setPerPage] = useState(25);
   const [statusFilter, setStatusFilter] = useState<"ALL" | RecordStatus>("ALL");
 
-  const [codigo, setCodigo] = useState("");
-  const [nomenclador, setNomenclador] = useState("");
-
-  const codigoDebounced = useDebouncedValue(codigo, 350);
-  const codigoNormalized = useMemo(
-    () => normalizeCodigoQuery(codigoDebounced),
-    [codigoDebounced]
-  );
-  const nomencladorDebounced = useDebouncedValue(nomenclador, 350);
+  /** Búsqueda unificada: código, descripción o nomenclador (un solo campo, backend con q). */
+  const [q, setQ] = useState("");
+  const qDebounced = useDebouncedValue(q, 300);
+  const qNormalized = useMemo(() => normalizeCodigoQuery(qDebounced), [qDebounced]);
+  const requestIdRef = useRef(0);
 
   const [selected, setSelected] = useState<TarifaServicioListItem | null>(null);
 
-  const [baseTree, setBaseTree] = useState<TarifaBaseTree | null>(null);
-  const [baseTreeLoading, setBaseTreeLoading] = useState(false);
+  const [baseTree, setBaseTree] = useState<TarifaBaseTree | null>(() => baseTreeCache);
+  const [baseTreeLoading, setBaseTreeLoading] = useState(() => !baseTreeCache);
 
   const [selectedCategorias, setSelectedCategorias] = useState<Set<number>>(new Set());
   const [selectedSubcategorias, setSelectedSubcategorias] = useState<Set<number>>(new Set());
@@ -145,18 +144,18 @@ export function useTarifario() {
   const refresh = useCallback(
     async (next?: { page?: number; silent?: boolean }) => {
       if (!tarifaId) return;
+      const requestId = ++requestIdRef.current;
       setLoading(true);
-      if (!next?.silent) {
-        setNotice(null);
-      }
+      if (!next?.silent) setNotice(null);
+      const searchQ = qNormalized.trim() || undefined;
       try {
         const res = await listTarifaServicios(tarifaId, {
           page: next?.page ?? page,
           per_page: perPage,
-          codigo: codigoNormalized.trim() ? codigoNormalized.trim() : undefined,
-          nomenclador: nomencladorDebounced.trim() ? nomencladorDebounced.trim() : undefined,
+          q: searchQ,
           status: statusFilter === "ALL" ? undefined : statusFilter,
         });
+        if (requestId !== requestIdRef.current) return;
         setData(res);
         if (res.data.length === 0) {
           setSelected(null);
@@ -165,46 +164,37 @@ export function useTarifario() {
           if (!match) setSelected(null);
         }
       } catch (e) {
+        if (requestId !== requestIdRef.current) return;
         const msg = isApiError(e) ? e.message : "No se pudo cargar los servicios.";
         setNotice({ type: "error", text: msg });
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     },
-    [tarifaId, page, perPage, codigoNormalized, nomencladorDebounced, statusFilter, selected]
+    [tarifaId, page, perPage, qNormalized, statusFilter, selected]
   );
 
-  const prevFiltersRef = useRef<{ codigo: string; nomenclador: string; status: string; perPage: number } | null>(null);
+  const prevFiltersRef = useRef<{ q: string; status: string; perPage: number } | null>(null);
   useEffect(() => {
     const prev = prevFiltersRef.current;
-    const next = {
-      codigo: codigoNormalized,
-      nomenclador: nomencladorDebounced,
-      status: statusFilter,
-      perPage,
-    };
+    const next = { q: qNormalized, status: statusFilter, perPage };
     const filtersChanged =
-      !prev ||
-      prev.codigo !== next.codigo ||
-      prev.nomenclador !== next.nomenclador ||
-      prev.status !== next.status ||
-      prev.perPage !== next.perPage;
+      !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
     prevFiltersRef.current = next;
-
     if (filtersChanged && page !== 1) {
       setPage(1);
       return;
     }
-
     void refresh();
-  }, [page, refresh, codigoNormalized, nomencladorDebounced, statusFilter, perPage]);
+  }, [page, refresh, qNormalized, statusFilter, perPage]);
 
   useEffect(() => {
     let alive = true;
-    setBaseTreeLoading(true);
+    if (!baseTreeCache) setBaseTreeLoading(true);
     getTarifaBaseTree()
       .then((payload) => {
         if (!alive) return;
+        baseTreeCache = payload;
         setBaseTree(payload);
       })
       .catch((e) => {
@@ -458,10 +448,8 @@ export function useTarifario() {
     setPerPage,
     statusFilter,
     setStatusFilter,
-    codigo,
-    setCodigo,
-    nomenclador,
-    setNomenclador,
+    q,
+    setQ,
     selected,
     setSelected,
     baseTree,

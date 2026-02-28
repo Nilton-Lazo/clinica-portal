@@ -4,6 +4,7 @@ import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMe
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 import { useAuth } from "../../../../../shared/auth/useAuth";
 import { api } from "../../../../../shared/api";
+import { useToast } from "../../../../../shared/feedback";
 import { getAtencionCitaData, getIgvPorcentaje, guardarAtencionCita } from "../services/atencionCita.service";
 import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
 import type {
@@ -14,7 +15,7 @@ import type {
   AtencionServicioLinea,
   AtencionServicioLineaDisplay,
 } from "../types/atencionCita.types";
-import { toApiError } from "../../../../../shared/api/apiError";
+import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import { ServiciosSolicitadosSection } from "../components/ServiciosSolicitadosSection";
 
@@ -93,6 +94,7 @@ export default function AtencionCitaPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const toast = useToast();
   const id = citaId ? parseInt(citaId, 10) : NaN;
 
   const [data, setData] = React.useState<AtencionCitaData | null>(null);
@@ -132,6 +134,7 @@ export default function AtencionCitaPage() {
 
   const DRAFT_STORAGE_KEY_PREFIX = "admision:atencionCitaDraft:";
   const loadRunIdRef = React.useRef(0);
+  const atencionDataCacheRef = React.useRef<Record<number, AtencionCitaData>>({});
 
   const clearDraftForCita = React.useCallback((citaId: number) => {
     if (typeof window === "undefined") return;
@@ -148,34 +151,45 @@ export default function AtencionCitaPage() {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    const cached = atencionDataCacheRef.current[id];
+    const applyRes = (res: AtencionCitaData) => {
+      setData(res);
+      setParentescoSeguro(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
+      setTitularNombre(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
+      setAcudio(Boolean(res.atencion?.hora_asistencia));
+      setHoraAsistenciaDisplay(res.atencion?.hora_asistencia?.slice(0, 5) ?? "");
+      const planId =
+        res.atencion?.paciente_plan_id ??
+        (res.planes.find((p) => p.iafa_id != null && p.iafa_id === res.cita.iafa_id)?.id ?? res.planes[0]?.id ?? null);
+      setPacientePlanId(planId);
+      setLastSavedPlanId(planId);
+      setLastSavedParentesco(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
+      setLastSavedTitular(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
+      setControlPrePostNatal(Boolean(res.atencion?.control_pre_post_natal));
+      setControlNinoSano(Boolean(res.atencion?.control_nino_sano));
+      setChequeo(Boolean(res.atencion?.chequeo));
+      setCarencia(Boolean(res.atencion?.carencia));
+      setLatencia(Boolean(res.atencion?.latencia));
+      setSoatActivo(Boolean(res.atencion?.soat_activo));
+      setSoatNumeroPoliza(res.atencion?.soat_numero_poliza ?? "");
+      setSoatNumeroPlaca(res.atencion?.soat_numero_placa ?? "");
+      setLineas((res.servicios ?? []).map(mapServicioToDisplay));
+    };
+    if (cached) {
+      applyRes(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const thisRunId = ++loadRunIdRef.current;
     const draftStorageKey = `${DRAFT_STORAGE_KEY_PREFIX}${id}`;
     getAtencionCitaData(id)
       .then((res) => {
         if (thisRunId !== loadRunIdRef.current) return;
-        setData(res);
-        setParentescoSeguro(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
-        setTitularNombre(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
-        setAcudio(Boolean(res.atencion?.hora_asistencia));
-        setHoraAsistenciaDisplay(res.atencion?.hora_asistencia?.slice(0, 5) ?? "");
-        const planId =
-          res.atencion?.paciente_plan_id ??
-          (res.planes.find((p) => p.iafa_id != null && p.iafa_id === res.cita.iafa_id)?.id ?? res.planes[0]?.id ?? null);
-        setPacientePlanId(planId);
-        setLastSavedPlanId(planId);
-        setLastSavedParentesco(res.paciente.parentesco_seguro ?? res.atencion?.parentesco_seguro ?? "");
-        setLastSavedTitular(res.paciente.titular_nombre ?? res.atencion?.titular_nombre ?? "");
-        setControlPrePostNatal(Boolean(res.atencion?.control_pre_post_natal));
-        setControlNinoSano(Boolean(res.atencion?.control_nino_sano));
-        setChequeo(Boolean(res.atencion?.chequeo));
-        setCarencia(Boolean(res.atencion?.carencia));
-        setLatencia(Boolean(res.atencion?.latencia));
-        setSoatActivo(Boolean(res.atencion?.soat_activo));
-        setSoatNumeroPoliza(res.atencion?.soat_numero_poliza ?? "");
-        setSoatNumeroPlaca(res.atencion?.soat_numero_placa ?? "");
-        setLineas((res.servicios ?? []).map(mapServicioToDisplay));
+        atencionDataCacheRef.current[id] = res;
+        applyRes(res);
 
         if (typeof window !== "undefined") {
           const raw = window.sessionStorage.getItem(draftStorageKey);
@@ -204,13 +218,13 @@ export default function AtencionCitaPage() {
       })
       .catch((e) => {
         if (thisRunId !== loadRunIdRef.current) return;
-        const err = toApiError(e);
-        setError(err.message);
+        setError(toUserFriendlyMessage(e, "No se pudo cargar la atención de la cita."));
+        toast.error(toUserFriendlyMessage(e, "No se pudo cargar la atención de la cita."));
       })
       .finally(() => {
         if (thisRunId === loadRunIdRef.current) setLoading(false);
       });
-  }, [id]);
+  }, [id, toast]);
 
   const planOptions: SelectOption[] = React.useMemo(() => {
     if (!data?.planes?.length) return [{ value: "", label: "Seleccione el plan" }];
@@ -285,6 +299,63 @@ export default function AtencionCitaPage() {
 
   const serviciosSectionRef = React.useRef<HTMLDivElement | null>(null);
   const processedServiciosRef = React.useRef<string | null>(null);
+
+  const onServiciosSelected = React.useCallback(
+    (servicios: TarifaServicioBusqueda[]) => {
+      if (!servicios.length || !data) return;
+      const existingIds = new Set(lineas.map((l) => l.tarifa_servicio_id));
+      const toAdd = servicios.filter((s) => !existingIds.has(s.id));
+      const duplicateCount = servicios.length - toAdd.length;
+      if (duplicateCount > 0) {
+        const msg =
+          duplicateCount === 1
+            ? "1 servicio ya está en la lista."
+            : `${duplicateCount} servicios ya están en la lista.`;
+        toast.warning(msg);
+      }
+      if (!toAdd.length) return;
+      const medicoId = data.programacion?.medico?.id ?? 0;
+      const medicoNombre = formatMedico(data.programacion?.medico ?? null);
+      const medicoOpt = medicosOptions.find((o) => o.value === String(medicoId));
+      const labelMedico = medicoOpt?.label ?? "";
+      const codigoMedico = labelMedico.includes(" · ") ? labelMedico.split(" · ")[0]?.trim() ?? "" : labelMedico.split(/\s+/)[0] ?? "";
+      getIgvPorcentaje().then((igvPct) => {
+        const nuevas: AtencionServicioLineaDisplay[] = toAdd.map((s) => {
+          const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
+          const recargoNoche = Boolean(s.recargo_noche_activo);
+          const aumentoPct = recargoNoche ? (s.recargo_noche_porcentaje ?? 0) : 0;
+          const { precioSinIgv, precioConIgv } = calcularPrecios(precioBase, 1, 0, aumentoPct, igvPct);
+          const esCat50 = (String(s.categoria_codigo ?? "").trim() === "50");
+          return {
+            tarifa_servicio_id: s.id,
+            servicio_codigo: s.codigo ?? "",
+            servicio_descripcion: s.descripcion ?? "",
+            categoria_codigo: s.categoria_codigo ?? null,
+            desea_liberar_precio: s.desea_liberar_precio ?? false,
+            cop_var: esCat50 ? 0 : copVarDefault,
+            cop_fijo: 0,
+            descuento_pct: 0,
+            aumento_pct: aumentoPct,
+            cantidad: 1,
+            precio_sin_igv: precioSinIgv,
+            precio_con_igv: precioConIgv,
+            precio_unitario_tarifario_sin_igv: precioSinIgv,
+            medico_id: medicoId,
+            medico_codigo: codigoMedico || medicoNombre,
+            user_username: user?.username ?? "",
+            user_nombre: userNombreCompleto(user),
+            estado_facturacion: "PENDIENTE",
+            recargo_noche_activo: recargoNoche,
+          };
+        });
+        setLineas((prev) => [...prev, ...nuevas]);
+        requestAnimationFrame(() => {
+          serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
+    },
+    [data, medicosOptions, user, copVarDefault, lineas, toast]
+  );
 
   React.useEffect(() => {
     const st = (location.state ?? {}) as {
@@ -479,11 +550,11 @@ export default function AtencionCitaPage() {
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(id)) return;
     if (!acudio) {
-      setError("Debe marcar la casilla «Hora de atención» para guardar la atención.");
+      toast.error("Debe marcar la casilla «Hora de atención» para guardar la atención.");
       return;
     }
     if (lineas.length === 0) {
-      setError("Debe haber al menos un servicio en la tabla Servicios finales para guardar la atención.");
+      toast.error("Debe haber al menos un servicio en la tabla Servicios finales para guardar la atención.");
       return;
     }
     setSavingState("guardar");
@@ -521,17 +592,17 @@ export default function AtencionCitaPage() {
       const res = await guardarAtencionCita(id, payload);
       actualizarGuardado(res);
       clearDraftForCita(id);
+      toast.success("Atención guardada correctamente.");
       navigate("/admision/citas/agenda", {
         replace: true,
         state: { returnFromAtencion: true, citaId: id },
       });
     } catch (e) {
-      const err = toApiError(e);
-      setError(err.message);
+      toast.error(toUserFriendlyMessage(e, "No se pudo guardar la atención."));
     } finally {
       setSavingState(null);
     }
-  }, [id, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita]);
+  }, [id, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita, toast]);
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!Number.isFinite(id) || !hasPendingDataChanges) return;
@@ -575,14 +646,14 @@ export default function AtencionCitaPage() {
       actualizarGuardado(res);
       if (planChanged) setLineas([]);
       clearDraftForCita(id);
+      toast.success("Datos actualizados.");
     } catch (e) {
-      const err = toApiError(e);
-      setError(err.message);
+      toast.error(toUserFriendlyMessage(e, "No se pudieron actualizar los datos."));
       throw e;
     } finally {
       setSavingState(null);
     }
-  }, [id, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita]);
+  }, [id, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita, toast]);
 
   const pendingChangesMessage = React.useMemo(() => {
     const partes: string[] = [];
@@ -595,8 +666,9 @@ export default function AtencionCitaPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-8">
-        <span className="text-sm text-(--color-text-secondary)">Cargando atención de cita…</span>
+      <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-8">
+        <div className="h-8 w-8 shrink-0 rounded-full border-2 border-(--color-primary) border-t-transparent animate-spin" aria-hidden />
+        <span className="text-sm font-medium text-(--color-text-secondary)">Cargando atención de cita…</span>
       </div>
     );
   }
@@ -631,32 +703,38 @@ export default function AtencionCitaPage() {
               <input
                 value={nroCuenta || "—"}
                 readOnly
-                className="min-w-0 flex-1 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-base font-semibold tabular-nums text-(--color-text-primary) outline-none sm:w-48 sm:flex-none"
+                className="min-w-0 flex-1 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-base font-semibold tabular-nums text-(--color-text-primary) outline-none sm:w-48 sm:flex-none"
               />
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <SecondaryButton onClick={onRegresar}>Regresar</SecondaryButton>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Acciones de la atención">
+          <SecondaryButton onClick={onRegresar} title="Volver a la agenda (los cambios no guardados se pierden)">
+            Regresar
+          </SecondaryButton>
           <SecondaryButton
             onClick={() => {
+              if (hasPendingDataChanges) toast.info("Cambios descartados.");
               setPacientePlanId(lastSavedPlanId);
               setParentescoSeguro(lastSavedParentesco);
               setTitularNombre(lastSavedTitular);
             }}
             disabled={saving || !hasPendingDataChanges}
+            title="Descartar cambios en plan, parentesco y titular (restaurar últimos guardados)"
           >
             Cancelar
           </SecondaryButton>
-          <PrimaryButton
+          <SecondaryButton
             onClick={onActualizarDatos}
             disabled={saving || !hasPendingDataChanges}
+            title="Guardar solo los datos del paciente en el servidor (plan, parentesco, titular)"
           >
             {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
-          </PrimaryButton>
+          </SecondaryButton>
           <PrimaryButton
             onClick={onGuardar}
             disabled={saving || !canGuardarAtencion}
+            title="Guardar la atención completa (asistencia, servicios y montos)"
           >
             {savingState === "guardar" ? "Guardando…" : "Guardar atención"}
           </PrimaryButton>
@@ -674,7 +752,7 @@ export default function AtencionCitaPage() {
               <input
                 value={fechaDisplay}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -682,7 +760,7 @@ export default function AtencionCitaPage() {
               <input
                 value={cita.hora ?? "—"}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -690,7 +768,7 @@ export default function AtencionCitaPage() {
               <input
                 value={String(cita.orden)}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -710,7 +788,7 @@ export default function AtencionCitaPage() {
                 value={acudio ? horaAsistenciaDisplay : ""}
                 readOnly
                 placeholder=""
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm tabular-nums text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm tabular-nums text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
           </div>
@@ -725,7 +803,7 @@ export default function AtencionCitaPage() {
               <input
                 value={programacion?.especialidad?.descripcion ?? "—"}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -733,7 +811,7 @@ export default function AtencionCitaPage() {
               <input
                 value={formatMedico(programacion?.medico ?? null)}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -741,7 +819,7 @@ export default function AtencionCitaPage() {
               <input
                 value={paciente.numero_documento ?? paciente.nr ?? "—"}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -749,7 +827,7 @@ export default function AtencionCitaPage() {
               <input
                 value={programacion?.consultorio ? `${programacion.consultorio.abreviatura} · ${programacion.consultorio.descripcion}` : "—"}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -757,7 +835,7 @@ export default function AtencionCitaPage() {
               <input
                 value={tarifaActual ?? "—"}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -765,7 +843,7 @@ export default function AtencionCitaPage() {
               <input
                 value={paciente.nr ?? "—"}
                 readOnly
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
               />
             </div>
           </div>
@@ -784,7 +862,7 @@ export default function AtencionCitaPage() {
                 onChange={(v) => setPacientePlanId(v ? Number(v) : null)}
                 options={planOptions}
                 ariaLabel="Plan"
-                buttonClassName="w-full lg:h-8 lg:rounded-lg"
+                buttonClassName="w-full lg:h-8 lg:rounded"
                 menuClassName="min-w-full"
               />
             </div>
@@ -797,7 +875,7 @@ export default function AtencionCitaPage() {
                 onChange={setParentescoSeguro}
                 options={[{ value: "", label: "Seleccione condición" }, ...PARENTESCO_OPTIONS]}
                 ariaLabel="Parentesco seguro"
-                buttonClassName="w-full lg:h-8 lg:rounded-lg"
+                buttonClassName="w-full lg:h-8 lg:rounded"
                 menuClassName="min-w-full"
               />
             </div>
@@ -808,7 +886,7 @@ export default function AtencionCitaPage() {
               value={titularNombre}
               onChange={(e) => setTitularNombre(e.target.value)}
               readOnly={parentescoSeguro.trim().toUpperCase() === "TITULAR"}
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-70 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) disabled:opacity-70 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8"
             />
           </div>
           <div>
@@ -816,7 +894,7 @@ export default function AtencionCitaPage() {
             <input
               value={cita.autorizacion_siteds ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
           <div>
@@ -824,7 +902,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.apellidos_nombres}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
           <div>
@@ -832,7 +910,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.sexo ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
           <div>
@@ -840,7 +918,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.edad != null ? String(paciente.edad) : "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
           <div>
@@ -848,7 +926,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.celular ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
           <div className="sm:col-span-2">
@@ -856,7 +934,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.email ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
           <div className="sm:col-span-2">
@@ -864,7 +942,7 @@ export default function AtencionCitaPage() {
             <input
               value={paciente.telefono ?? "—"}
               readOnly
-              className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none lg:mt-0.5 lg:h-8 lg:rounded-lg"
+              className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) lg:mt-0.5 lg:h-8"
             />
           </div>
         </div>
@@ -957,7 +1035,7 @@ export default function AtencionCitaPage() {
                 value={soatNumeroPoliza}
                 onChange={(e) => setSoatNumeroPoliza(e.target.value)}
                 disabled={soatDeshabilitado || !soatActivo}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8"
               />
             </div>
             <div>
@@ -966,7 +1044,7 @@ export default function AtencionCitaPage() {
                 value={soatNumeroPlaca}
                 onChange={(e) => setSoatNumeroPlaca(e.target.value)}
                 disabled={soatDeshabilitado || !soatActivo}
-                className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8 lg:rounded-lg"
+                className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) disabled:opacity-60 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8"
               />
             </div>
           </div>
@@ -995,6 +1073,7 @@ export default function AtencionCitaPage() {
           copVarDefault={copVarDefault}
           onCopVarDefaultChange={setCopVarDefault}
           getAtencionDraft={getAtencionDraft}
+          onServiciosSelected={onServiciosSelected}
         />
       </div>
     </div>

@@ -27,10 +27,12 @@ export default function HistoriaClinicaTable(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  /** En modo picker se muestran solo columnas esenciales (sin scroll horizontal). */
+  pickerMode?: boolean;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
+  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast, pickerMode } = props;
 
-  const columns: DataTableColumn<PacienteListItem>[] = [
+  const columnsFull: DataTableColumn<PacienteListItem>[] = [
     {
       key: "hc",
       header: "N° Historia",
@@ -99,6 +101,15 @@ export default function HistoriaClinicaTable(props: {
       ),
     },
   ];
+
+  const columnsPicker: DataTableColumn<PacienteListItem>[] = [
+    { key: "hc", header: "N° Historia", headerClassName: "text-center w-36", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => x.hc || "—" },
+    { key: "nombre_completo", header: "Apellidos y Nombres", headerClassName: "text-left min-w-0", cellClassName: "px-3 py-2", render: (x) => (x.nombre_completo?.trim() ? x.nombre_completo : "—") },
+    { key: "condicion", header: "Condición", headerClassName: "text-center w-36", cellClassName: "px-3 py-2 text-center", render: (x) => labelize(x.parentesco_seguro) },
+    { key: "estado", header: "Estado", headerClassName: "text-center w-32", cellClassName: "px-3 py-2 text-center", render: (x) => <div className="flex justify-center"><StatusBadge status={x.estado} /></div> },
+  ];
+
+  const columns = pickerMode ? columnsPicker : columnsFull;
 
   return (
     <div className="hidden min-h-0 flex-1 flex-col lg:flex">

@@ -30,11 +30,12 @@ export function DataTable<T>(props: {
   loading: boolean;
   selectedId: string | number | null;
   getRowId: (row: T) => string | number;
-  onSelect: (row: T) => void;
+  onSelect: (row: T, e?: React.MouseEvent) => void;
   onDoubleClick?: (row: T) => void;
+  onContextMenu?: (row: T, e: React.MouseEvent) => void;
   emptyText?: string;
 }) {
-  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, emptyText } = props;
+  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, onContextMenu, emptyText } = props;
 
   const showOverlay = loading;
   const showEmptyRow = !loading && rows.length === 0;
@@ -78,8 +79,12 @@ export function DataTable<T>(props: {
                 return (
                   <tr
                     key={String(id)}
-                    onClick={() => onSelect(row)}
+                    onClick={(e) => onSelect(row, e)}
                     onDoubleClick={() => onDoubleClick?.(row)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      onContextMenu?.(row, e);
+                    }}
                     className={[
                       "cursor-pointer border-t border-(--border-color-default)",
                       "transition-colors",

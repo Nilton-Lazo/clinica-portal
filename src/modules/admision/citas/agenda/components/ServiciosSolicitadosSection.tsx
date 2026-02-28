@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { ServicioPicker } from "./ServicioPicker";
+import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton, DangerButton } from "../../../../../shared/ui/buttons";
 import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
@@ -110,6 +112,8 @@ export type ServiciosSolicitadosSectionProps = {
   onCopVarDefaultChange?: (value: number) => void;
   /** Devuelve el draft del formulario de atención para preservar al ir a Buscar servicios. */
   getAtencionDraft?: () => AtencionDraft | null;
+  /** Callback al elegir servicios desde el panel (evita navegar a la página de búsqueda). */
+  onServiciosSelected?: (servicios: TarifaServicioBusqueda[]) => void;
 };
 
 export function ServiciosSolicitadosSection({
@@ -128,12 +132,26 @@ export function ServiciosSolicitadosSection({
   copVarDefault = 0,
   onCopVarDefaultChange,
   getAtencionDraft,
+  onServiciosSelected,
 }: ServiciosSolicitadosSectionProps) {
   const navigate = useNavigate();
   const [igvPct, setIgvPct] = React.useState(18);
+  const [servicioPickerOpen, setServicioPickerOpen] = React.useState(false);
   const [selectedLineaIdx, setSelectedLineaIdx] = React.useState<number | null>(null);
   const [confirmActualizarOpen, setConfirmActualizarOpen] = React.useState(false);
   const [actualizando, setActualizando] = React.useState(false);
+
+  const [isLgUp, setIsLgUp] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLgUp(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
   const [precioSinIgvEditing, setPrecioSinIgvEditing] = React.useState<{ idx: number; value: string } | null>(null);
   const [copFijoEditing, setCopFijoEditing] = React.useState<{ idx: number; value: string } | null>(null);
@@ -171,13 +189,19 @@ export function ServiciosSolicitadosSection({
     });
   }, [navigate, citaId, tarifaId, tarifaDescripcion, tarifaEsPrecioDirecto, lineas, getAtencionDraft, copVarDefault]);
 
+  const openServicioPicker = React.useCallback(() => {
+    setServicioPickerOpen(true);
+  }, []);
+
   const handleBuscarServicio = React.useCallback(() => {
     if (hasPendingDataChanges && onActualizarDatos && pendingChangesMessage) {
       setConfirmActualizarOpen(true);
+    } else if (onServiciosSelected) {
+      openServicioPicker();
     } else {
       doNavigateBuscar();
     }
-  }, [hasPendingDataChanges, onActualizarDatos, pendingChangesMessage, doNavigateBuscar]);
+  }, [hasPendingDataChanges, onActualizarDatos, pendingChangesMessage, onServiciosSelected, openServicioPicker, doNavigateBuscar]);
 
   const actualizandoRef = React.useRef(false);
   const onConfirmActualizar = React.useCallback(async () => {
@@ -187,14 +211,15 @@ export function ServiciosSolicitadosSection({
     try {
       await onActualizarDatos();
       setConfirmActualizarOpen(false);
-      doNavigateBuscar();
+      if (onServiciosSelected) openServicioPicker();
+      else doNavigateBuscar();
     } catch {
       // Error ya manejado en el padre
     } finally {
       actualizandoRef.current = false;
       setActualizando(false);
     }
-  }, [onActualizarDatos, doNavigateBuscar]);
+  }, [onActualizarDatos, onServiciosSelected, openServicioPicker, doNavigateBuscar]);
 
   React.useEffect(() => {
     getIgvPorcentaje().then(setIgvPct).catch(() => {});
@@ -329,7 +354,7 @@ export function ServiciosSolicitadosSection({
             value={(x.cop_var ?? 0) === 0 ? "" : String(x.cop_var)}
             onChange={(e) => updateLinea(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
             onClick={(ev) => ev.stopPropagation()}
-            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+            className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
           />
         );
       },
@@ -384,7 +409,7 @@ export function ServiciosSolicitadosSection({
                 setCopFijoEditing(null);
               }}
               onClick={(ev) => ev.stopPropagation()}
-              className="h-7 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+              className="h-7 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
             />
           </div>
         );
@@ -425,7 +450,7 @@ export function ServiciosSolicitadosSection({
           value={Math.max(1, Math.floor(Number(x.cantidad) || 1))}
           onChange={(e) => updateLinea(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
           onClick={(ev) => ev.stopPropagation()}
-          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-1 focus:ring-(--color-primary)"
+          className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
         />
       ),
     },
@@ -461,7 +486,7 @@ export function ServiciosSolicitadosSection({
                 setPrecioSinIgvEditing(null);
               }}
               onClick={(ev) => ev.stopPropagation()}
-              className="min-w-14 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 py-0.5 text-right text-xs tabular-nums outline-none focus:ring-1 focus:ring-(--color-primary)"
+              className="min-w-14 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 py-0.5 text-right text-xs tabular-nums outline-none focus:ring-0 focus:border-(--color-primary)"
             />
           </div>
         ) : (
@@ -558,7 +583,7 @@ export function ServiciosSolicitadosSection({
   const selectedUsuarioNombre = selectedLinea?.user_nombre ?? null;
 
   return (
-    <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4">
       <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios solicitados</h2>
 
       <div className="mt-3 flex flex-col gap-3">
@@ -586,7 +611,7 @@ export function ServiciosSolicitadosSection({
                 }}
                 options={medicoOptionsForLinea}
                 ariaLabel="Médico"
-                buttonClassName="h-8 rounded-lg w-full"
+                buttonClassName="h-8 rounded w-full"
                 menuClassName="w-[280px] min-w-[280px]"
               />
             </div>
@@ -600,7 +625,7 @@ export function ServiciosSolicitadosSection({
             )}
             {medicoChangedMessage != null && (
               <div
-                className="min-w-0 flex-1 basis-full sm:basis-auto sm:flex-initial rounded-xl border border-(--color-primary) bg-(--color-primary)/10 px-3 py-2 text-sm text-(--color-text-primary)"
+                className="min-w-0 flex-1 basis-full sm:basis-auto sm:flex-initial rounded border border-(--color-primary) bg-(--color-primary)/10 px-3 py-2 text-sm text-(--color-text-primary)"
                 role="status"
                 aria-live="polite"
               >
@@ -631,11 +656,18 @@ export function ServiciosSolicitadosSection({
                         const raw = e.target.value.replace(/,/g, ".");
                         const v = parseFloat(raw);
                         if (raw.trim() === "" || (Number.isFinite(v) && v >= 0 && v <= 100)) {
-                          onCopVarDefaultChange?.(raw.trim() === "" ? 0 : v);
+                          const newVal = raw.trim() === "" ? 0 : v;
+                          onCopVarDefaultChange?.(newVal);
+                          // Aplicar el mismo valor a todos los servicios que usan copago variable (ayuda al usuario; cada uno sigue siendo editable).
+                          const nextLineas = lineas.map((l) => {
+                            if ((l.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO) return l;
+                            return { ...l, cop_var: newVal };
+                          });
+                          onLineasChange(nextLineas);
                         }
                       }}
-                      className="h-7 w-16 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
-                      title="Se aplica automáticamente a los nuevos servicios que usan copago variable (todas las categorías excepto Consultas Médicas)"
+                      className="h-7 w-16 rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
+                      title="Copago variable por defecto. Al cambiar, se aplica a todos los servicios; puede editar cada uno después."
                     />
                     <span className="text-xs text-(--color-text-secondary)">%</span>
                   </div>
@@ -660,7 +692,7 @@ export function ServiciosSolicitadosSection({
                   onChange={setEstadoFacturacionFilter}
                   options={estadoFacturacionOptions}
                   ariaLabel="Filtrar por estado"
-                  buttonClassName="h-8 rounded-lg min-w-[120px]"
+                  buttonClassName="h-8 rounded min-w-[120px]"
                   menuClassName="min-w-[120px]"
                 />
               </div>
@@ -679,7 +711,7 @@ export function ServiciosSolicitadosSection({
           </div>
           <div className="lg:hidden">
             {finalRows.length === 0 ? (
-              <div className="rounded-2xl border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
+              <div className="rounded border border-(--border-color-default) p-4 text-sm text-(--color-text-secondary)">
                 No hay servicios. Use «Buscar servicio» para agregar.
               </div>
             ) : (
@@ -688,7 +720,7 @@ export function ServiciosSolicitadosSection({
                     <div
                       key={item.id ?? `f-${item._idx}`}
                       onClick={() => setSelectedLineaIdx(item._idx)}
-                      className={`rounded-2xl border border-(--border-color-default) p-4 ${
+                      className={`rounded border border-(--border-color-default) p-4 ${
                         selectedLineaIdx === item._idx ? "bg-(--color-surface-hover)" : "bg-(--color-surface)"
                       }`}
                     >
@@ -728,7 +760,7 @@ export function ServiciosSolicitadosSection({
                                 value={(item.cop_var ?? 0) === 0 ? "" : String(item.cop_var)}
                                 onChange={(e) => updateLinea(item._idx, { cop_var: parseFloat(e.target.value) || 0 })}
                                 onClick={(ev) => ev.stopPropagation()}
-                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
                               />
                             )}
                           </div>
@@ -769,7 +801,7 @@ export function ServiciosSolicitadosSection({
                                     setCopFijoEditing(null);
                                   }}
                                   onClick={(ev) => ev.stopPropagation()}
-                                  className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                  className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
                                 />
                               );
                             })()}
@@ -795,7 +827,7 @@ export function ServiciosSolicitadosSection({
                               value={Math.max(1, Math.floor(Number(item.cantidad) || 1))}
                               onChange={(e) => updateLinea(item._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                               onClick={(ev) => ev.stopPropagation()}
-                              className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-2 focus:ring-(--color-primary)"
+                              className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
                             />
                           </div>
                           <div className="flex flex-col gap-1">
@@ -821,7 +853,7 @@ export function ServiciosSolicitadosSection({
                                   setPrecioSinIgvEditing(null);
                                 }}
                                 onClick={(ev) => ev.stopPropagation()}
-                                className="h-9 w-full rounded-lg border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-right outline-none focus:ring-2 focus:ring-(--color-primary)"
+                                className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-right outline-none focus:ring-0 focus:border-(--color-primary)"
                               />
                             ) : (
                               <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
@@ -850,14 +882,14 @@ export function ServiciosSolicitadosSection({
             {!tarifaEsPrecioDirecto && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar aseguradora S/.</span>
-                <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
+                <span className="min-w-28 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
                   {formatDecimalDisplay(reporteConIgv.totalPagoAseguradora)}
                 </span>
               </div>
             )}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar paciente S/.</span>
-              <span className="min-w-28 rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
+              <span className="min-w-28 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
                 {formatDecimalDisplay(montoAPagarComputed)}
               </span>
             </div>
@@ -866,12 +898,13 @@ export function ServiciosSolicitadosSection({
           {/* Detalle para reporte: desplegable; solo para tarifarios con copago. Todo con IGV. */}
           {!tarifaEsPrecioDirecto && finalRows.length > 0 && (
             <div className="mt-4 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => setReporteExpandido((e) => !e)}
-                className="flex items-center justify-center gap-2 rounded-xl border border-(--border-color-default) bg-(--color-surface) py-2.5 px-3 text-sm font-medium text-(--color-text-primary) transition-colors hover:bg-(--color-surface-hover)"
-                aria-expanded={reporteExpandido}
-              >
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setReporteExpandido((e) => !e)}
+                  className="inline-flex items-center justify-center gap-2 rounded border border-(--border-color-default) bg-(--color-surface) py-2.5 px-3 text-sm font-medium text-(--color-text-primary) transition-colors hover:bg-(--color-surface-hover)"
+                  aria-expanded={reporteExpandido}
+                >
                 {reporteExpandido ? (
                   <>
                     <ChevronUp className="h-4 w-4 shrink-0" />
@@ -883,7 +916,8 @@ export function ServiciosSolicitadosSection({
                     Ver detalle para reporte
                   </>
                 )}
-              </button>
+                </button>
+              </div>
               {reporteExpandido && (() => {
                 const hasDescuento = finalRows.some((r) => (r.descuento_pct ?? 0) > 0);
                 const hasAumento = finalRows.some((r) => (r.aumento_pct ?? 0) > 0);
@@ -914,7 +948,7 @@ export function ServiciosSolicitadosSection({
                 const { filas, totalCopVar, totalCopFijo, totalPagoAsegu } = reporteConIgv;
                 return (
                   <div ref={reporteSectionRef} className="flex flex-col gap-2">
-                    <div className="hidden lg:block rounded-2xl border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
+                    <div className="hidden lg:block rounded border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
                       <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
                         <table className="w-full text-sm min-w-[700px]">
                           <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">
@@ -953,7 +987,7 @@ export function ServiciosSolicitadosSection({
                                 </tr>
                               );
                             })}
-                            <tr className="border-t-2 border-(--color-primary) bg-(--color-surface) font-semibold">
+                            <tr className="border-t border-(--color-primary) bg-(--color-surface) font-semibold">
                               <td className={`${tdBase} text-right text-(--color-text-primary)`} colSpan={5 + (hasDescuento ? 1 : 0) + (hasAumento ? 1 : 0)}>Total</td>
                               <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(totalCopVar)}</td>
                               <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(totalCopFijo)}</td>
@@ -969,7 +1003,7 @@ export function ServiciosSolicitadosSection({
                         const row = filas[i];
                         if (!row) return null;
                         return (
-                          <div key={item.id ?? `resumen-m-${i}`} className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+                          <div key={item.id ?? `resumen-m-${i}`} className="rounded border border-(--border-color-default) bg-(--color-surface) p-4">
                             <div className="flex flex-col gap-2 text-sm">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold tabular-nums text-(--color-primary)">{item.servicio_codigo ?? "—"}</span>
@@ -994,7 +1028,7 @@ export function ServiciosSolicitadosSection({
                           </div>
                         );
                       })}
-                      <div className="rounded-2xl border-t-2 border-(--color-primary) bg-(--color-surface) p-4 font-semibold text-sm">
+                      <div className="rounded border-t border-(--color-primary) bg-(--color-surface) p-4 font-semibold text-sm">
                         <div className="grid grid-cols-[1fr_minmax(8rem,1fr)] gap-x-4 gap-y-1 text-(--color-text-secondary)">
                           <span className="text-(--color-text-primary)">Total</span>
                           <span />
@@ -1023,6 +1057,21 @@ export function ServiciosSolicitadosSection({
           )}
         </div>
       </div>
+
+      {onServiciosSelected && (
+        <ServicioPicker
+          open={servicioPickerOpen}
+          variant={isLgUp ? "drawer" : "fullscreen"}
+          onClose={() => setServicioPickerOpen(false)}
+          onSelect={(selected) => {
+            onServiciosSelected(selected);
+            setServicioPickerOpen(false);
+          }}
+          tarifaId={tarifaId}
+          tarifaDescripcion={tarifaDescripcion ?? undefined}
+          igvPct={igvPct}
+        />
+      )}
     </div>
   );
 }

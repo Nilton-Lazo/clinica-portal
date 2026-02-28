@@ -2,7 +2,27 @@ import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
+import { useToast } from "../../../../../shared/feedback";
 import { useAgendaMedicaContext } from "../hooks/AgendaMedicaContext";
+import PacientePicker from "../components/PacientePicker";
+import type { PacienteListItem } from "../../../historia-clinica/types/historiaClinica.types";
+
+function useIsLgUp(): boolean {
+  const [isLgUp, setIsLgUp] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  React.useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => setIsLgUp(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+
+  return isLgUp;
+}
 
 function formatMedicoLabel(m?: { nombres: string; apellido_paterno: string; apellido_materno: string } | null): string {
   if (!m) return "";
@@ -13,7 +33,11 @@ export default function AgendaMedicaNuevaCitaPage() {
   const vm = useAgendaMedicaContext();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const toast = useToast();
   const initRef = React.useRef(false);
+  const isLgUp = useIsLgUp();
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [hasUserChanges, setHasUserChanges] = React.useState(false);
 
   React.useEffect(() => {
     if (initRef.current) return;
@@ -38,13 +62,8 @@ export default function AgendaMedicaNuevaCitaPage() {
 
   const onBuscarPaciente = React.useCallback(() => {
     vm.saveDraft();
-    const params = new URLSearchParams();
-    if (vm.selectedDateStr) params.set("fecha", vm.selectedDateStr);
-    if (vm.especialidadId) params.set("especialidad_id", String(vm.especialidadId));
-    if (vm.medicoId) params.set("medico_id", String(vm.medicoId));
-    if (vm.hora) params.set("hora", vm.hora);
-    navigate(`/admision/citas/agenda/pacientes?${params.toString()}`);
-  }, [navigate, vm]);
+    setPickerOpen(true);
+  }, [vm]);
 
   const summaryServicio = vm.programacion?.especialidad
     ? `${vm.programacion.especialidad.codigo} · ${vm.programacion.especialidad.descripcion}`
@@ -78,33 +97,33 @@ export default function AgendaMedicaNuevaCitaPage() {
     : "";
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 lg:gap-2">
+    <div className="flex w-full min-w-0 flex-col gap-4 lg:h-full lg:max-h-full lg:shrink-0 lg:overflow-hidden lg:gap-2">
       {!vm.slotsLoading && vm.selectedDateStr && vm.especialidadId && vm.medicoId && !vm.programacion ? (
         <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 text-sm text-(--color-text-secondary)">
           No hay programación disponible para la fecha, servicio y médico seleccionados.
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-2">
-        <div className="min-w-0">
-          <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-stretch lg:gap-2 lg:min-h-0 lg:flex-1">
+        <div className="min-w-0 lg:h-full lg:min-h-0">
+          <div className="flex h-full flex-col rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-(--color-text-primary)">Datos de la cita</div>
+                <div className="text-sm font-semibold text-(--color-text-primary)">Agendar cita</div>
                 <div className="text-xs text-(--color-text-secondary)">
-                  Completa la información para generar la cita.
+                  Completa los datos y selecciona el paciente para generar la cita.
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4">
+            <div className="mt-4 grid flex-1 grid-cols-1 gap-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm text-(--color-text-primary)">Fecha</label>
                   <input
                     value={fechaDisplay}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
                 <div>
@@ -114,7 +133,10 @@ export default function AgendaMedicaNuevaCitaPage() {
                       <SelectMenu
                         key={`hora-${vm.availableHoras.join(",")}`}
                         value={vm.hora}
-                        onChange={(v) => vm.onPickHora(v ?? "")}
+                        onChange={(v) => {
+                        vm.onPickHora(v ?? "");
+                        setHasUserChanges(true);
+                      }}
                         options={vm.availableHoras.map((h) => ({ value: h, label: h }))}
                         ariaLabel="Hora"
                         buttonClassName="w-full"
@@ -149,7 +171,7 @@ export default function AgendaMedicaNuevaCitaPage() {
                   <input
                     value={vm.orden ? String(vm.orden) : ""}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
                 <div>
@@ -157,66 +179,79 @@ export default function AgendaMedicaNuevaCitaPage() {
                   <input
                     value={summaryConsultorio}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm text-(--color-text-primary)">Médico</label>
-                <input
-                  value={summaryMedico}
-                  readOnly
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-(--color-text-primary)">Servicio</label>
-                <input
-                  value={summaryServicio}
-                  readOnly
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-(--color-text-primary)">Motivo de atención</label>
-                <div className="mt-1">
-                  <SelectMenu
-                    value={vm.motivo}
-                    onChange={(v) => vm.setMotivo(v ?? "")}
-                    options={motivoOptions}
-                    ariaLabel="Motivo"
-                    buttonClassName="w-full"
-                    menuClassName="min-w-full"
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Médico</label>
+                  <input
+                    value={summaryMedico}
+                    readOnly
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
-              </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Servicio</label>
+                  <input
+                    value={summaryServicio}
+                    readOnly
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
+                  />
+                </div>
+              </div>                 
+              
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Motivo de atención</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.motivo}
+                      onChange={(v) => {
+                      vm.setMotivo(v ?? "");
+                      setHasUserChanges(true);
+                    }}
+                      options={motivoOptions}
+                      ariaLabel="Motivo"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">N° Autorización SITEDS</label>
+                  <input
+                    value={vm.autorizacion}
+                    onChange={(e) => {
+                    vm.setAutorizacion(e.target.value);
+                    setHasUserChanges(true);
+                  }}
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
+                  />
+                </div>
+              </div>             
 
               <div>
                 <label className="text-sm text-(--color-text-primary)">Observación</label>
                 <textarea
                   value={vm.observacion}
-                  onChange={(e) => vm.setObservacion(e.target.value)}
-                  className="mt-1 min-h-[96px] w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-(--color-text-primary)">N° Autorización SITEDS</label>
-                <input
-                  value={vm.autorizacion}
-                  onChange={(e) => vm.setAutorizacion(e.target.value)}
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  onChange={(e) => {
+                  vm.setObservacion(e.target.value);
+                  setHasUserChanges(true);
+                }}
+                  className="mt-1 min-h-[96px] w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="min-w-0">
-          <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div className="min-w-0 lg:h-full lg:min-h-0">
+          <div className="flex h-full flex-col rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-(--color-text-primary)">Datos del paciente</div>
@@ -224,16 +259,18 @@ export default function AgendaMedicaNuevaCitaPage() {
                   Selecciona un paciente para completar los datos.
                 </div>
               </div>
-              <PrimaryButton onClick={onBuscarPaciente}>Buscar paciente</PrimaryButton>
+              <PrimaryButton onClick={onBuscarPaciente}>
+                {vm.paciente ? "Cambiar paciente" : "Buscar paciente"}
+              </PrimaryButton>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4">
+            <div className="mt-4 grid flex-1 grid-cols-1 gap-4">
               <div>
                 <label className="text-sm text-(--color-text-primary)">Apellidos y nombres</label>
                 <input
                   value={vm.paciente?.nombre_completo ?? ""}
                   readOnly
-                  className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                  className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                 />
               </div>
 
@@ -243,7 +280,7 @@ export default function AgendaMedicaNuevaCitaPage() {
                   <input
                     value={vm.paciente?.hc ?? ""}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
                 <div>
@@ -251,18 +288,18 @@ export default function AgendaMedicaNuevaCitaPage() {
                   <input
                     value={vm.paciente?.nr ?? ""}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm text-(--color-text-primary)">Sexo</label>
                   <input
                     value={vm.paciente?.sexo ?? ""}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
                 <div>
@@ -270,59 +307,92 @@ export default function AgendaMedicaNuevaCitaPage() {
                   <input
                     value={vm.paciente?.edad != null ? String(vm.paciente.edad) : ""}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm text-(--color-text-primary)">Titular</label>
                   <input
                     value={vm.paciente?.titular_nombre ?? ""}
                     readOnly
-                    className="mt-1 h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)"
+                    className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                   />
+                </div>
+
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">IAFA</label>
+                  <div className="mt-1">
+                    <SelectMenu
+                      value={vm.iafaId ? String(vm.iafaId) : ""}
+                      onChange={(v) => {
+                      vm.setIafaId(v ? Number(v) : null);
+                      setHasUserChanges(true);
+                    }}
+                      options={iafaOptions}
+                      ariaLabel="IAFA"
+                      buttonClassName="w-full"
+                      menuClassName="min-w-full"
+                      disabled={iafaOptions.length === 0}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm text-(--color-text-primary)">IAFA</label>
-                <div className="mt-1">
-                  <SelectMenu
-                    value={vm.iafaId ? String(vm.iafaId) : ""}
-                    onChange={(v) => vm.setIafaId(v ? Number(v) : null)}
-                    options={iafaOptions}
-                    ariaLabel="IAFA"
-                    buttonClassName="w-full"
-                    menuClassName="min-w-full"
-                    disabled={iafaOptions.length === 0}
-                  />
-                </div>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <SecondaryButton
+                  onClick={() => {
+                    vm.clearDraft();
+                    navigate("/admision/citas/agenda");
+                  }}
+                >
+                  Volver
+                </SecondaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    vm.clearDraft();
+                    setHasUserChanges(false);
+                    toast.info("Cambios descartados.");
+                  }}
+                  disabled={!hasUserChanges}
+                >
+                  Cancelar
+                </SecondaryButton>
+                <PrimaryButton
+                  onClick={async () => {
+                    const ok = await vm.onAgendar();
+                    if (ok) {
+                      navigate("/admision/citas/agenda");
+                    }
+                  }}
+                  disabled={disableAgendar}
+                >
+                  Agendar cita
+                </PrimaryButton>
               </div>
             </div>
           </div>
-
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <SecondaryButton
-              onClick={() => {
-                vm.clearDraft();
-                navigate("/admision/citas/agenda");
-              }}
-            >
-              Volver
-            </SecondaryButton>
-            <SecondaryButton onClick={vm.clearDraft}>Cancelar</SecondaryButton>
-            <PrimaryButton
-              onClick={async () => {
-                const ok = await vm.onAgendar();
-                if (ok) {
-                  navigate("/admision/citas/agenda");
-                }
-              }}
-              disabled={disableAgendar}
-            >
-              Agendar cita
-            </PrimaryButton>
-          </div>
         </div>
+
+        <PacientePicker
+          open={pickerOpen}
+          variant={isLgUp ? "drawer" : "fullscreen"}
+          onClose={() => setPickerOpen(false)}
+          onPicked={async (p: PacienteListItem) => {
+            await vm.onSelectPaciente(p.id);
+            setPickerOpen(false);
+            setHasUserChanges(true);
+          }}
+          title="Seleccionar paciente"
+          showRegisterButton
+          onRegister={() => navigate("/admision/historia-clinica/nuevo/datos-generales")}
+          onOpenHistoriaClinica={() => {
+            setPickerOpen(false);
+            navigate("/admision/historia-clinica");
+          }}
+        />
       </div>
     </div>
   );

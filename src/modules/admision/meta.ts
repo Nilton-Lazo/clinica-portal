@@ -52,13 +52,13 @@ export const admisionMeta: Record<string, RouteMeta> = {
         ],
     },
     "/admision/citas/agenda/nueva": {
-        title: "Agenda medica",
-        subtitle: "Generar cita.",
+        title: "Agendar cita",
+        subtitle: "Completa los datos y selecciona el paciente para generar la cita.",
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
             { label: "Agenda médica", path: "/admision/citas/agenda" },
-            { label: "Generar cita" },
+            { label: "Agendar cita" },
         ],
     },
     "/admision/citas/agenda/:citaId/atencion": {

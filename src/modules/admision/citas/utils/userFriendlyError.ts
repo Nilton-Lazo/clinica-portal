@@ -25,6 +25,18 @@ const FIELD_LABELS: Record<string, string> = {
   paciente_id: "Paciente",
   iafa_id: "IAFA",
   estado_atencion: "Estado de atención",
+  agenda_cita_id: "Cita",
+  paciente_plan_id: "Plan del paciente",
+  parentesco_seguro: "Condición",
+  titular_nombre: "Titular",
+  hora_asistencia: "Hora de atención",
+  nro_cuenta: "N° de cuenta",
+  tarifa_id: "Tarifa",
+  servicios: "Servicios",
+  monto_a_pagar: "Monto a pagar",
+  soat_activo: "SOAT",
+  soat_numero_poliza: "N° de póliza SOAT",
+  soat_numero_placa: "N° de placa SOAT",
 };
 
 function getFieldLabel(field: string): string {

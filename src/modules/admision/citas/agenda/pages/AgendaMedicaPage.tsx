@@ -232,6 +232,10 @@ export default function AgendaMedicaPage() {
                       vm.setSelectedCita(row);
                       vm.setConfirmEliminarOpen(true);
                     }}
+                    onRequestEliminar={(row) => {
+                      vm.setSelectedCita(row);
+                      vm.setConfirmEliminarOpen(true);
+                    }}
                   />
                   <AgendaMedicaMobileList
                   data={vm.data}

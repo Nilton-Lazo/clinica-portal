@@ -1,3 +1,5 @@
+import * as React from "react";
+import { createPortal } from "react-dom";
 import type { AgendaCita, AgendaCitasPaginated, CitaAtencionEstado } from "../types/agendaMedica.types";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
@@ -14,8 +16,43 @@ export default function AgendaMedicaTable(props: {
   selectedId: number | null;
   onSelect: (row: AgendaCita) => void;
   onDoubleClick?: (row: AgendaCita) => void;
+  onRequestEliminar?: (row: AgendaCita) => void;
 }) {
-  const { data, loading, onPrev, onNext, onFirst, onLast, selectedId, onSelect, onDoubleClick } = props;
+  const { data, loading, onPrev, onNext, onFirst, onLast, selectedId, onSelect, onDoubleClick, onRequestEliminar } = props;
+  const [contextMenu, setContextMenu] = React.useState<{ row: AgendaCita; x: number; y: number } | null>(null);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  const handleContextMenu = React.useCallback(
+    (row: AgendaCita, e: React.MouseEvent) => {
+      e.preventDefault();
+      if (onRequestEliminar) setContextMenu({ row, x: e.clientX, y: e.clientY });
+    },
+    [onRequestEliminar]
+  );
+
+  React.useEffect(() => {
+    if (!contextMenu) return;
+    const close = (e?: MouseEvent) => {
+      if (e && menuRef.current?.contains(e.target as Node)) return;
+      setContextMenu(null);
+    };
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") setContextMenu(null);
+    };
+    window.addEventListener("click", close, true);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", close, true);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [contextMenu]);
+
+  const handleEliminar = React.useCallback(() => {
+    if (contextMenu && onRequestEliminar) {
+      onRequestEliminar(contextMenu.row);
+      setContextMenu(null);
+    }
+  }, [contextMenu, onRequestEliminar]);
 
   const formatHora = (value?: string | null) => {
     if (!value) return "—";
@@ -130,8 +167,29 @@ export default function AgendaMedicaTable(props: {
         selectedId={selectedId}
         onSelect={onSelect}
         onDoubleClick={onDoubleClick}
+        onContextMenu={onRequestEliminar ? handleContextMenu : undefined}
       />
       <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
+      {contextMenu
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className="fixed z-50 min-w-[120px] rounded-lg border border-(--border-color-default) bg-(--color-surface) py-1 shadow-lg"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+              role="menu"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="mx-1 w-[calc(100%-0.5rem)] rounded-md px-3 py-1.5 text-left text-xs font-medium text-(--color-danger) transition-colors hover:bg-(--color-surface-hover) focus:bg-(--color-surface-hover) focus:outline-none"
+                onClick={handleEliminar}
+              >
+                Eliminar
+              </button>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
