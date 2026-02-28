@@ -355,17 +355,17 @@ export default function TarifarioPage() {
         <section className="flex flex-col gap-4 lg:min-h-0 lg:gap-2 lg:overflow-hidden">
           <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
             <h2 className="text-sm font-semibold text-(--color-text-primary)">Gestionar</h2>
-            <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-2">
+            <div className="mt-3 flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-2">
               <SelectMenu
                 value={gestion}
                 onChange={setGestion}
                 options={gestionOptions}
                 ariaLabel="Seleccionar opción de gestión"
-                buttonClassName={`w-full lg:w-auto lg:min-w-[180px] ${inputBase}`}
+                buttonClassName={`w-full ${inputBase}`}
                 menuClassName="min-w-full"
               />
               <PrimaryButton
-                className="w-full lg:w-auto lg:shrink-0"
+                className="w-full"
                 onClick={() => {
                   if (!vm.tarifaId) {
                     toast.error("Selecciona una tarifa primero.");
@@ -399,18 +399,19 @@ export default function TarifarioPage() {
                 buttonClassName={`w-full ${inputBase}`}
                 menuClassName="min-w-full"
               />
-              <div className="flex flex-wrap gap-2">
-                <PrimaryButton onClick={vm.onCloneAll}>
+              <div className="grid grid-cols-3 gap-2">
+                <PrimaryButton className="w-full min-w-0" onClick={vm.onCloneAll}>
                   Clonar todo
                 </PrimaryButton>
                 <SecondaryButton
+                  className="w-full min-w-0"
                   onClick={vm.onCloneSelected}
                   disabled={!vm.canCloneSelected}
                   title={!vm.canCloneSelected ? "Marque categorías, subcategorías o servicios en el árbol" : undefined}
                 >
                   Clonar selección
                 </SecondaryButton>
-                <SecondaryButton onClick={vm.clearSelection}>
+                <SecondaryButton className="w-full min-w-0" onClick={vm.clearSelection}>
                   Limpiar selección
                 </SecondaryButton>
               </div>

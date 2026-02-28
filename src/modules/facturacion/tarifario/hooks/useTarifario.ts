@@ -20,6 +20,9 @@ import type { ApiError } from "../../../../shared/api/apiError";
 /** Cache del árbol base para mostrar al instante al volver a Tarifario (revalidación en segundo plano). */
 let baseTreeCache: TarifaBaseTree | null = null;
 
+/** Cache de lista de tarifas para mostrar al instante al entrar o volver a Tarifario. */
+let tarifasCache: TarifaOperativa[] | null = null;
+
 function isApiError(e: unknown): e is ApiError {
   if (!e || typeof e !== "object") return false;
   const x = e as Record<string, unknown>;
@@ -37,7 +40,7 @@ function normalizeCodigoQuery(raw: string): string {
 }
 
 export function useTarifario() {
-  const [tarifas, setTarifas] = useState<TarifaOperativa[]>([]);
+  const [tarifas, setTarifas] = useState<TarifaOperativa[]>(() => tarifasCache ?? []);
   const [tarifasLoading, setTarifasLoading] = useState(false);
 
   const [tarifaId, setTarifaId] = useState<number | null>(null);
@@ -119,10 +122,11 @@ export function useTarifario() {
 
   useEffect(() => {
     let alive = true;
-    setTarifasLoading(true);
+    if (!tarifasCache) setTarifasLoading(true);
     listTarifasParaGestionTarifario()
       .then((items) => {
         if (!alive) return;
+        tarifasCache = items;
         setTarifas(items);
       })
       .catch((e) => {
@@ -138,7 +142,7 @@ export function useTarifario() {
     return () => {
       alive = false;
     };
-  }, [tarifaId]);
+  }, []);
 
 
   const refresh = useCallback(
