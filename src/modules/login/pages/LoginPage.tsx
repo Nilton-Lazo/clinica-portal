@@ -19,6 +19,7 @@ type FieldErrors = {
 
 type LocationState = {
   from?: { pathname?: string; search?: string; hash?: string };
+  sessionExpiredCode?: string;
 };
 
 function buildReturnTo(from: LocationState["from"]): string | null {
@@ -49,14 +50,17 @@ export default function LoginPage() {
       return;
     }
 
+    const codeFromState = state?.sessionExpiredCode;
     const last = sessionEvents.consumeLastUnauthorized();
-    if (
-      last?.code === "SESSION_EXPIRED_IDLE" ||
-      last?.code === "SESSION_EXPIRED_ABSOLUTE"
-    ) {
-      setFormError("Tu sesión expiró. Por favor, vuelve a iniciar sesión.");
+    const code = codeFromState ?? last?.code;
+    if (code === "SESSION_EXPIRED_IDLE") {
+      setFormError("Tu sesión expiró por inactividad. Por favor, vuelve a iniciar sesión.");
+      return;
     }
-  }, [user, navigate]);
+    if (code === "SESSION_EXPIRED_ABSOLUTE") {
+      setFormError("Tu sesión alcanzó el tiempo máximo de seguridad (8h). Vuelve a iniciar sesión.");
+    }
+  }, [user, navigate, state?.sessionExpiredCode]);
 
   function validate(): boolean {
     const errors: FieldErrors = {};

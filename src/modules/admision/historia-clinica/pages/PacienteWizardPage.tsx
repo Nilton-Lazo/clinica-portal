@@ -19,7 +19,7 @@ import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
 
@@ -118,7 +118,6 @@ function WizardInner({
   loadingPaciente: boolean;
 }) {
   const navigate = useNavigate();
-  const toast = useToast();
   const { state, actions, derived } = usePacienteWizard();
 
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
@@ -176,13 +175,13 @@ function WizardInner({
       const nextDraft = mapPacienteToDraft(saved);
       actions.markSaved({ ...nextDraft, contacto_emergencia: { ...nextDraft.contacto_emergencia } });
 
-      toast.success("Paciente guardado correctamente.");
+      toastService.showSuccess("Paciente guardado correctamente.");
 
       if (!((state.draft as unknown as { id?: unknown })?.id)) {
         navigate(`/admision/historia-clinica/${saved.id}/datos-generales`, { replace: true });
       }
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo."));
     } finally {
       actions.markSaving(false);
     }
@@ -218,7 +217,7 @@ function WizardInner({
                 <SecondaryButton
                   onClick={() => {
                     actions.resetDraft();
-                    toast.info("Cambios descartados.");
+                    toastService.showInfo("Cambios descartados.");
                   }}
                   disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
                   className="w-full sm:w-auto"

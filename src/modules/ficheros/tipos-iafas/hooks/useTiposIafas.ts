@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PaginatedResponse, RecordStatus, TipoIafa, TiposIafasQuery } from "../../types/tiposIafas.types";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 import type { ApiError } from "../../../../shared/api/apiError";
 import {
   createTipoIafa,
@@ -28,7 +28,6 @@ function isApiError(e: unknown): e is ApiError {
 }
 
 export function useTiposIafas() {
-  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<TipoIafa>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -128,8 +127,7 @@ export function useTiposIafas() {
     setDescripcion(o.descripcion);
     setEstado(o.estado);
     setNotice(null);
-    toast.success("Cambios cancelados.");
-  }, [mode, resetToNew, selected, toast]);
+  }, [mode, resetToNew, selected]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -152,6 +150,7 @@ export function useTiposIafas() {
       } catch (e) {
         const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
         setNotice({ type: "error", text: msg });
+        toastService.showError(msg);
       } finally {
         setLoading(false);
       }
@@ -183,16 +182,19 @@ export function useTiposIafas() {
 
     if (!isValid) {
       setNotice({ type: "error", text: "Datos inválidos." });
+      toastService.showError("Datos inválidos.");
       return;
     }
 
     if (mode === "edit" && !selected) {
       setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      toastService.showError("Selecciona un registro para editar.");
       return;
     }
 
     if (!isDirty) {
       setNotice({ type: "error", text: "No hay cambios para guardar." });
+      toastService.showError("No hay cambios para guardar.");
       return;
     }
 
@@ -205,6 +207,7 @@ export function useTiposIafas() {
       if (mode === "new") {
         const res = await createTipoIafa({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Tipo de IAFAS creado." });
+        toastService.showSuccess("Tipo de IAFAS creado.");
 
         setPage(1);
         await refresh({ page: 1 });
@@ -215,12 +218,14 @@ export function useTiposIafas() {
 
       const res = await updateTipoIafa(selected!.id, { ...payloadBase, estado });
       setNotice({ type: "success", text: "Cambios guardados." });
+      toastService.showSuccess("Cambios guardados.");
 
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }
@@ -229,6 +234,7 @@ export function useTiposIafas() {
   const requestDeactivate = useCallback(() => {
     if (!selected) {
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -239,6 +245,7 @@ export function useTiposIafas() {
     if (!selected) {
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
 
@@ -247,6 +254,7 @@ export function useTiposIafas() {
       const res = await deactivateTipoIafa(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Tipo de IAFAS desactivado." });
+      toastService.showSuccess("Tipo de IAFAS desactivado.");
 
       await refresh();
       loadForEdit(res.data);
@@ -254,6 +262,7 @@ export function useTiposIafas() {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }

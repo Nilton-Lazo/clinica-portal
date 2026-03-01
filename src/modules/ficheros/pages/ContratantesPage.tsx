@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useContratantes } from "../contratantes/hooks/useContratantes";
-import { useNoticeToToast } from "../utils/crudShared";
 import ContratantesToolbar from "../contratantes/components/ContratantesToolbar";
 import ContratantesTable from "../contratantes/components/ContratantesTable";
 import ContratantesMobileList from "../contratantes/components/ContratantesMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function ContratantesPage() {
   const title = "Contratantes";
   const vm = useContratantes();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

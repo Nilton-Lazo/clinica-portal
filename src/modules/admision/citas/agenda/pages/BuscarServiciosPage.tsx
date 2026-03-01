@@ -76,16 +76,14 @@ export default function BuscarServiciosPage() {
   const { citaId } = useParams<"citaId">();
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state ?? {}) as LocationState;
+  const navState = React.useMemo(() => (location.state ?? {}) as LocationState, [location.state]);
 
-  const tarifaId = state.tarifaId ?? null;
-  const tarifaDescripcion = state.tarifaDescripcion ?? "—";
+  const tarifaId = navState.tarifaId ?? null;
+  const tarifaDescripcion = navState.tarifaDescripcion ?? "—";
 
   const [data, setData] = React.useState<TarifaServicioBusqueda[]>([]);
   const [meta, setMeta] = React.useState<TarifaServiciosBusquedaMeta | null>(null);
   const [loading, setLoading] = React.useState(false);
-  /** Tarifa precio directo. Fuente: meta (API) o state (navegación). */
-  const tarifaEsPrecioDirecto = meta?.tarifa_es_precio_directo ?? state.tarifaEsPrecioDirecto ?? false;
   const [q, setQ] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(50);
@@ -154,50 +152,47 @@ export default function BuscarServiciosPage() {
   }, [qDebounced]);
 
   const handleRegresar = React.useCallback(() => {
-    const st = state as LocationState;
     navigate(`/admision/citas/agenda/${citaId}/atencion`, {
       replace: true,
       state: {
-        returnLineas: st.returnLineas,
-        atencionDraft: st.atencionDraft,
+        returnLineas: navState.returnLineas,
+        atencionDraft: navState.atencionDraft,
         scrollToServicios: true,
       },
     });
-  }, [navigate, citaId, state]);
+  }, [navigate, citaId, navState]);
 
   const handleDoubleClick = React.useCallback(
     (row: TarifaServicioBusqueda) => {
       if (multiSelect) return;
-      const st = state as LocationState;
       navigate(`/admision/citas/agenda/${citaId}/atencion`, {
         replace: true,
         state: {
           selectedServicios: [row],
-          returnLineas: st.returnLineas,
-          atencionDraft: st.atencionDraft,
-          copVarDefault: st.copVarDefault,
+          returnLineas: navState.returnLineas,
+          atencionDraft: navState.atencionDraft,
+          copVarDefault: navState.copVarDefault,
           scrollToServicios: true,
         },
       });
     },
-    [navigate, citaId, multiSelect, state]
+    [navigate, citaId, multiSelect, navState]
   );
 
   const handleAgregarSeleccionados = React.useCallback(() => {
     if (selectedItems.size === 0) return;
     const selected = Array.from(selectedItems.values());
-    const st = state as LocationState;
     navigate(`/admision/citas/agenda/${citaId}/atencion`, {
       replace: true,
       state: {
         selectedServicios: selected,
-        returnLineas: st.returnLineas,
-        atencionDraft: st.atencionDraft,
-        copVarDefault: st.copVarDefault,
+        returnLineas: navState.returnLineas,
+        atencionDraft: navState.atencionDraft,
+        copVarDefault: navState.copVarDefault,
         scrollToServicios: true,
       },
     });
-  }, [navigate, citaId, selectedItems, state]);
+  }, [navigate, citaId, selectedItems, navState]);
 
   const toggleSelect = React.useCallback((row: TarifaServicioBusqueda) => {
     setSelectedItems((prev) => {

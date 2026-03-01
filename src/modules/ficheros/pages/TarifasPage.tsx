@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useTarifas } from "../tarifas/hooks/useTarifas";
-import { useNoticeToToast } from "../utils/crudShared";
 import TarifasToolbar from "../tarifas/components/TarifasToolbar";
 import TarifasTable from "../tarifas/components/TarifasTable";
 import TarifasMobileList from "../tarifas/components/TarifasMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function TarifasPage() {
   const title = "Tarifas";
   const vm = useTarifas();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

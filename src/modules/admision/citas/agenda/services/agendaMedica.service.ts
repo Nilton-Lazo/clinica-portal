@@ -4,7 +4,10 @@ import type {
   AgendaCitaPayload,
   AgendaCitasPaginated,
   AgendaCitasQuery,
+  AgendaEspecialidadOption,
+  AgendaMedicoOption,
   AgendaOpciones,
+  AgendaProgramacion,
   AgendaSlotsResponse,
   PacienteAgenda,
 } from "../types/agendaMedica.types";

@@ -8,7 +8,7 @@ import {
   updateContratante,
 } from "../../services/contratantes.service";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -39,7 +39,6 @@ function isRuc11OrEmpty(s: string): boolean {
 }
 
 export function useContratantes() {
-  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Contratante>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -172,8 +171,7 @@ export function useContratantes() {
     setEstado(o.estado);
 
     setNotice(null);
-    toast.success("Cambios cancelados.");
-  }, [mode, resetToNew, selected, toast]);
+  }, [mode, resetToNew, selected]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -196,6 +194,7 @@ export function useContratantes() {
       } catch (e) {
         const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
         setNotice({ type: "error", text: msg });
+        toastService.showError(msg);
       } finally {
         setLoading(false);
       }
@@ -225,16 +224,19 @@ export function useContratantes() {
 
     if (!isValid) {
       setNotice({ type: "error", text: "Datos inválidos." });
+      toastService.showError("Datos inválidos.");
       return;
     }
 
     if (mode === "edit" && !selected) {
       setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      toastService.showError("Selecciona un registro para editar.");
       return;
     }
 
     if (!isDirty) {
       setNotice({ type: "error", text: "No hay cambios para guardar." });
+      toastService.showError("No hay cambios para guardar.");
       return;
     }
 
@@ -250,6 +252,7 @@ export function useContratantes() {
       if (mode === "new") {
         const res = await createContratante({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Contratante creado." });
+        toastService.showSuccess("Contratante creado.");
 
         setPage(1);
         await refresh({ page: 1 });
@@ -260,12 +263,14 @@ export function useContratantes() {
 
       const res = await updateContratante(selected!.id, { ...payloadBase, estado });
       setNotice({ type: "success", text: "Cambios guardados." });
+      toastService.showSuccess("Cambios guardados.");
 
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }
@@ -274,6 +279,7 @@ export function useContratantes() {
   const requestDeactivate = useCallback(() => {
     if (!selected) {
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -284,6 +290,7 @@ export function useContratantes() {
     if (!selected) {
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
 
@@ -292,6 +299,7 @@ export function useContratantes() {
       const res = await deactivateContratante(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Contratante desactivado." });
+      toastService.showSuccess("Contratante desactivado.");
 
       await refresh();
       loadForEdit(res.data);
@@ -299,6 +307,7 @@ export function useContratantes() {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }

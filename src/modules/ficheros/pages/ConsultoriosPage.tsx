@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useConsultorios } from "../consultorios/hooks/useConsultorios";
-import { useNoticeToToast } from "../utils/crudShared";
 import ConsultoriosToolbar from "../consultorios/components/ConsultoriosToolbar";
 import ConsultoriosTable from "../consultorios/components/ConsultoriosTable";
 import ConsultoriosMobileList from "../consultorios/components/ConsultoriosMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function ConsultoriosPage() {
   const title = "Consultorios";
   const vm = useConsultorios();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

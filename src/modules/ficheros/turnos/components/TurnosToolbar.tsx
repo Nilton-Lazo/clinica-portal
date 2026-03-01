@@ -1,4 +1,3 @@
-import * as React from "react";
 import type { RecordStatus } from "../../types/turnos.types";
 import type { StatusFilter } from "../hooks/useTurnos";
 import { SelectMenu } from "../../../../shared/ui/SelectMenu";

@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useIafas } from "../iafas/hooks/useIafas";
-import { useNoticeToToast } from "../utils/crudShared";
 import IafasToolbar from "../iafas/components/IafasToolbar";
 import IafasTable from "../iafas/components/IafasTable";
 import IafasMobileList from "../iafas/components/IafasMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function IafasPage() {
   const title = "IAFAS";
   const vm = useIafas();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

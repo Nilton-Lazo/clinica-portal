@@ -24,6 +24,14 @@ import type { AgendaInitData } from "../services/agendaMedica.service";
 import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import { useToast } from "../../../../../shared/feedback";
 
+type AgendaCitasPaginator = {
+  data?: AgendaCita[];
+  current_page?: number;
+  per_page?: number;
+  total?: number;
+  last_page?: number;
+};
+
 function ymd(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -50,8 +58,6 @@ export function useAgendaMedica() {
   const opcionesCacheRef = React.useRef<Record<string, AgendaMedicoOption[]>>({});
   /** Cache de init por fecha: al volver a una fecha ya visitada la carga es al instante. */
   const initDataCacheRef = React.useRef<Record<string, AgendaInitData>>({});
-  /** Número de respuestas de slots para las que NO resetear contadores (vuelta de Buscar paciente; evita que un 2.º .then por Strict Mode limpie la Hora). */
-  const preserveVisibleCountersRef = React.useRef(0);
 
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(new Date());
   const selectedDateStr = React.useMemo(() => (selectedDate ? ymd(selectedDate) : ""), [selectedDate]);
@@ -236,7 +242,7 @@ export function useAgendaMedica() {
         setSlots(d.slots);
         setProgramacion(d.programacion);
         if (d.citas?.paginator) {
-          const paginator = d.citas.paginator as any;
+          const paginator = d.citas.paginator as AgendaCitasPaginator;
           setData({
             data: paginator.data ?? [],
             meta: {
@@ -281,6 +287,7 @@ export function useAgendaMedica() {
     }
     setMedicosList([]);
     setMedicoId(null);
+    setOpcionesLoading(true);
     setMedicosLoading(true);
     getAgendaOpciones({ fecha: selectedDateStr, especialidad_id: especialidadId })
       .then((data) => {
@@ -293,7 +300,10 @@ export function useAgendaMedica() {
         setMedicosList([]);
         setMedicoId(null);
       })
-      .finally(() => setMedicosLoading(false));
+      .finally(() => {
+        setMedicosLoading(false);
+        setOpcionesLoading(false);
+      });
   }, [selectedDateStr, especialidadId, initLoading, toast]);
 
   // Cargar slots y citas cuando el médico cambia MANUALMENTE
@@ -335,7 +345,7 @@ export function useAgendaMedica() {
         toast.error(toUserFriendlyMessage(e, "No se pudieron cargar las citas."));
       })
       .finally(() => setLoading(false));
-  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, initLoading]);
+  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, initLoading, toast]);
 
   React.useEffect(() => {
     if (!initLoading) {
@@ -436,6 +446,11 @@ export function useAgendaMedica() {
     }
   }, [iafaId, toast]);
 
+  const setSelectedDateStr = React.useCallback((value: string) => {
+    const d = parseYmd(value);
+    setSelectedDate(d);
+  }, []);
+
   React.useEffect(() => {
     if (draftLoadedRef.current) return;
     draftLoadedRef.current = true;
@@ -481,7 +496,7 @@ export function useAgendaMedica() {
     } finally {
       draftReadyRef.current = true;
     }
-  }, [onSelectPaciente]);
+  }, [onSelectPaciente, setSelectedDateStr]);
 
   const onAgendar = React.useCallback(async () => {
     if (!programacion || !hora || !paciente) return false;
@@ -513,12 +528,7 @@ export function useAgendaMedica() {
       toast.error(toUserFriendlyMessage(e, "No se pudo agendar la cita."));
       return false;
     }
-  }, [programacion, hora, paciente, motivo, observacion, autorizacion, iafaId, selectedDateStr, especialidadId, medicoId, toast]);
-
-  const setSelectedDateStr = React.useCallback((value: string) => {
-    const d = parseYmd(value);
-    setSelectedDate(d);
-  }, []);
+  }, [programacion, hora, paciente, motivo, observacion, autorizacion, iafaId, toast]);
 
   const requestEliminarCita = React.useCallback(() => {
     if (!selectedCita) return;

@@ -373,7 +373,9 @@ export function useTarifario() {
       setNotice({ type: "success", text: message });
       clearSelection();
       if (tarifaId === cloneTarifaId) {
-        void refresh({ page: 1, silent: true });
+        setPage(1);
+        setSelected(null);
+        await refresh({ page: 1, silent: true });
       }
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo clonar el tarifario.";
@@ -418,7 +420,9 @@ export function useTarifario() {
       setNotice({ type: "success", text: message });
       clearSelection();
       if (tarifaId === cloneTarifaId) {
-        void refresh({ page: 1, silent: true });
+        setPage(1);
+        setSelected(null);
+        await refresh({ page: 1, silent: true });
       }
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo clonar el tarifario.";

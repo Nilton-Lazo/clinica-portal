@@ -13,7 +13,7 @@ import {
 } from "../../services/tarifas.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -64,7 +64,6 @@ function isFactorOk(v: string): boolean {
 const MSG_BASE_REQUIERE_ACTIVO = "Para cambiar a tarifario base, el tarifario seleccionado debe estar ACTIVO.";
 
 export function useTarifas() {
-  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<Tarifa>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -517,8 +516,7 @@ export function useTarifas() {
     setEstado(o.estado);
 
     setNotice(null);
-    toast.success("Cambios cancelados.");
-  }, [mode, resetToNew, selected, toast]);
+  }, [mode, resetToNew, selected]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -541,6 +539,7 @@ export function useTarifas() {
       } catch (e) {
         const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
         setNotice({ type: "error", text: msg });
+        toastService.showError(msg);
       } finally {
         setLoading(false);
       }
@@ -596,16 +595,19 @@ export function useTarifas() {
 
     if (!isValid) {
       setNotice({ type: "error", text: "Datos inválidos." });
+      toastService.showError("Datos inválidos.");
       return;
     }
 
     if (mode === "edit" && !selected) {
       setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      toastService.showError("Selecciona un registro para editar.");
       return;
     }
 
     if (!isDirty) {
       setNotice({ type: "error", text: "No hay cambios para guardar." });
+      toastService.showError("No hay cambios para guardar.");
       return;
     }
 
@@ -648,6 +650,7 @@ export function useTarifas() {
       if (mode === "new") {
         const res = await createTarifa({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Tarifa creada." });
+        toastService.showSuccess("Tarifa creada.");
 
         setPage(1);
         await refresh({ page: 1 });
@@ -658,12 +661,14 @@ export function useTarifas() {
 
       const res = await updateTarifa(selected!.id, { ...payloadBase, estado });
       setNotice({ type: "success", text: "Cambios guardados." });
+      toastService.showSuccess("Cambios guardados.");
 
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }
@@ -706,11 +711,13 @@ export function useTarifas() {
   const requestDeactivate = useCallback(() => {
     if (!selected) {
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
     if (selected.tarifa_base) {
       setNotice({ type: "error", text: "No se puede desactivar el tarifario base. Primero marca otra tarifa como base." });
+      toastService.showError("No se puede desactivar el tarifario base. Primero marca otra tarifa como base.");
       return;
     }
     setConfirmDeactivateOpen(true);
@@ -720,6 +727,7 @@ export function useTarifas() {
     if (!selected) {
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
 
@@ -728,6 +736,7 @@ export function useTarifas() {
       const res = await deactivateTarifa(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Tarifa desactivada." });
+      toastService.showSuccess("Tarifa desactivada.");
 
       await refresh();
       loadForEdit(res.data);
@@ -735,6 +744,7 @@ export function useTarifas() {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }
@@ -745,6 +755,7 @@ export function useTarifas() {
       if (mode === "edit") {
         if (!selected) {
           setNotice({ type: "error", text: "Selecciona un registro." });
+          toastService.showError("Selecciona un registro.");
           return;
         }
 
@@ -754,6 +765,7 @@ export function useTarifas() {
               type: "error",
               text: 'No se puede desmarcar el tarifario base directamente. Usa "Marcar como base" en otra tarifa.',
             });
+            toastService.showError('No se puede desmarcar el tarifario base directamente. Usa "Marcar como base" en otra tarifa.');
           }
           return;
         }
@@ -761,6 +773,7 @@ export function useTarifas() {
         if (nextChecked) {
           if (selected.estado !== "ACTIVO") {
             setNotice({ type: "error", text: MSG_BASE_REQUIERE_ACTIVO });
+            toastService.showError(MSG_BASE_REQUIERE_ACTIVO);
             return;
           }
           setConfirmSetBaseOpen(true);
@@ -792,12 +805,14 @@ export function useTarifas() {
     if (!selected) {
       setConfirmSetBaseOpen(false);
       setNotice({ type: "error", text: "Selecciona un registro." });
+      toastService.showError("Selecciona un registro.");
       return;
     }
 
     if (selected.estado !== "ACTIVO") {
       setConfirmSetBaseOpen(false);
       setNotice({ type: "error", text: MSG_BASE_REQUIERE_ACTIVO });
+      toastService.showError(MSG_BASE_REQUIERE_ACTIVO);
       return;
     }
 
@@ -806,6 +821,7 @@ export function useTarifas() {
       const res = await setBaseTarifa(selected.id);
       setConfirmSetBaseOpen(false);
       setNotice({ type: "success", text: "Tarifario base actualizado." });
+      toastService.showSuccess("Tarifario base actualizado.");
 
       await refresh();
       loadForEdit(res.data);
@@ -813,6 +829,7 @@ export function useTarifas() {
       const msg = isApiError(e) ? e.message : "No se pudo cambiar el tarifario base.";
       setConfirmSetBaseOpen(false);
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }

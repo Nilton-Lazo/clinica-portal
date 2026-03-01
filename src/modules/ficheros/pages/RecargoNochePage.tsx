@@ -1,7 +1,6 @@
 import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
-import { useNoticeToToast } from "../utils/crudShared";
 import { useRecargoNoche } from "../recargo-noche/hooks/useRecargoNoche";
 import RecargoNocheToolbar from "../recargo-noche/components/RecargoNocheToolbar";
 import RecargoNocheTable from "../recargo-noche/components/RecargoNocheTable";
@@ -30,7 +29,6 @@ const PER_PAGE = 25;
 export default function RecargoNochePage() {
   const title = "Recargo nocturno";
   const vm = useRecargoNoche();
-  useNoticeToToast(vm.notice);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
   const [page, setPage] = React.useState(1);

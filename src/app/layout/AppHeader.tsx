@@ -1,7 +1,8 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { useRouteMeta } from "../router/useRouteMeta";
-import { Bell, Settings2, UserCircle2, Menu, ChevronRight } from "lucide-react";
+import { Settings2, UserCircle2, Menu, ChevronRight } from "lucide-react";
+import { NotificationBell } from "../../shared/notifications";
 
 type Props = {
   onOpenMenu: () => void;
@@ -93,13 +94,7 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
 
         {/* ── Right: actions ── */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg hover:bg-(--color-background) transition-colors"
-            aria-label="Notificaciones"
-          >
-            <Bell className="h-5 w-5 text-(--color-primary)" strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <NotificationBell />
 
           <button
             type="button"

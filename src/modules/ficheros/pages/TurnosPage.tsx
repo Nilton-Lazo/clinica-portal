@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useTurnos } from "../turnos/hooks/useTurnos";
-import { useNoticeToToast } from "../utils/crudShared";
 import TurnosToolbar from "../turnos/components/TurnosToolbar";
 import TurnosTable from "../turnos/components/TurnosTable";
 import TurnosMobileList from "../turnos/components/TurnosMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function TurnosPage() {
   const title = "Turnos";
   const vm = useTurnos();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

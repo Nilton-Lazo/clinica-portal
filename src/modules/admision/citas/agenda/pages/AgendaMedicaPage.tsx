@@ -8,7 +8,7 @@ import AgendaMedicaTable from "../components/AgendaMedicaTable";
 import AgendaMedicaMobileList from "../components/AgendaMedicaMobileList";
 import AgendaServicioProgramadoList from "../components/AgendaServicioProgramadoList";
 import AgendaMedicoProgramadoList from "../components/AgendaMedicoProgramadoList";
-import { useAgendaMedicaContext } from "../hooks/AgendaMedicaContext";
+import { useAgendaMedicaContext } from "../hooks/useAgendaMedicaContext";
 
 const perPageOptions: SelectOption[] = [
   { value: "25", label: "25" },
@@ -37,8 +37,6 @@ export default function AgendaMedicaPage() {
   const initRef = React.useRef(false);
   const [citaIdToSelect, setCitaIdToSelect] = React.useState<number | null>(null);
   const handledReturnFromAtencionRef = React.useRef(false);
-  const vmRef = React.useRef(vm);
-  vmRef.current = vm;
 
   React.useEffect(() => {
     if (initRef.current) return;
@@ -61,18 +59,18 @@ export default function AgendaMedicaPage() {
     if (handledReturnFromAtencionRef.current) return;
     handledReturnFromAtencionRef.current = true;
     navigate(location.pathname, { replace: true, state: {} });
-    vmRef.current.refetchSlotsForNuevaCita();
+    vm.refetchSlotsForNuevaCita();
     setCitaIdToSelect(state.citaId);
-  }, [location.state, location.pathname, navigate]);
+  }, [location.state, location.pathname, navigate, vm]);
 
   React.useEffect(() => {
     if (citaIdToSelect == null || vm.data.data.length === 0) return;
     const row = vm.data.data.find((c) => c.id === citaIdToSelect);
     if (row) {
-      vmRef.current.setSelectedCita(row);
+      vm.setSelectedCita(row);
     }
     setCitaIdToSelect(null);
-  }, [citaIdToSelect, vm.data.data]);
+  }, [citaIdToSelect, vm]);
 
   const onPickDate = React.useCallback((d: Date) => {
     vm.setSelectedDate(d);
@@ -93,7 +91,7 @@ export default function AgendaMedicaPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [vm.confirmEliminarOpen, vm.selectedCita, vm.setConfirmEliminarOpen]);
+  }, [vm]);
 
   const summaryServicio = vm.programacion?.especialidad
     ? `${vm.programacion.especialidad.descripcion}`

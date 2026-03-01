@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useTiposClientes } from "../tiposClientes/hooks/useTiposClientes";
-import { useNoticeToToast } from "../utils/crudShared";
 import TiposClientesToolbar from "../tiposClientes/components/TiposClientesToolbar";
 import TiposClientesTable from "../tiposClientes/components/TiposClientesTable";
 import TiposClientesMobileList from "../tiposClientes/components/TiposClientesMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function TiposClientesPage() {
   const title = "Tipos de cliente";
   const vm = useTiposClientes();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

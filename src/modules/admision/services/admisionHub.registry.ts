@@ -5,7 +5,6 @@ import {
     Image,
     Microscope,
     Ambulance,
-    Folder,
     WalletCards,
   } from "lucide-react";
   import type { AdmisionHubItem } from "../types/admisionHub.types";

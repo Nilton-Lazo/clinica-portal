@@ -1,8 +1,10 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { authService } from "../../modules/login/services/auth.service";
+import { useAuth } from "../../shared/auth/useAuth";
 
 export default function RequireGuest() {
-  if (authService.hasSession()) {
+  const { user } = useAuth();
+
+  if (user) {
     return <Navigate to="/inicio" replace />;
   }
 

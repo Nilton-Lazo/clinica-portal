@@ -2,8 +2,8 @@ import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
-import { useToast } from "../../../../../shared/feedback";
-import { useAgendaMedicaContext } from "../hooks/AgendaMedicaContext";
+import { toastService } from "../../../../../shared/notifications";
+import { useAgendaMedicaContext } from "../hooks/useAgendaMedicaContext";
 import PacientePicker from "../components/PacientePicker";
 import type { PacienteListItem } from "../../../historia-clinica/types/historiaClinica.types";
 
@@ -33,7 +33,6 @@ export default function AgendaMedicaNuevaCitaPage() {
   const vm = useAgendaMedicaContext();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const toast = useToast();
   const initRef = React.useRef(false);
   const isLgUp = useIsLgUp();
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -354,7 +353,7 @@ export default function AgendaMedicaNuevaCitaPage() {
                   onClick={() => {
                     vm.clearDraft();
                     setHasUserChanges(false);
-                    toast.info("Cambios descartados.");
+                    toastService.showInfo("Cambios descartados.");
                   }}
                   disabled={!hasUserChanges}
                 >

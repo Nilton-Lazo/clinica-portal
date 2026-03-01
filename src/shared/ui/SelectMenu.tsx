@@ -114,7 +114,7 @@ export function SelectMenu(props: {
     const i = list.findIndex((o) => o.value === value);
     const next = i >= 0 ? i : 0;
     setActiveIndex(next);
-  }, [filteredOptions, open, options, value]);
+  }, [filteredOptions, open, optionsNoPlaceholder, value]);
 
   const move = (dir: 1 | -1) => {
     let i = activeIndex;

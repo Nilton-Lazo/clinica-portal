@@ -138,7 +138,7 @@ export async function createCategoria(
     `/facturacion/tarifario/tarifas/${tarifaId}/categorias`,
     payload
   );
-  return res.data;
+  return { data: res.data };
 }
 
 export async function updateCategoria(
@@ -220,7 +220,7 @@ export async function createSubcategoria(
     `/facturacion/tarifario/tarifas/${tarifaId}/subcategorias`,
     payload
   );
-  return res.data;
+  return { data: res.data };
 }
 
 export async function updateSubcategoria(
@@ -303,7 +303,7 @@ export async function createServicio(
     `/facturacion/tarifario/tarifas/${tarifaId}/servicios-crud`,
     payload
   );
-  return res.data;
+  return { data: res.data };
 }
 
 export async function updateServicio(

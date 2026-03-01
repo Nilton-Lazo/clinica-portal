@@ -1,6 +1,6 @@
 import * as React from "react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
-import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
+import { SecondaryButton } from "../../../../../shared/ui/buttons";
 import HistoriaClinicaTable from "../../../historia-clinica/components/HistoriaClinicaTable";
 import HistoriaClinicaMobileList from "../../../historia-clinica/components/HistoriaClinicaMobileList";
 import {

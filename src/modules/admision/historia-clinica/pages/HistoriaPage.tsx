@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 import { getWizardCatalog } from "../wizard/wizardCatalogCache";
 import { useHistoriaClinica } from "../hooks/useHistoriaClinica";
 import HistoriaClinicaToolbar from "../components/HistoriaClinicaToolbar";
@@ -28,13 +28,17 @@ function useIsLgUp(): boolean {
 export default function HistoriaClinicaPage() {
   const vm = useHistoriaClinica();
   const navigate = useNavigate();
-  const toast = useToast();
 
-  React.useEffect(() => {
-    if (vm.notice?.type === "error") {
-      toast.error(vm.notice.text);
-    }
-  }, [vm.notice?.type, vm.notice?.text, toast]);
+  // Puente notice → toast: usa useLayoutEffect para no perderse mensajes rápidos
+  const noticeKeyRef = React.useRef<string | null>(null);
+  React.useLayoutEffect(() => {
+    if (!vm.notice?.text) { noticeKeyRef.current = null; return; }
+    const key = `${vm.notice.type}:${vm.notice.text}`;
+    if (noticeKeyRef.current === key) return;
+    noticeKeyRef.current = key;
+    if (vm.notice.type === "success") toastService.showSuccess(vm.notice.text);
+    else toastService.showError(vm.notice.text);
+  }, [vm.notice]);
 
   // Prefetch catálogo del wizard para que al abrir un registro cargue al instante
   React.useEffect(() => {

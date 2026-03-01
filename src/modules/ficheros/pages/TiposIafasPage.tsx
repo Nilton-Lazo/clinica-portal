@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useTiposIafas } from "../tipos-iafas/hooks/useTiposIafas";
-import { useNoticeToToast } from "../utils/crudShared";
 import TiposIafasToolbar from "../tipos-iafas/components/TiposIafasToolbar";
 import TiposIafasTable from "../tipos-iafas/components/TiposIafasTable";
 import TiposIafasMobileList from "../tipos-iafas/components/TiposIafasMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function TiposIafasPage() {
   const title = "Tipos de IAFAS";
   const vm = useTiposIafas();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

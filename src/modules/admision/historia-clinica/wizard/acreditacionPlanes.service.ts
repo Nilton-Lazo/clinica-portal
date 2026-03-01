@@ -212,7 +212,7 @@ export async function updatePacientePlan(
   return { data: normalizePlan(res.data) };
 }
 
-export async function deactivatePacientePlan(pacienteId: number, planId: number): Promise<{ data: AcreditacionPlan }> {
+export async function deactivatePacientePlan(_pacienteId: number, planId: number): Promise<{ data: AcreditacionPlan }> {
   const res = await api.patch<{ data: PlanApi }>(`/admision/pacientes/planes/${planId}/desactivar`);
   return { data: normalizePlan(res.data) };
 }

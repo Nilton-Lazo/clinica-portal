@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useEspecialidades } from "../especialidades/hooks/useEspecialidades";
-import { useNoticeToToast } from "../utils/crudShared";
 import EspecialidadesToolbar from "../especialidades/components/EspecialidadesToolbar";
 import EspecialidadesTable from "../especialidades/components/EspecialidadesTable";
 import EspecialidadesMobileList from "../especialidades/components/EspecialidadesMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function EspecialidadesPage() {
   const title = "Especialidades";
   const vm = useEspecialidades();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

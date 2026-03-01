@@ -16,9 +16,12 @@ export default function AppBootstrap() {
   useClientContextSync();
 
   useEffect(() => {
-    const off = sessionEvents.onUnauthorized(() => {
+    const off = sessionEvents.onUnauthorized((payload) => {
       setUser(null);
-      navigate("/login", { replace: true });
+      navigate("/login", {
+        replace: true,
+        state: payload?.code ? { sessionExpiredCode: payload.code } : undefined,
+      });
     });
 
     return () => {

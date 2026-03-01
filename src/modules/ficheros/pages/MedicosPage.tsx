@@ -2,7 +2,6 @@ import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useMedicos } from "../medicos/hooks/useMedicos";
-import { useNoticeToToast } from "../utils/crudShared";
 import MedicosToolbar from "../medicos/components/MedicosToolbar";
 import MedicosTable from "../medicos/components/MedicosTable";
 import MedicosMobileList from "../medicos/components/MedicosMobileList";
@@ -28,7 +27,6 @@ function useIsLgUp(): boolean {
 export default function MedicosPage() {
   const title = "Médicos";
   const vm = useMedicos();
-  useNoticeToToast(vm.notice);
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);

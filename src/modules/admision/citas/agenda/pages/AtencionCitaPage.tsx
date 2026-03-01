@@ -4,7 +4,7 @@ import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMe
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 import { useAuth } from "../../../../../shared/auth/useAuth";
 import { api } from "../../../../../shared/api";
-import { useToast } from "../../../../../shared/feedback";
+import { toastService } from "../../../../../shared/notifications";
 import { getAtencionCitaData, getIgvPorcentaje, guardarAtencionCita } from "../services/atencionCita.service";
 import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
 import type {
@@ -94,7 +94,6 @@ export default function AtencionCitaPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const toast = useToast();
   const id = citaId ? parseInt(citaId, 10) : NaN;
 
   const [data, setData] = React.useState<AtencionCitaData | null>(null);
@@ -219,12 +218,12 @@ export default function AtencionCitaPage() {
       .catch((e) => {
         if (thisRunId !== loadRunIdRef.current) return;
         setError(toUserFriendlyMessage(e, "No se pudo cargar la atención de la cita."));
-        toast.error(toUserFriendlyMessage(e, "No se pudo cargar la atención de la cita."));
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar la atención de la cita."));
       })
       .finally(() => {
         if (thisRunId === loadRunIdRef.current) setLoading(false);
       });
-  }, [id, toast]);
+  }, [id]);
 
   const planOptions: SelectOption[] = React.useMemo(() => {
     if (!data?.planes?.length) return [{ value: "", label: "Seleccione el plan" }];
@@ -261,7 +260,7 @@ export default function AtencionCitaPage() {
       setSoatNumeroPoliza("");
       setSoatNumeroPlaca("");
     }
-  }, [soatDeshabilitado]);
+  }, [soatDeshabilitado, soatActivo, soatNumeroPoliza, soatNumeroPlaca]);
 
   const getAtencionDraft = React.useCallback((): AtencionDraft => {
     return {
@@ -311,7 +310,7 @@ export default function AtencionCitaPage() {
           duplicateCount === 1
             ? "1 servicio ya está en la lista."
             : `${duplicateCount} servicios ya están en la lista.`;
-        toast.warning(msg);
+        toastService.showWarning(msg);
       }
       if (!toAdd.length) return;
       const medicoId = data.programacion?.medico?.id ?? 0;
@@ -354,7 +353,7 @@ export default function AtencionCitaPage() {
         });
       });
     },
-    [data, medicosOptions, user, copVarDefault, lineas, toast]
+    [data, medicosOptions, user, copVarDefault, lineas]
   );
 
   React.useEffect(() => {
@@ -550,11 +549,11 @@ export default function AtencionCitaPage() {
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(id)) return;
     if (!acudio) {
-      toast.error("Debe marcar la casilla «Hora de atención» para guardar la atención.");
+      toastService.showError("Debe marcar la casilla «Hora de atención» para guardar la atención.");
       return;
     }
     if (lineas.length === 0) {
-      toast.error("Debe haber al menos un servicio en la tabla Servicios finales para guardar la atención.");
+      toastService.showError("Debe haber al menos un servicio en la tabla Servicios finales para guardar la atención.");
       return;
     }
     setSavingState("guardar");
@@ -592,17 +591,17 @@ export default function AtencionCitaPage() {
       const res = await guardarAtencionCita(id, payload);
       actualizarGuardado(res);
       clearDraftForCita(id);
-      toast.success("Atención guardada correctamente.");
+      toastService.showSuccess("Atención guardada correctamente.");
       navigate("/admision/citas/agenda", {
         replace: true,
         state: { returnFromAtencion: true, citaId: id },
       });
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo guardar la atención."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la atención."));
     } finally {
       setSavingState(null);
     }
-  }, [id, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita, toast]);
+  }, [id, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita]);
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!Number.isFinite(id) || !hasPendingDataChanges) return;
@@ -646,14 +645,14 @@ export default function AtencionCitaPage() {
       actualizarGuardado(res);
       if (planChanged) setLineas([]);
       clearDraftForCita(id);
-      toast.success("Datos actualizados.");
+      toastService.showSuccess("Datos actualizados.");
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudieron actualizar los datos."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudieron actualizar los datos."));
       throw e;
     } finally {
       setSavingState(null);
     }
-  }, [id, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita, toast]);
+  }, [id, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita]);
 
   const pendingChangesMessage = React.useMemo(() => {
     const partes: string[] = [];
@@ -714,7 +713,7 @@ export default function AtencionCitaPage() {
           </SecondaryButton>
           <SecondaryButton
             onClick={() => {
-              if (hasPendingDataChanges) toast.info("Cambios descartados.");
+              if (hasPendingDataChanges) toastService.showInfo("Cambios descartados.");
               setPacientePlanId(lastSavedPlanId);
               setParentescoSeguro(lastSavedParentesco);
               setTitularNombre(lastSavedTitular);

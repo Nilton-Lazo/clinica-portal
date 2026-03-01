@@ -9,7 +9,7 @@ import type { TarifaTreeCategoria } from "../types/tarifario.types";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { formatPrecioUnidad } from "../../../../shared/constants/decimalPrecision";
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 
 const gestionOptions = [
@@ -150,27 +150,27 @@ const inputBase =
 export default function TarifarioPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const toast = useToast();
   const vm = useTarifario();
   const [gestion, setGestion] = React.useState("categorias");
+  const setTarifaId = vm.setTarifaId;
 
   // Al volver desde CRUD (Volver a Tarifario) restaurar la tarifa seleccionada desde la URL al instante
   const tarifaIdFromUrl = searchParams.get("tarifaId");
   React.useLayoutEffect(() => {
     if (!tarifaIdFromUrl) return;
     const n = Number(tarifaIdFromUrl);
-    if (Number.isFinite(n) && n > 0) vm.setTarifaId(n);
-  }, [tarifaIdFromUrl, vm]);
+    if (Number.isFinite(n) && n > 0) setTarifaId(n);
+  }, [tarifaIdFromUrl, setTarifaId]);
 
   const lastNoticeRef = React.useRef<typeof vm.notice>(null);
   React.useEffect(() => {
     const n = vm.notice;
     if (!n || n === lastNoticeRef.current) return;
     lastNoticeRef.current = n;
-    if (n.type === "success") toast.success(n.text);
-    else toast.error(n.text);
+    if (n.type === "success") toastService.showSuccess(n.text);
+    else toastService.showError(n.text);
     vm.setNotice(null);
-  }, [vm.notice, toast, vm]);
+  }, [vm.notice, vm]);
 
   const tarifaOptions = React.useMemo(() => {
     return vm.tarifas.map((t) => ({
@@ -198,7 +198,7 @@ export default function TarifarioPage() {
         {/* ===================== CONTENEDOR 1: Tarifa y servicios (en móvil: card; en desktop: panel que crece) ===================== */}
         <section className="flex flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:overflow-hidden lg:p-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-2">
-            <div className="min-w-0 shrink-0 lg:w-max lg:min-w-[10rem] lg:max-w-[20rem]">
+            <div className="min-w-0 shrink-0 lg:w-max lg:min-w-40 lg:max-w-[20rem]">
               <label className="block text-xs text-(--color-text-secondary) mb-0.5">Tarifa</label>
               <SelectMenu
                 value={selectedTarifaStr}
@@ -368,7 +368,7 @@ export default function TarifarioPage() {
                 className="w-full"
                 onClick={() => {
                   if (!vm.tarifaId) {
-                    toast.error("Selecciona una tarifa primero.");
+                    toastService.showError("Selecciona una tarifa primero.");
                     return;
                   }
                   const params = new URLSearchParams({

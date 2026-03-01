@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useToast } from "../../../shared/feedback";
+import { toastService } from "../../../shared/notifications";
 
 /** Bordes unificados para inputs/select: rounded + border, foco sin anillo grueso. */
 export const inputBase =
@@ -9,20 +9,24 @@ export type Notice = { type: "success" | "error"; text: string } | null;
 
 /**
  * Muestra notificaciones toast cuando cambia notice (éxito o error).
- * Usar en páginas CRUD para retroalimentación al usuario (crear, guardar, desactivar, cancelar).
+ *
+ * Usa useLayoutEffect (síncrono post-render) para capturar el notice antes de
+ * que React 18 lo batea/limpie con el estado siguiente (loadForEdit → setNotice(null)).
+ * Usa toastService directamente (no necesita contexto React).
  */
 export function useNoticeToToast(notice: Notice) {
-  const toast = useToast();
-  const lastShownRef = React.useRef<string | null>(null);
-  React.useEffect(() => {
+  const lastKeyRef = React.useRef<string | null>(null);
+
+  React.useLayoutEffect(() => {
     if (!notice?.text) {
-      lastShownRef.current = null;
+      lastKeyRef.current = null;
       return;
     }
     const key = `${notice.type}:${notice.text}`;
-    if (lastShownRef.current === key) return;
-    lastShownRef.current = key;
-    if (notice.type === "success") toast.success(notice.text);
-    else toast.error(notice.text);
-  }, [notice, toast]);
+    if (lastKeyRef.current === key) return;
+    lastKeyRef.current = key;
+
+    if (notice.type === "success") toastService.showSuccess(notice.text);
+    else toastService.showError(notice.text);
+  }, [notice]);
 }

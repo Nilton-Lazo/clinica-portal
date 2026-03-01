@@ -21,7 +21,7 @@ import {
 } from "../../services/tiposClientes.service";
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import { useToast } from "../../../../shared/feedback";
+import { toastService } from "../../../../shared/notifications";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
@@ -41,7 +41,6 @@ function isApiError(e: unknown): e is ApiError {
 }
 
 export function useTiposClientes() {
-  const toast = useToast();
   const [data, setData] = useState<PaginatedResponse<TipoCliente>>({
     data: [],
     meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
@@ -222,8 +221,7 @@ export function useTiposClientes() {
     setEstado(o.estado);
 
     setNotice(null);
-    toast.success("Cambios cancelados.");
-  }, [mode, resetToNew, selected, toast]);
+  }, [mode, resetToNew, selected]);
 
   const refresh = useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -246,6 +244,7 @@ export function useTiposClientes() {
       } catch (e) {
         const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
         setNotice({ type: "error", text: msg });
+        toastService.showError(msg);
       } finally {
         setLoading(false);
       }
@@ -275,16 +274,19 @@ export function useTiposClientes() {
 
     if (!isValid) {
       setNotice({ type: "error", text: "Datos inválidos." });
+      toastService.showError("Datos inválidos.");
       return;
     }
 
     if (mode === "edit" && !selected) {
       setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      toastService.showError("Selecciona un registro para editar.");
       return;
     }
 
     if (!isDirty) {
       setNotice({ type: "error", text: "No hay cambios para guardar." });
+      toastService.showError("No hay cambios para guardar.");
       return;
     }
 
@@ -298,6 +300,7 @@ export function useTiposClientes() {
       if (mode === "new") {
         const res = await createTipoCliente({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Tipo de cliente creado." });
+        toastService.showSuccess("Tipo de cliente creado.");
 
         setPage(1);
         await refresh({ page: 1 });
@@ -308,12 +311,14 @@ export function useTiposClientes() {
 
       const res = await updateTipoCliente(selected!.id, { ...payloadBase, estado });
       setNotice({ type: "success", text: "Cambios guardados." });
+      toastService.showSuccess("Cambios guardados.");
 
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }
@@ -322,6 +327,7 @@ export function useTiposClientes() {
   const requestDeactivate = useCallback(() => {
     if (!selected) {
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -332,6 +338,7 @@ export function useTiposClientes() {
     if (!selected) {
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toastService.showError("Selecciona un registro para desactivar.");
       return;
     }
 
@@ -340,6 +347,7 @@ export function useTiposClientes() {
       const res = await deactivateTipoCliente(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Tipo de cliente desactivado." });
+      toastService.showSuccess("Tipo de cliente desactivado.");
 
       await refresh();
       loadForEdit(res.data);
@@ -347,6 +355,7 @@ export function useTiposClientes() {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }

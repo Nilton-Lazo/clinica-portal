@@ -1,4 +1,3 @@
-import * as React from "react";
 import type { AgendaEspecialidadOption } from "../types/agendaMedica.types";
 
 /** Un solo grid (cabecera + filas) dentro del scroll: las columnas quedan siempre alineadas. */
