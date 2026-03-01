@@ -1,6 +1,7 @@
 import * as React from "react";
 import { toast as rtToast } from "react-toastify";
 import type { ToastApi } from "./types";
+import { dispatchNotificationRefresh } from "../notifications/toastService";
 
 const DEFAULT_DURATION = 4000;
 const ERROR_DURATION = 6000;
@@ -10,15 +11,19 @@ export function useToast(): ToastApi {
     () => ({
       success: (message, options) => {
         rtToast.success(message, { autoClose: options?.duration ?? DEFAULT_DURATION });
+        dispatchNotificationRefresh();
       },
       error: (message, options) => {
         rtToast.error(message, { autoClose: options?.duration ?? ERROR_DURATION });
+        dispatchNotificationRefresh();
       },
       info: (message, options) => {
         rtToast.info(message, { autoClose: options?.duration ?? DEFAULT_DURATION });
+        dispatchNotificationRefresh();
       },
       warning: (message, options) => {
         rtToast.warning(message, { autoClose: options?.duration ?? DEFAULT_DURATION });
+        dispatchNotificationRefresh();
       },
     }),
     []

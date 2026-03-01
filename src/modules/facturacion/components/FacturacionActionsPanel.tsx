@@ -26,7 +26,6 @@ function PanelBody({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* ── Cabecera del módulo ── */}
       <div
         className={[
           compact ? "px-4 py-4" : "px-5 py-5",
@@ -50,7 +49,6 @@ function PanelBody({
         </div>
       </div>
 
-      {/* ── Contenido: botón único o lista de acciones ── */}
       <div className="flex-1 min-h-0 overflow-y-auto app-scrollbar app-scrollbar-no-gutter">
         {!hasActions && (
           <div className={compact ? "p-4" : "p-5"}>
@@ -132,7 +130,6 @@ export default function FacturacionActionsPanel({
     );
   }
 
-  /* ── Sheet mobile ── */
   return (
     <>
       {isOpen && (

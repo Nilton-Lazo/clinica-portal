@@ -65,7 +65,6 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
   };
 }
 
-/** Nombre completo del usuario para mostrar en servicios (usa name de la tabla users, o apellidos + nombres). */
 function userNombreCompleto(user: { name?: string | null; apellido_paterno?: string; apellido_materno?: string | null; nombres?: string; username?: string } | null | undefined): string {
   if (!user) return "";
   if (user.name && user.name.trim() !== "") return user.name.trim();
@@ -104,7 +103,6 @@ export default function AtencionCitaPage() {
 
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
   const [medicosOptions, setMedicosOptions] = React.useState<SelectOption[]>([]);
-  /** Copago variable por defecto para nuevos servicios (no se borra al ir a Buscar servicios). */
   const [copVarDefault, setCopVarDefault] = React.useState(0);
 
   const [acudio, setAcudio] = React.useState(false);
@@ -689,10 +687,8 @@ export default function AtencionCitaPage() {
 
   return (
     <div className="flex w-full min-w-0 flex-col space-y-4 lg:space-y-2">
-      {/* Barra superior: motivo y N° de cuenta destacados, botones */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:gap-2">
         <div className="w-full min-w-0 rounded-2xl border border-(--border-color-default) bg-(--color-panel-options-bg) px-4 py-3 lg:px-3 lg:py-2 sm:w-auto">
-          {/* En móvil: dos filas (flex-col). En escritorio (sm+): una fila, contenedor al ancho del contenido */}
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             {cita.motivo ? (
               <span className="text-base font-bold text-(--color-danger) shrink-0">{cita.motivo}</span>
@@ -740,9 +736,7 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      {/* En escritorio: Datos de la cita y Servicio y médico en una fila */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
-        {/* Sección: Datos de la cita */}
         <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos de la cita</h2>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-2 lg:gap-2">
@@ -793,7 +787,6 @@ export default function AtencionCitaPage() {
           </div>
         </div>
 
-        {/* Sección: Servicio y médico */}
         <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicio y médico</h2>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-3 lg:gap-2">
@@ -849,7 +842,6 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      {/* Sección: Datos del paciente (editables: plan, parentesco, titular) */}
       <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
         <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos del paciente</h2>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-4 lg:gap-3">
@@ -947,7 +939,6 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      {/* Fila: Indicadores de atención (izq) + SOAT (der) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
         <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <h2 className="text-sm font-semibold text-(--color-text-primary)">Indicadores de atención</h2>
@@ -1050,7 +1041,6 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      {/* Sección: Servicios solicitados */}
       <div ref={serviciosSectionRef}>
         <ServiciosSolicitadosSection
           medicoTratanteId={data.programacion?.medico?.id ?? null}

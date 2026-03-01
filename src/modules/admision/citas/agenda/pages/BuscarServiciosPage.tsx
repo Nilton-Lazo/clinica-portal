@@ -33,15 +33,12 @@ function useIsLgUp(): boolean {
 type LocationState = {
   tarifaId?: number | null;
   tarifaDescripcion?: string | null;
-  /** Si true, tarifa usa precio directo (ej. Particular/Privado). */
   tarifaEsPrecioDirecto?: boolean;
   returnLineas?: unknown[];
   atencionDraft?: AtencionDraft | null;
-  /** Copago variable por defecto (%) para no perderlo al volver. */
   copVarDefault?: number;
 };
 
-/** Normaliza búsqueda por código: 010101 → 01.01.01 (igual que CRUD servicios). */
 function normalizeCodigoQuery(raw: string): string {
   const compact = raw.replace(/\./g, "").trim();
   if (!compact) return "";
@@ -55,13 +52,11 @@ function normalizeCodigoQuery(raw: string): string {
   return compact;
 }
 
-/** Hora actual en HH:mm para aplicar recargos según hora real (no la de la cita). */
 function getHoraActual(): string {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-/** Precio sin IGV con recargo aplicado si aplica. */
 function precioConRecargo(
   precioSinIgv: string | number | null | undefined,
   recargoActivo: boolean,
@@ -106,7 +101,6 @@ export default function BuscarServiciosPage() {
   }, []);
 
   const [multiSelect, setMultiSelect] = React.useState(false);
-  /** Ítems seleccionados (por id) para que persistan al filtrar o cambiar de página. */
   const [selectedItems, setSelectedItems] = React.useState<Map<number, TarifaServicioBusqueda>>(new Map());
   const [igvPct, setIgvPct] = React.useState(18);
 

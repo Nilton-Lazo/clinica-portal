@@ -54,8 +54,6 @@ export default function AgendaMedicaNuevaCitaPage() {
     if (hora) vm.onPickHora(hora);
     if (pacienteId) void vm.onSelectPaciente(Number(pacienteId));
 
-    // Refrescar slots solo si NO venimos de Buscar paciente (sin paciente_id).
-    // Si venimos con paciente_id, no refetch para no resetear contadores y no limpiar Hora.
     if (!pacienteId) vm.refetchSlotsForNuevaCita?.();
   }, [searchParams, vm]);
 

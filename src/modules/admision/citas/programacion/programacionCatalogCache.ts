@@ -11,10 +11,6 @@ export type ProgramacionCatalog = {
 let cached: ProgramacionCatalog | null = null;
 let loadingPromise: Promise<ProgramacionCatalog> | null = null;
 
-/**
- * Obtiene el catálogo de programación (médicos, especialidades, consultorios, turnos).
- * Usa caché en memoria: la primera vez hace las 4 peticiones; las siguientes devuelven al instante.
- */
 export function getProgramacionCatalog(forceRefresh = false): Promise<ProgramacionCatalog> {
   if (cached !== null && !forceRefresh) {
     return Promise.resolve(cached);
@@ -39,12 +35,10 @@ export function getProgramacionCatalog(forceRefresh = false): Promise<Programaci
   return loadingPromise;
 }
 
-/** Devuelve el catálogo en caché si existe (para mostrar datos al instante al reabrir). */
 export function getProgramacionCatalogSync(): ProgramacionCatalog | null {
   return cached;
 }
 
-/** Invalida el caché para forzar recarga en la próxima petición. */
 export function invalidateProgramacionCatalog(): void {
   cached = null;
   loadingPromise = null;

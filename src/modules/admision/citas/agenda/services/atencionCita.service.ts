@@ -39,7 +39,6 @@ export type TarifaServiciosBusquedaMeta = {
   per_page: number;
   total: number;
   last_page: number;
-  /** Si true, la tarifa usa precio directo (ej. Particular/Privado). */
   tarifa_es_precio_directo?: boolean;
 };
 
@@ -59,7 +58,6 @@ export async function buscarServiciosTarifa(
     categoria_id?: number;
     subcategoria_id?: number;
     status?: string;
-    /** Hora de la cita (HH:mm o HH:mm:ss) para aplicar reglas de recargo nocturno */
     hora?: string;
   }
 ): Promise<{ data: TarifaServicioBusqueda[]; meta: TarifaServiciosBusquedaMeta }> {

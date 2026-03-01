@@ -17,10 +17,8 @@ import {
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import type { ApiError } from "../../../../shared/api/apiError";
 
-/** Cache del árbol base para mostrar al instante al volver a Tarifario (revalidación en segundo plano). */
 let baseTreeCache: TarifaBaseTree | null = null;
 
-/** Cache de lista de tarifas para mostrar al instante al entrar o volver a Tarifario. */
 let tarifasCache: TarifaOperativa[] | null = null;
 
 function isApiError(e: unknown): e is ApiError {

@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { authService } from "../../modules/login/services/auth.service";
 import { useAuth } from "../auth/useAuth";
 
-/** Tiempo máximo para validar sesión al cargar; evita pantalla en blanco si el backend no responde. */
 const BOOTSTRAP_AUTH_TIMEOUT_MS = 15_000;
 
 export function useBootstrapAuth() {

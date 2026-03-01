@@ -29,7 +29,6 @@ export default function HistoriaClinicaPage() {
   const vm = useHistoriaClinica();
   const navigate = useNavigate();
 
-  // Puente notice → toast: usa useLayoutEffect para no perderse mensajes rápidos
   const noticeKeyRef = React.useRef<string | null>(null);
   React.useLayoutEffect(() => {
     if (!vm.notice?.text) { noticeKeyRef.current = null; return; }
@@ -40,7 +39,6 @@ export default function HistoriaClinicaPage() {
     else toastService.showError(vm.notice.text);
   }, [vm.notice]);
 
-  // Prefetch catálogo del wizard para que al abrir un registro cargue al instante
   React.useEffect(() => {
     void getWizardCatalog();
   }, []);

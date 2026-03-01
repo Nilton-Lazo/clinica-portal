@@ -32,18 +32,10 @@ function calcularPrecios(
   return { precioSinIgv, precioConIgv };
 }
 
-/** Código de categoría "Consultas Médicas": habilita copago fijo y deshabilita copago variable. */
 const CATEGORIA_CONSULTAS_MEDICAS_CODIGO = "50";
 
 const FACTOR_REDONDO = 10 ** 4;
 
-/**
- * Parte que paga el paciente por una línea (con IGV), para monto a pagar.
- * La línea guarda precio_sin_igv y precio_con_igv como TOTAL de la línea (no unitario).
- * - Tarifa precio directo (Particular/Privado): paciente paga todo el importe con IGV.
- * - Categoría Consultas Médicas (50): paciente paga copago fijo (ya con IGV).
- * - Resto: paciente paga (100 - cop_var)% del importe sin IGV, convertido a con IGV.
- */
 function pacientePagaConIgv(
   line: AtencionServicioLineaDisplay,
   igvPct: number,
@@ -78,7 +70,6 @@ function getMedicoCodigo(medicoId: number | undefined, medicoCodigo: string | nu
   return fallback || "—";
 }
 
-/** S/. + número; bloque centrado en la celda (como tabla de reporte). */
 function PrecioCell({ valor }: { valor: number }) {
   return (
     <div className="inline-flex items-baseline gap-0 text-xs">
@@ -95,7 +86,6 @@ export type ServiciosSolicitadosSectionProps = {
   medicoTratanteLabel: string;
   tarifaId: number | null;
   tarifaDescripcion: string | null;
-  /** Si true, la tarifa usa precio directo (ej. Particular/Privado). */
   tarifaEsPrecioDirecto?: boolean;
   lineas: AtencionServicioLineaDisplay[];
   onLineasChange: (lineas: AtencionServicioLineaDisplay[]) => void;
@@ -105,14 +95,10 @@ export type ServiciosSolicitadosSectionProps = {
   hasPendingDataChanges?: boolean;
   onActualizarDatos?: () => Promise<void>;
   pendingChangesMessage?: string;
-  /** Notifica al padre el monto a pagar calculado (suma de lo que paga el paciente, con IGV). */
   onMontoAPagarChange?: (monto: number) => void;
-  /** Copago variable por defecto para nuevos servicios (%). */
   copVarDefault?: number;
   onCopVarDefaultChange?: (value: number) => void;
-  /** Devuelve el draft del formulario de atención para preservar al ir a Buscar servicios. */
   getAtencionDraft?: () => AtencionDraft | null;
-  /** Callback al elegir servicios desde el panel (evita navegar a la página de búsqueda). */
   onServiciosSelected?: (servicios: TarifaServicioBusqueda[]) => void;
 };
 
@@ -527,7 +513,6 @@ export function ServiciosSolicitadosSection({
     return withIdx.filter((l) => (l.estado_facturacion ?? "PENDIENTE") === estadoFacturacionFilter);
   }, [lineas, estadoFacturacionFilter]);
 
-  /** Monto a pagar = suma de lo que paga el paciente (solo líneas PENDIENTE), con IGV. */
   const montoAPagarComputed = React.useMemo(() => {
     const pending = lineas.filter((l) => (l.estado_facturacion ?? "PENDIENTE") === "PENDIENTE");
     const total = pending.reduce(
@@ -541,7 +526,6 @@ export function ServiciosSolicitadosSection({
     onMontoAPagarChange?.(montoAPagarComputed);
   }, [montoAPagarComputed, onMontoAPagarChange]);
 
-  /** Para tarifarios con copago: total pago aseguradora (con IGV) y filas del reporte con todos los valores con IGV. */
   const reporteConIgv = React.useMemo(() => {
     if (tarifaEsPrecioDirecto || finalRows.length === 0) return { totalPagoAseguradora: 0, filas: [] as Array<{ precioUnitarioConIgv: number; importeConIgv: number; copagoVariableConIgv: number | null; copagoFijoConIgv: number | null; pagoAseguradoraConIgv: number | null }>, totalCopVar: 0, totalCopFijo: 0, totalPagoAsegu: 0 };
     const filas = finalRows.map((item) => {
@@ -570,7 +554,6 @@ export function ServiciosSolicitadosSection({
     { value: "FACTURADO", label: "Facturado" },
   ];
 
-  /** Nombre completo del médico de la fila seleccionada (para mostrar encima de la tabla). */
   const selectedMedicoNombreCompleto = React.useMemo(() => {
     if (!selectedLinea?.medico_id) return null;
     const opt = medicosOptions.find((o) => o.value === String(selectedLinea.medico_id));
@@ -579,7 +562,6 @@ export function ServiciosSolicitadosSection({
     return part || null;
   }, [selectedLinea?.medico_id, medicosOptions]);
 
-  /** Nombre de usuario de la fila seleccionada (para mostrar encima de la tabla). */
   const selectedUsuarioNombre = selectedLinea?.user_nombre ?? null;
 
   return (
@@ -597,7 +579,6 @@ export function ServiciosSolicitadosSection({
           onConfirm={onConfirmActualizar}
         />
 
-        {/* Campo médico (aplica a la fila seleccionada) y Buscar servicio */}
         <div className="flex flex-col gap-2">
           <span className="text-xs text-(--color-text-secondary)">
             {selectedLineaIdx != null ? "Asigne médico a la fila seleccionada" : "Asigne médico del servicio (seleccione una fila en la tabla)"}
@@ -635,7 +616,6 @@ export function ServiciosSolicitadosSection({
           </div>
         </div>
 
-        {/* Servicios finales: título con "Definir Copago variable" a la derecha, luego filtros */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3 gap-y-1">
@@ -658,7 +638,6 @@ export function ServiciosSolicitadosSection({
                         if (raw.trim() === "" || (Number.isFinite(v) && v >= 0 && v <= 100)) {
                           const newVal = raw.trim() === "" ? 0 : v;
                           onCopVarDefaultChange?.(newVal);
-                          // Aplicar el mismo valor a todos los servicios que usan copago variable (ayuda al usuario; cada uno sigue siendo editable).
                           const nextLineas = lineas.map((l) => {
                             if ((l.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO) return l;
                             return { ...l, cop_var: newVal };
@@ -895,7 +874,6 @@ export function ServiciosSolicitadosSection({
             </div>
           </div>
 
-          {/* Detalle para reporte: desplegable; solo para tarifarios con copago. Todo con IGV. */}
           {!tarifaEsPrecioDirecto && finalRows.length > 0 && (
             <div className="mt-4 flex flex-col gap-2">
               <div className="flex justify-center">
@@ -930,7 +908,6 @@ export function ServiciosSolicitadosSection({
                     </div>
                   );
                 };
-                /** En móvil: celda de monto con S/. y número alineados a contabilidad. */
                 const renderSolesCelda = (val: number | null) => {
                   if (val == null || (typeof val === "number" && !Number.isFinite(val))) {
                     return <span className="flex w-full min-w-0 justify-end tabular-nums text-(--color-text-primary)">—</span>;

@@ -33,7 +33,6 @@ function withPlaceholder(options: SelectOption[], placeholder: string): SelectOp
   return [{ value: "", label: placeholder, disabled: true }, ...options];
 }
 
-/** Añade el valor actual al final de la lista si no está (para que se muestre sin reordenar; la opción seleccionada no va primero). */
 function ensureSelectedOption(options: SelectOption[], value: string, label?: string): SelectOption[] {
   const v = value.trim();
   if (!v) return options;

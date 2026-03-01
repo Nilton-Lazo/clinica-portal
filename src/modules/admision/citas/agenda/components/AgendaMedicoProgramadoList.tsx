@@ -1,11 +1,9 @@
-import * as React from "react";
 import type { AgendaMedicoOption } from "../types/agendaMedica.types";
 
 function medicoLabel(m: AgendaMedicoOption): string {
   return `${m.apellido_paterno} ${m.apellido_materno} ${m.nombres}`.trim();
 }
 
-/** Mismo enfoque: un solo grid (cabecera + filas) para que Cupos/CMP alineen con su contenido. */
 const cellBorder = "border-b border-r border-(--border-color-default) last:border-r-0";
 
 export default function AgendaMedicoProgramadoList({

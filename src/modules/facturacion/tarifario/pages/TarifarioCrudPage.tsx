@@ -11,7 +11,6 @@ import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import type { ApiError } from "../../../../shared/api/apiError";
 
-/** Bordes unificados como checkbox: rounded + border, foco sin anillo. */
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 import type {
@@ -866,7 +865,6 @@ function useServiciosCrud(tarifaId: number | null) {
     lookupGruposServicio().then(setGrupos).catch(() => {});
   }, []);
 
-  /** Lista para dropdowns: prioridad a grupos_servicio (API); si viene vacía, se completan con los que aparecen en servicios cargados. */
   const gruposOpciones = React.useMemo(() => {
     const byCode = new Map<string, GrupoServicioLookup>();
     grupos.forEach((g) => byCode.set(g.codigo, g));
@@ -1908,7 +1906,6 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
       />
       <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
         <div className="flex flex-col gap-4">
-          {/* Fila 1: Búsqueda, estado, paginación y acción principal */}
           <div className="flex flex-wrap items-center gap-3">
             <input
               value={vm.q}
@@ -1939,7 +1936,6 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
               </PrimaryButton>
             </div>
           </div>
-          {/* Fila 2: Filtros por categoría, subcategoría y grupo */}
           <div className="flex flex-wrap items-stretch gap-3 border-t border-(--border-color-default) pt-4">
             <span className="flex items-center text-xs font-medium uppercase tracking-wide text-(--color-text-secondary) shrink-0">
               Filtrar por

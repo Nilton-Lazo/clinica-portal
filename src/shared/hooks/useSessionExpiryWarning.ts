@@ -83,7 +83,7 @@ export function useSessionExpiryWarning(): State {
         await authService.keepAlive();
         lastServerSyncAtRef.current = Date.now();
       } catch {
-        // HttpClient ya emite unauthorized en 401; aquí evitamos ruido.
+        // HttpClient ya emite unauthorized en 401; aquí se evita ruido.
       } finally {
         syncInFlightRef.current = false;
       }

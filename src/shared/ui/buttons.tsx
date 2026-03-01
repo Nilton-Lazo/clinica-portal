@@ -6,7 +6,6 @@ type Props = {
   disabled?: boolean;
   type?: "button" | "submit";
   className?: string;
-  /** Tooltip nativo (title) al pasar el mouse */
   title?: string;
 };
 

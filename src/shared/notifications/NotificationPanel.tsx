@@ -16,14 +16,15 @@ function relativeTime(iso: string): string {
 }
 
 function NotifIcon({ type, size = 16 }: { type: NotificationType; size?: number }) {
-  const cls = `h-[${size}px] w-[${size}px] shrink-0`;
+  const cls = "shrink-0";
+  const style = { width: size, height: size };
   if (type === "success")
-    return <CheckCircle className={cls} style={{ color: "var(--color-success)" }} strokeWidth={1.75} />;
+    return <CheckCircle className={cls} style={{ ...style, color: "var(--color-success)" }} strokeWidth={1.75} />;
   if (type === "error")
-    return <XCircle className={cls} style={{ color: "var(--color-danger)" }} strokeWidth={1.75} />;
+    return <XCircle className={cls} style={{ ...style, color: "var(--color-danger)" }} strokeWidth={1.75} />;
   if (type === "warning")
-    return <AlertTriangle className={cls} style={{ color: "var(--color-warning)" }} strokeWidth={1.75} />;
-  return <Info className={cls} style={{ color: "var(--color-primary)" }} strokeWidth={1.75} />;
+    return <AlertTriangle className={cls} style={{ ...style, color: "var(--color-warning)" }} strokeWidth={1.75} />;
+  return <Info className={cls} style={{ ...style, color: "var(--color-primary)" }} strokeWidth={1.75} />;
 }
 
 function typeBg(type: NotificationType): string {
@@ -50,7 +51,7 @@ function NotifItem({
       onClick={() => unread && onRead(n.id)}
       className={[
         "w-full text-left px-4 py-3",
-        "flex items-start gap-3",
+        "flex items-center gap-3",
         "border-b border-(--color-border) last:border-b-0",
         unread
           ? "bg-(--color-surface-hover) hover:bg-blue-50/60 cursor-pointer"
@@ -58,8 +59,7 @@ function NotifItem({
         "transition-colors",
       ].join(" ")}
     >
-      {/* Dot indicador */}
-      <div className="mt-1 shrink-0">
+      <div className="h-8 w-2 shrink-0 flex items-center justify-center">
         {unread ? (
           <span className="block h-2 w-2 rounded-full bg-(--color-primary)" />
         ) : (
@@ -67,12 +67,10 @@ function NotifItem({
         )}
       </div>
 
-      {/* Ícono tipo */}
-      <div className={["h-8 w-8 rounded-lg shrink-0 flex items-center justify-center mt-0.5", typeBg(n.type)].join(" ")}>
+      <div className={["h-8 w-8 rounded-lg shrink-0 flex items-center justify-center", typeBg(n.type)].join(" ")}>
         <NotifIcon type={n.type} size={16} />
       </div>
 
-      {/* Contenido */}
       <div className="min-w-0 flex-1">
         <div
           className={[
@@ -98,22 +96,31 @@ function NotifItem({
 type Props = {
   notifications: UserNotification[];
   unreadCount: number;
+  totalCount: number;
+  pageSize: number;
+  hasMore: boolean;
   loading: boolean;
+  loadingMore: boolean;
   onMarkAsRead: (id: number) => void;
   onMarkAllAsRead: () => void;
+  onLoadMore: () => Promise<void>;
   onClose: () => void;
 };
 
 export default function NotificationPanel({
   notifications,
   unreadCount,
+  totalCount,
+  pageSize,
+  hasMore,
   loading,
+  loadingMore,
   onMarkAsRead,
   onMarkAllAsRead,
+  onLoadMore,
   onClose,
 }: Props) {
   return (
-    /* Overlay invisible para cerrar al hacer clic fuera */
     <>
       <div
         className="fixed inset-0 z-30"
@@ -136,7 +143,6 @@ export default function NotificationPanel({
           "overflow-hidden",
         ].join(" ")}
       >
-        {/* Cabecera */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-border) shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-(--color-text-primary)">
@@ -161,7 +167,6 @@ export default function NotificationPanel({
           )}
         </div>
 
-        {/* Lista */}
         <div className="flex-1 min-h-0 overflow-y-auto app-scrollbar">
           {loading && notifications.length === 0 && (
             <div className="flex items-center justify-center py-12">
@@ -188,15 +193,28 @@ export default function NotificationPanel({
               {notifications.map((n) => (
                 <NotifItem key={n.id} n={n} onRead={onMarkAsRead} />
               ))}
+              {hasMore && (
+                <div className="p-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void onLoadMore();
+                    }}
+                    disabled={loadingMore}
+                    className="w-full h-9 rounded-lg border border-(--color-border) text-xs font-medium text-(--color-text-primary) hover:bg-(--color-background) disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loadingMore ? "Cargando..." : "Cargar más"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Pie */}
         {notifications.length > 0 && (
           <div className="px-4 py-2 border-t border-(--color-border) shrink-0">
             <p className="text-[11px] text-(--color-text-secondary) text-center">
-              Mostrando las últimas {notifications.length} notificaciones
+              {totalCount > pageSize ? `Mostrando las últimas ${notifications.length} de ${totalCount}` : `Mostrando ${notifications.length} notificaciones`}
             </p>
           </div>
         )}

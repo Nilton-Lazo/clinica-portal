@@ -50,7 +50,6 @@ function PanelBody({
         </div>
       </div>
 
-      {/* ── Contenido: botón único o lista de acciones ── */}
       <div className="flex-1 min-h-0 overflow-y-auto app-scrollbar app-scrollbar-no-gutter">
         {!hasActions && (
           <div className={compact ? "p-4" : "p-5"}>
@@ -72,7 +71,6 @@ function PanelBody({
 
         {hasActions && (
           <>
-            {/* Etiqueta de sección */}
             <div className={compact ? "px-4 pt-3 pb-1" : "px-5 pt-4 pb-1"}>
               <span className="text-[11px] font-bold uppercase tracking-widest text-(--color-text-secondary)/70">
                 Acceso directo
@@ -133,7 +131,6 @@ export default function AdmisionActionsPanel({
     );
   }
 
-  /* ── Sheet mobile ── */
   return (
     <>
       {isOpen && (
@@ -165,7 +162,6 @@ export default function AdmisionActionsPanel({
               "shadow-xl",
             ].join(" ")}
           >
-            {/* Barra superior mobile */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-(--color-panel-context) bg-(--color-panel-bg) shrink-0">
               <div className="w-8 h-1 rounded-full bg-(--color-panel-context) mx-auto absolute left-1/2 -translate-x-1/2 top-2" aria-hidden="true" />
               <div className="text-sm font-bold text-(--color-text-primary)">Opciones</div>

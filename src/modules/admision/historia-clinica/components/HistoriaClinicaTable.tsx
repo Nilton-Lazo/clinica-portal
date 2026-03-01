@@ -27,7 +27,6 @@ export default function HistoriaClinicaTable(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
-  /** En modo picker se muestran solo columnas esenciales (sin scroll horizontal). */
   pickerMode?: boolean;
 }) {
   const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast, pickerMode } = props;

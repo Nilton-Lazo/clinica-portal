@@ -55,7 +55,6 @@ export default function AdmisionHomePage() {
 
   return (
     <div className="w-full h-full">
-      {/* ── Desktop ── */}
       <div className="hidden lg:grid gap-4 lg:grid-cols-[1fr_1fr_minmax(320px,400px)] h-full">
         <div className="grid gap-3 auto-rows-fr">
           {col1.map((item) => (
@@ -86,7 +85,6 @@ export default function AdmisionHomePage() {
         />
       </div>
 
-      {/* ── Mobile / Tablet ── */}
       <div
         className={[
           "lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3",

@@ -82,9 +82,6 @@ function toUserMessage(apiError: ApiError): string {
   }
 }
 
-/**
- * Convierte un error en mensaje apto para notificaciones al usuario.
- */
 export function toUserFriendlyMessage(error: unknown, fallback: string): string {
   if (isApiError(error)) return toUserMessage(error);
   return fallback;

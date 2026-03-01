@@ -38,7 +38,6 @@ function parseErrorResponse(data: unknown): ErrorResponseShape {
   return result;
 }
 
-/** Timeout por defecto para evitar peticiones colgadas (p. ej. tras inactividad). */
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 export class HttpClient {

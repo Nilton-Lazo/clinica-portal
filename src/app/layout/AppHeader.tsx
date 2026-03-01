@@ -32,7 +32,6 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
       ].join(" ")}
     >
       <div className="h-full flex items-center justify-between gap-3 px-4 sm:px-5">
-        {/* ── Left: hamburger + title/breadcrumb ── */}
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -92,7 +91,6 @@ export default function AppHeader({ onOpenMenu, onLogout }: Props) {
           </div>
         </div>
 
-        {/* ── Right: actions ── */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <NotificationBell />
 

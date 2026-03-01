@@ -6,7 +6,6 @@ export type LoginPayload = {
 export type AuthUser = {
   id: number;
   username: string;
-  /** Nombre completo (une nombres y apellidos en la tabla users). */
   name?: string | null;
   nombres: string;
   apellido_paterno: string;

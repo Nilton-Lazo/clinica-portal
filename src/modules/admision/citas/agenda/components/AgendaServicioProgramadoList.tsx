@@ -1,6 +1,5 @@
 import type { AgendaEspecialidadOption } from "../types/agendaMedica.types";
 
-/** Un solo grid (cabecera + filas) dentro del scroll: las columnas quedan siempre alineadas. */
 const cellBorder = "border-b border-r border-(--border-color-default) last:border-r-0";
 const gridCols = "grid-cols-[4rem_1fr_4.5rem]";
 

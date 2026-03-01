@@ -207,7 +207,6 @@ export function useMedicos() {
   }, [mode, fetchCodigoPreview]);
 
   const isValid = useMemo(() => {
-    // OJO: codigo NO se valida (backend lo genera)
     if (!nombres.trim() || nombres.trim().length > 120) return false;
     if (!apellidoPaterno.trim() || apellidoPaterno.trim().length > 120) return false;
     if (!apellidoMaterno.trim() || apellidoMaterno.trim().length > 120) return false;
@@ -576,8 +575,7 @@ export function useMedicos() {
       setNotice({ type: "success", text: "Cambios guardados." });
       toastService.showSuccess("Cambios guardados.");
       await refresh();
-
-      // esto deja isDirty=false y el botón se deshabilita
+      
       loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
@@ -680,7 +678,6 @@ export function useMedicos() {
     selected,
     selectedFullName,
 
-    // solo visual
     codigo,
 
     cmp,

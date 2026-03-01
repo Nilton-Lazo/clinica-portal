@@ -31,20 +31,15 @@ export type NotificationsResponse = {
 // ─── Servicio API ──────────────────────────────────────────────────────────
 
 export const notificationService = {
-  /**
-   * Lista notificaciones del usuario autenticado.
-   * @param unreadOnly - si true, solo devuelve las no leídas
-   * @param perPage - número de notificaciones por página (máx. 50)
-   */
-  async list(unreadOnly = false, perPage = 20): Promise<NotificationsResponse> {
+  async list(unreadOnly = false, perPage = 20, page = 1): Promise<NotificationsResponse> {
     const params = new URLSearchParams({
       per_page: String(perPage),
+      page: String(page),
       ...(unreadOnly ? { unread: "1" } : {}),
     });
     return api.get<NotificationsResponse>(`/notifications?${params}`);
   },
 
-  /** Marca una notificación específica como leída. */
   async markAsRead(id: number): Promise<UserNotification> {
     const res = await api.patch<{ data: UserNotification }>(
       `/notifications/${id}/read`
@@ -52,7 +47,6 @@ export const notificationService = {
     return res.data;
   },
 
-  /** Marca todas las notificaciones del usuario como leídas. */
   async markAllAsRead(): Promise<void> {
     await api.post("/notifications/read-all");
   },

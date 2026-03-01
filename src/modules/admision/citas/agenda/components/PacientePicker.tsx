@@ -16,17 +16,11 @@ type Props = {
   open: boolean;
   variant: Variant;
   onClose: () => void;
-  /** Se llama cuando el usuario elige un paciente (clic o Enter/Espacio). */
   onPicked: (paciente: PacienteListItem) => void;
-  /** Texto del título (por defecto: \"Seleccionar paciente\"). */
   title?: string;
-  /** Texto descriptivo bajo el título. */
   description?: string;
-  /** Mostrar botón para registrar paciente nuevo. */
   showRegisterButton?: boolean;
-  /** Acción al pulsar \"Registrar paciente\" (opcional). */
   onRegister?: () => void;
-  /** Acción al pulsar \"Ir a Historia clínica\" (opcional; para editar datos de pacientes). */
   onOpenHistoriaClinica?: () => void;
 };
 

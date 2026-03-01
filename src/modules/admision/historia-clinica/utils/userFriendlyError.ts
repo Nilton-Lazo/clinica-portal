@@ -1,10 +1,5 @@
 import type { ApiError } from "../../../../shared/api/apiError";
 
-/**
- * Mensajes para el usuario final en Historia Clínica.
- * No se exponen términos técnicos (token, 401, unauthorized, etc.).
- * El error real se registra en consola en desarrollo para diagnóstico.
- */
 const FIELD_LABELS: Record<string, string> = {
   tipo_documento: "Tipo de documento",
   numero_documento: "N° de documento",
@@ -84,10 +79,6 @@ function toUserMessage(apiError: ApiError): string {
   }
 }
 
-/**
- * Convierte un error (API o genérico) en un mensaje apto para mostrar al usuario en notificaciones.
- * No expone detalles técnicos (token, códigos HTTP, etc.).
- */
 export function toUserFriendlyMessage(error: unknown, fallback: string): string {
   if (isApiError(error)) {
     return toUserMessage(error);

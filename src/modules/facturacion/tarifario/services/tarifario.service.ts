@@ -34,7 +34,6 @@ export async function listTarifasOperativas(q?: string): Promise<TarifaOperativa
   return res.data ?? [];
 }
 
-/** Todas las tarifas activas incluyendo el base. Solo para Facturación → Tarifario. */
 export async function listTarifasParaGestionTarifario(q?: string): Promise<TarifaOperativa[]> {
   const res = await api.get<{ data: TarifaOperativa[] }>(
     `/facturacion/tarifario/tarifas/para-gestion-tarifario${qs({ q })}`

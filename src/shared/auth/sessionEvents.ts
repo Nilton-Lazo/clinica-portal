@@ -33,7 +33,7 @@ export type UnauthorizedPayload = {
   
     notifyUnauthorized(payload: UnauthorizedPayload) {
       if (notified) {
-        // Si llega un código más específico de expiración, lo preservamos para Login.
+        // Si llega un código más específico de expiración, se preserva para el Login.
         if (isSessionExpiryCode(payload.code) && !isSessionExpiryCode(lastPayload?.code)) {
           lastPayload = payload;
           sessionStorage.setItem(LAST_KEY, JSON.stringify(payload));

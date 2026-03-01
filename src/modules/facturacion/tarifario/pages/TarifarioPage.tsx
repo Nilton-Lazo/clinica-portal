@@ -154,7 +154,6 @@ export default function TarifarioPage() {
   const [gestion, setGestion] = React.useState("categorias");
   const setTarifaId = vm.setTarifaId;
 
-  // Al volver desde CRUD (Volver a Tarifario) restaurar la tarifa seleccionada desde la URL al instante
   const tarifaIdFromUrl = searchParams.get("tarifaId");
   React.useLayoutEffect(() => {
     if (!tarifaIdFromUrl) return;
@@ -195,7 +194,6 @@ export default function TarifarioPage() {
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
       <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:grid-rows-1 lg:gap-2">
-        {/* ===================== CONTENEDOR 1: Tarifa y servicios (en móvil: card; en desktop: panel que crece) ===================== */}
         <section className="flex flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:overflow-hidden lg:p-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-2">
             <div className="min-w-0 shrink-0 lg:w-max lg:min-w-40 lg:max-w-[20rem]">
@@ -351,7 +349,6 @@ export default function TarifarioPage() {
           </div>
         </section>
 
-        {/* ===================== CONTENEDOR 2: Gestionar + Clonación (en móvil: cards; en desktop: panel que crece) ===================== */}
         <section className="flex flex-col gap-4 lg:min-h-0 lg:gap-2 lg:overflow-hidden">
           <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
             <h2 className="text-sm font-semibold text-(--color-text-primary)">Gestionar</h2>
@@ -383,7 +380,6 @@ export default function TarifarioPage() {
             </div>
           </div>
 
-          {/* ===================== CONTENEDOR 3: Clonación (panel como Buscar servicios en Atención) ===================== */}
           <div className="flex flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:flex-1 lg:p-3">
             <h2 className="text-sm font-semibold text-(--color-text-primary)">Clonación de tarifario</h2>
             <p className="mt-1 text-xs text-(--color-text-secondary)">

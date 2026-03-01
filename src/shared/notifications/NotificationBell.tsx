@@ -5,19 +5,17 @@ import { useNotifications } from "./useNotifications";
 import NotificationPanel from "./NotificationPanel";
 
 export default function NotificationBell() {
-  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } =
+  const { notifications, unreadCount, totalCount, pageSize, hasMore, loading, loadingMore, markAsRead, markAllAsRead, loadMore } =
     useNotifications();
 
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  // Cierra el panel al navegar para evitar overlays persistentes.
   React.useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
-  // Cerrar con tecla Escape
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -47,7 +45,6 @@ export default function NotificationBell() {
           aria-hidden="true"
         />
 
-        {/* Badge de no leídas */}
         {unreadCount > 0 && (
           <span
             aria-hidden="true"
@@ -69,13 +66,18 @@ export default function NotificationBell() {
         <NotificationPanel
           notifications={notifications}
           unreadCount={unreadCount}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          hasMore={hasMore}
           loading={loading}
+          loadingMore={loadingMore}
           onMarkAsRead={async (id) => {
             await markAsRead(id);
           }}
           onMarkAllAsRead={async () => {
             await markAllAsRead();
           }}
+          onLoadMore={loadMore}
           onClose={() => setOpen(false)}
         />
       )}

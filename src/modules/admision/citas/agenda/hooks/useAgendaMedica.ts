@@ -273,7 +273,6 @@ export function useAgendaMedica() {
       });
   }, [selectedDateStr, reloadFlag, perPage, toast]);
 
-  // Cargar médicos cuando la especialidad cambia (con cache para respuesta al instante al volver)
   React.useEffect(() => {
     if (initLoading || !selectedDateStr || especialidadId === null) {
       return;
@@ -306,7 +305,6 @@ export function useAgendaMedica() {
       });
   }, [selectedDateStr, especialidadId, initLoading, toast]);
 
-  // Cargar slots y citas cuando el médico cambia MANUALMENTE
   React.useEffect(() => {
     if (initLoading || !selectedDateStr || !especialidadId || !medicoId) {
       setSlots(null);
@@ -397,9 +395,6 @@ export function useAgendaMedica() {
   const onAddAdicional = React.useCallback(() => {
     if (!canAddAdicional || !slots) return;
     const src = slots.slots_adicional ?? [];
-    // El slot que estamos revelando es el que está en el índice actual de la lista completa
-    // (no de la lista filtrada por no tomados), para evitar el bug del “segundo clic”.
-    // Revelar hasta el siguiente slot disponible y seleccionarlo en un solo clic.
     let nextVisible = adicionalVisible + 1;
     while (nextVisible <= adicionalesTotal) {
       const slot = src[nextVisible - 1] ?? null;
@@ -606,7 +601,6 @@ export function useAgendaMedica() {
     setConfirmEliminarOpen,
     requestEliminarCita,
     onEliminarCitaConfirmed,
-    /** Refresca slots al entrar en Nueva cita (sin paciente_id). No preserva contadores para que se aplique la lógica de Adicional/Extra agotados. */
     refetchSlotsForNuevaCita: React.useCallback(() => setReloadFlag((v) => v + 1), []),
   };
 }

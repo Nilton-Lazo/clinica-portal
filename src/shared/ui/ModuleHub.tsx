@@ -72,7 +72,6 @@ function HubCard({ item, onNavigate }: { item: HubItem; onNavigate: (to: string)
         />
       </button>
 
-      {/* ── Acciones ── */}
       {hasActions && (
         <ul className="flex flex-col">
           {item.actions.map((action, idx) => (
@@ -101,7 +100,6 @@ function HubCard({ item, onNavigate }: { item: HubItem; onNavigate: (to: string)
         </ul>
       )}
 
-      {/* ── Sin acciones: botón CTA ── */}
       {!hasActions && (
         <div className="px-4 py-3">
           <button

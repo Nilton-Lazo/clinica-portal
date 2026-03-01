@@ -103,10 +103,8 @@ export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
   id?: number;
   servicio_codigo?: string | null;
   servicio_descripcion?: string | null;
-  /** Código de la categoría del servicio (ej. "50" = Consultas Médicas, habilita copago fijo). */
   categoria_codigo?: string | null;
   desea_liberar_precio?: boolean;
-  /** Precio unitario del tarifario (sin IGV); no se modifica al liberar precio. Para reporte. */
   precio_unitario_tarifario_sin_igv?: number | null;
   medico_codigo?: string | null;
   user_username?: string | null;

@@ -11,7 +11,6 @@ export function EstadoFacturacionBadge({
   size = "default",
 }: {
   estado: EstadoFacturacionServicio | string | null | undefined;
-  /** "sm" para tablas compactas (texto e icono más pequeños). */
   size?: "default" | "sm";
 }) {
   const value = estado === "FACTURADO" || estado === "PENDIENTE" ? estado : "PENDIENTE";

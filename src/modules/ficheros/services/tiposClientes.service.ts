@@ -168,8 +168,7 @@ import type {
   
     return { id, codigo, descripcion_tarifa: desc, iafa_id: iafaId };
   }
-  
-  /** Tarifas operativas (excluye el tarifario base) para asignar a tipos de cliente. */
+
   export async function listTarifasLookupForTipoCliente(): Promise<TarifaLookup[]> {
     const res = await api.get<{ data: TarifaApi[] }>(`/ficheros/tarifas/operativas`);
   

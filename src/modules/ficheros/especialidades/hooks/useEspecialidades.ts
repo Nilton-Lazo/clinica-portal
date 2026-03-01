@@ -181,11 +181,12 @@ export function useEspecialidades() {
       } catch (e) {
         const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
         setNotice({ type: "error", text: msg });
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
     },
-    [page, perPage, qDebounced, statusFilter]
+    [page, perPage, qDebounced, statusFilter, toast]
   );
 
   const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
@@ -214,16 +215,19 @@ export function useEspecialidades() {
 
     if (!isValid) {
       setNotice({ type: "error", text: "Completa la Descripción correctamente." });
+      toast.error("Completa la Descripción correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
       setNotice({ type: "error", text: "Selecciona un registro para editar." });
+      toast.error("Selecciona un registro para editar.");
       return;
     }
 
     if (!isDirty) {
       setNotice({ type: "error", text: "No hay cambios para guardar." });
+      toast.error("No hay cambios para guardar.");
       return;
     }
 
@@ -238,6 +242,7 @@ export function useEspecialidades() {
         });
 
         setNotice({ type: "success", text: "Especialidad creada." });
+        toast.success("Especialidad creada.");
 
         setPage(1);
         await refresh({ page: 1 });
@@ -252,30 +257,34 @@ export function useEspecialidades() {
       });
 
       setNotice({ type: "success", text: "Cambios guardados." });
+      toast.success("Cambios guardados.");
       await refresh();
 
       loadForEdit(res.data);
     } catch (e) {
       const msg = isApiError(e) ? e.message : "No se pudo guardar.";
       setNotice({ type: "error", text: msg });
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
-  }, [descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, saving, selected]);
+  }, [descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, saving, selected, toast]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toast.error("Selecciona un registro para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
     setConfirmDeactivateOpen(true);
-  }, [selected]);
+  }, [selected, toast]);
 
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
+      toast.error("Selecciona un registro para desactivar.");
       return;
     }
 
@@ -286,6 +295,7 @@ export function useEspecialidades() {
       const res = await deactivateEspecialidad(selected.id);
       setConfirmDeactivateOpen(false);
       setNotice({ type: "success", text: "Especialidad desactivada." });
+      toast.success("Especialidad desactivada.");
 
       await refresh();
       loadForEdit(res.data);
@@ -293,10 +303,11 @@ export function useEspecialidades() {
       const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
-  }, [loadForEdit, refresh, saving, selected]);
+  }, [loadForEdit, refresh, saving, selected, toast]);
 
   const canDeactivate = Boolean(selected) && selected?.estado !== "INACTIVO";
 

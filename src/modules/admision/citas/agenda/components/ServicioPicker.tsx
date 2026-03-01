@@ -20,15 +20,12 @@ export type ServicioPickerProps = {
   open: boolean;
   variant: Variant;
   onClose: () => void;
-  /** Se llama con los servicios elegidos al pulsar «Agregar seleccionados». */
   onSelect: (servicios: TarifaServicioBusqueda[]) => void;
   tarifaId: number | null;
   tarifaDescripcion?: string | null;
-  /** IGV % para mostrar precios; si no se pasa, se obtiene del API. */
   igvPct?: number;
 };
 
-/** Normaliza búsqueda por código: 010101 → 01.01.01 (igual que CRUD servicios). */
 function normalizeCodigoQuery(raw: string): string {
   const compact = raw.replace(/\./g, "").trim();
   if (!compact) return "";
@@ -229,11 +226,6 @@ export function ServicioPicker(props: ServicioPickerProps) {
     onClose();
   }, [selectedItems, onSelect, onClose]);
 
-  /**
-   * Clic en la fila (sin Ctrl) = agrega ese servicio y cierra.
-   * Ctrl+clic en la fila = toggle checkbox (varios, como el Explorador de Windows).
-   * Checkbox = toggle para sumar varios y pulsar Agregar.
-   */
   const handleRowSelect = React.useCallback(
     (row: TarifaServicioBusqueda, e?: React.MouseEvent) => {
       if (e?.ctrlKey) {

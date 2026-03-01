@@ -113,7 +113,6 @@ export default function AppShell() {
       >
         <AppHeader onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
 
-        {/* Frame: altura acotada para que tablas puedan llenar y hacer scroll interno */}
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden min-w-0">
           <div
             className={[

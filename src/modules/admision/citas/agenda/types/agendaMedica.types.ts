@@ -1,7 +1,6 @@
 import type { PaginatedResponse } from "../../../../../shared/types/pagination";
 import type { RecordStatus } from "../../../../../shared/types/recordStatus";
 
-/** Refleja el enum CitaAtencionEstado del backend (PENDIENTE | ATENDIDO). */
 export type CitaAtencionEstado = "PENDIENTE" | "ATENDIDO";
 
 export type AgendaEspecialidadOption = {
@@ -50,7 +49,6 @@ export type AgendaCita = {
   id: number;
   codigo: string;
   hora: string;
-  /** Hora de ingreso (de atención), cuando la cita ya fue atendida */
   hora_ingreso: string | null;
   estado_atencion: CitaAtencionEstado;
   hc: string | null;

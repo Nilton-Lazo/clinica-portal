@@ -3,10 +3,7 @@ import { createPortal } from "react-dom";
 import { ToastContainer } from "react-toastify";
 
 const DEFAULT_DURATION = 4000;
-/**
- * Provider de notificaciones con React-Toastify.
- * Configuración enterprise: top-right, límite, progreso, tema alineado al diseño.
- */
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const toastContainer = (
     <ToastContainer

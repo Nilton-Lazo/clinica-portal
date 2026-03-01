@@ -178,11 +178,8 @@ export default function ProgramacionCalendarCard(props: {
                     `h-10 ${cellBorder}`,
                     "relative text-sm tabular-nums transition-colors",
                     "flex items-center justify-center",
-                    // rango entre inicio/fin
                     inBetween ? "bg-(--color-panel-options-bg) text-(--color-text-primary)" : "bg-(--color-surface) text-(--color-text-primary)",
-                    // recuadro de selección (mismo grosor que el resto de celdas)
                     activeRing ? "ring-1 ring-(--color-primary) ring-inset bg-(--color-panel-options-bg) font-semibold" : "",
-                    // hover solo si no está seleccionado
                     !activeRing ? "hover:bg-(--color-panel-options-bg)" : "",
                   ].join(" ")}
                   aria-label={`Seleccionar ${ymd(d)}`}
