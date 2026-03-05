@@ -663,7 +663,7 @@ export default function AtencionCitaPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-8">
+      <div className="flex min-h-50 flex-col items-center justify-center gap-3 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-8">
         <div className="h-8 w-8 shrink-0 rounded-full border-2 border-(--color-primary) border-t-transparent animate-spin" aria-hidden />
         <span className="text-sm font-medium text-(--color-text-secondary)">Cargando atención de cita…</span>
       </div>
