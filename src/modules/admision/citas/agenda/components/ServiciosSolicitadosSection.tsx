@@ -9,7 +9,7 @@ import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
 import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
-import { PRECISION_DECIMAL, formatDecimalDisplay } from "../../../../../shared/constants/decimalPrecision";
+import { PRECISION_DECIMAL, formatDecimalFixed } from "../../../../../shared/constants/decimalPrecision";
 import type {
   AtencionDraft,
   AtencionServicioLineaDisplay,
@@ -75,7 +75,7 @@ function PrecioCell({ valor }: { valor: number }) {
     <div className="inline-flex items-baseline gap-0 text-xs">
       <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
       <span className="min-w-14 text-right tabular-nums">
-        {formatDecimalDisplay(valor)}
+        {formatDecimalFixed(valor, 2)}
       </span>
     </div>
   );
@@ -835,7 +835,7 @@ export function ServiciosSolicitadosSection({
                                 className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-right outline-none focus:ring-0 focus:border-(--color-primary)"
                               />
                             ) : (
-                              <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalDisplay(item.precio_con_igv)}</span>
+                              <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">S/. {formatDecimalFixed(item.precio_con_igv, 2)}</span>
                             )}
                           </div>
                           <div className="flex flex-col gap-1">
@@ -862,14 +862,14 @@ export function ServiciosSolicitadosSection({
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar aseguradora S/.</span>
                 <span className="min-w-28 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
-                  {formatDecimalDisplay(reporteConIgv.totalPagoAseguradora)}
+                  {formatDecimalFixed(reporteConIgv.totalPagoAseguradora, 2)}
                 </span>
               </div>
             )}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar paciente S/.</span>
               <span className="min-w-28 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">
-                {formatDecimalDisplay(montoAPagarComputed)}
+                {formatDecimalFixed(montoAPagarComputed, 2)}
               </span>
             </div>
           </div>
@@ -904,7 +904,7 @@ export function ServiciosSolicitadosSection({
                   return (
                     <div className="flex w-full items-baseline gap-0 text-sm">
                       <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
-                      <span className="min-w-0 flex-1 text-right tabular-nums">{formatDecimalDisplay(val)}</span>
+                      <span className="min-w-0 flex-1 text-right tabular-nums">{formatDecimalFixed(val, 2)}</span>
                     </div>
                   );
                 };
@@ -915,7 +915,7 @@ export function ServiciosSolicitadosSection({
                   return (
                     <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
                       <span className="w-8 shrink-0 text-right">S/. </span>
-                      <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(val)}</span>
+                      <span className="min-w-0 flex-1 text-right">{formatDecimalFixed(val, 2)}</span>
                     </span>
                   );
                 };
@@ -953,7 +953,7 @@ export function ServiciosSolicitadosSection({
                                 <tr key={item.id ?? `resumen-${i}`} className="border-t border-(--border-color-default) bg-(--color-surface) hover:bg-(--color-surface-hover)">
                                   <td className={`${tdBase} text-center tabular-nums text-(--color-primary)`}>{item.servicio_codigo ?? "—"}</td>
                                   <td className={`${tdBase} text-left text-(--color-text-primary) whitespace-normal`}>{item.servicio_descripcion ?? "—"}</td>
-                                  <td className={`${tdBase} text-center tabular-nums`}>{formatDecimalDisplay(cant)}</td>
+                                  <td className={`${tdBase} text-center tabular-nums`}>{formatDecimalFixed(cant, 2)}</td>
                                   <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(row.precioUnitarioConIgv)}</td>
                                   <td className={`${tdBase} text-right ${monedaMin}`}>{renderSoles(row.importeConIgv)}</td>
                                   {hasDescuento && <td className={`${tdBase} text-center tabular-nums`}>{descPct === 0 ? "—" : `${descPct}%`}</td>}
@@ -989,7 +989,7 @@ export function ServiciosSolicitadosSection({
                               </div>
                               <div className="grid grid-cols-[1fr_minmax(8rem,1fr)] gap-x-4 gap-y-1 text-(--color-text-secondary)">
                                 <span>Cantidad:</span>
-                                <span className="tabular-nums text-right text-(--color-text-primary)">{formatDecimalDisplay(cant)}</span>
+                                <span className="tabular-nums text-right text-(--color-text-primary)">{formatDecimalFixed(cant, 2)}</span>
                                 <span>Precio unit. c/ IGV:</span>
                                 {renderSolesCelda(row.precioUnitarioConIgv)}
                                 <span>Importe c/ IGV:</span>
@@ -1012,17 +1012,17 @@ export function ServiciosSolicitadosSection({
                           <span>Copago variable:</span>
                           <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
                             <span className="w-8 shrink-0 text-right">S/. </span>
-                            <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(totalCopVar)}</span>
+                            <span className="min-w-0 flex-1 text-right">{formatDecimalFixed(totalCopVar, 2)}</span>
                           </span>
                           <span>Copago fijo:</span>
                           <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
                             <span className="w-8 shrink-0 text-right">S/. </span>
-                            <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(totalCopFijo)}</span>
+                            <span className="min-w-0 flex-1 text-right">{formatDecimalFixed(totalCopFijo, 2)}</span>
                           </span>
                           <span>Pago aseguradora:</span>
                           <span className="flex w-full min-w-0 items-baseline gap-0 tabular-nums text-(--color-text-primary)">
                             <span className="w-8 shrink-0 text-right">S/. </span>
-                            <span className="min-w-0 flex-1 text-right">{formatDecimalDisplay(totalPagoAsegu)}</span>
+                            <span className="min-w-0 flex-1 text-right">{formatDecimalFixed(totalPagoAsegu, 2)}</span>
                           </span>
                         </div>
                       </div>

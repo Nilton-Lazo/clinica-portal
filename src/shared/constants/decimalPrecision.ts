@@ -21,3 +21,13 @@ export function formatDecimalDisplay(
   const s = rounded.toFixed(maxDecimals);
   return s.replace(/\.?0+$/, "");
 }
+
+export function formatDecimalFixed(
+  value: number | null | undefined,
+  decimals: number
+): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const f = 10 ** decimals;
+  const rounded = Math.round(Number(value) * f) / f;
+  return rounded.toFixed(decimals);
+}
