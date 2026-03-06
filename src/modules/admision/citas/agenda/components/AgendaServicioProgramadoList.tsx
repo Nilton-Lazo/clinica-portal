@@ -18,7 +18,7 @@ export default function AgendaServicioProgramadoList({
 }) {
   if (loading) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-surface) py-3 px-4">
+      <div className="flex items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-surface) py-3 px-4">
         <span className="text-xs text-(--color-text-secondary)">Cargando servicios…</span>
       </div>
     );
@@ -26,7 +26,7 @@ export default function AgendaServicioProgramadoList({
 
   if (list.length === 0) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-surface) py-3 px-4">
+      <div className="flex items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-surface) py-3 px-4">
         <span className="text-xs text-(--color-text-secondary)">{emptyMessage}</span>
       </div>
     );

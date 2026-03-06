@@ -55,7 +55,7 @@ export default function AdmisionHomePage() {
 
   return (
     <div className="w-full h-full">
-      <div className="hidden lg:grid gap-4 lg:grid-cols-[1fr_1fr_minmax(320px,400px)] h-full">
+      <div className="hidden lg:grid gap-4 lg:grid-cols-[1fr_1fr_minmax(320px,400px)] lg:grid-rows-1 h-full">
         <div className="grid gap-3 auto-rows-fr">
           {col1.map((item) => (
             <AdmisionHubCard

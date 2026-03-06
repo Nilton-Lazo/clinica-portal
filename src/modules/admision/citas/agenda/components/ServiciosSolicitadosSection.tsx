@@ -925,7 +925,7 @@ export function ServiciosSolicitadosSection({
                 const { filas, totalCopVar, totalCopFijo, totalPagoAsegu } = reporteConIgv;
                 return (
                   <div ref={reporteSectionRef} className="flex flex-col gap-2">
-                    <div className="hidden lg:block rounded border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
+                    <div className="hidden lg:block w-full overflow-x-auto rounded border border-(--border-color-default) overflow-hidden bg-(--color-surface)">
                       <div className="min-h-0 overflow-auto app-scrollbar app-scrollbar-no-gutter">
                         <table className="w-full text-sm min-w-[700px]">
                           <thead className="sticky top-0 bg-(--color-primary) text-(--color-text-inverse)">

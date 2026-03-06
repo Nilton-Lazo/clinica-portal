@@ -27,7 +27,7 @@ export default function FicherosPage() {
           </button>
         </div>
 
-        <div className="flex min-h-[70vh] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:overflow-hidden app-scrollbar">
+        <div className="w-full flex min-h-[70vh] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:overflow-hidden app-scrollbar">
           <Outlet />
         </div>
       </div>

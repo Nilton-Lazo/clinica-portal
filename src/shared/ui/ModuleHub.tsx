@@ -27,7 +27,6 @@ function HubCard({ item, onNavigate }: { item: HubItem; onNavigate: (to: string)
 
   return (
     <div className="flex flex-col rounded-xl border border-(--color-border) bg-(--color-surface) overflow-hidden shadow-sm">
-      {/* ── Cabecera ── */}
       <button
         type="button"
         onClick={() => onNavigate(item.to)}

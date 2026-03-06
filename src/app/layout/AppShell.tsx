@@ -79,10 +79,10 @@ export default function AppShell() {
   }, []);
 
   return (
-    <div className="relative h-dvh overflow-hidden bg-(--color-background)">
+    <div className="relative flex flex-col h-screen overflow-hidden bg-(--color-background)">
       {isDesktop && (
         <div
-          className="fixed inset-y-0 left-0 z-40"
+          className="fixed inset-y-0 left-0 z-40 shrink-0"
           style={{
             width: sidebarW,
             transition: `width ${TRANSITION_MS}ms ${TRANSITION_EASE}`,
@@ -113,10 +113,10 @@ export default function AppShell() {
       >
         <AppHeader onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
 
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden min-w-0">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto min-w-0">
           <div
             className={[
-              "mx-auto flex min-h-0 w-full max-w-400 flex-1 flex-col p-4 lg:p-2",
+              "mx-auto flex min-h-0 w-full flex-1 flex-col p-4 lg:p-2",
               isScrollableContent ? "overflow-auto" : "overflow-hidden",
             ].join(" ")}
           >

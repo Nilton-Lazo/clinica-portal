@@ -43,8 +43,9 @@ export function DataTable<T>(props: {
 
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)">
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto app-scrollbar app-scrollbar-no-gutter">
-        <table className="w-full min-w-full border-collapse text-sm">
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-auto w-full app-scrollbar app-scrollbar-no-gutter">
+        <div className="min-h-0 min-w-0 h-full overflow-y-auto app-scrollbar app-scrollbar-no-gutter">
+          <table className="w-full min-w-full border-collapse text-sm">
           <thead className="sticky top-0 z-1 bg-(--color-primary) text-(--color-text-inverse)">
             <tr>
               {columns.map((c) => (
@@ -103,6 +104,7 @@ export function DataTable<T>(props: {
             )}
           </tbody>
         </table>
+        </div>
       </div>
       {showOverlay ? <TableLoadingOverlay /> : null}
     </div>
