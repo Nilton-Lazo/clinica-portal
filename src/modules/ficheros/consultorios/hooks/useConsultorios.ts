@@ -281,7 +281,7 @@ export function useConsultorios() {
 
     try {
       if (mode === "new") {
-        const res = await createConsultorio({
+        await createConsultorio({
           abreviatura: a,
           descripcion: d,
           es_tercero: esTercero,
@@ -293,8 +293,7 @@ export function useConsultorios() {
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -317,7 +316,7 @@ export function useConsultorios() {
       } finally {
           setSaving(false);
         }
-  }, [abreviatura, descripcion, esTercero, estado, isDirty, loadForEdit, mode, refresh, selected, saving]);
+  }, [abreviatura, descripcion, esTercero, estado, isDirty, loadForEdit, mode, refresh, resetToNew, selected, saving]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {

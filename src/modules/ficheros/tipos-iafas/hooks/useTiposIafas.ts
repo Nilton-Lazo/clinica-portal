@@ -205,14 +205,13 @@ export function useTiposIafas() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createTipoIafa({ ...payloadBase, estado });
+        await createTipoIafa({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Tipo de IAFAS creado." });
         toastService.showSuccess("Tipo de IAFAS creado.");
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -229,7 +228,7 @@ export function useTiposIafas() {
     } finally {
       setSaving(false);
     }
-  }, [isValid, mode, selected, isDirty, descripcion, estado, refresh, loadForEdit]);
+  }, [isValid, mode, selected, isDirty, descripcion, estado, refresh, loadForEdit, resetToNew]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {

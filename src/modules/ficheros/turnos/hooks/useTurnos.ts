@@ -397,7 +397,7 @@ export function useTurnos() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createTurno({
+        await createTurno({
           hora_inicio: hi,
           hora_fin: hf,
           tipo_turno: tipoTurno,
@@ -411,8 +411,7 @@ export function useTurnos() {
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -450,6 +449,7 @@ export function useTurnos() {
     effectiveDescripcion,
     refresh,
     loadForEdit,
+    resetToNew,
   ]);
 
   const requestDeactivate = useCallback(() => {

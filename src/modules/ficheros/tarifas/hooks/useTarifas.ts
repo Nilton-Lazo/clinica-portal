@@ -648,14 +648,13 @@ export function useTarifas() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createTarifa({ ...payloadBase, estado });
+        await createTarifa({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Tarifa creada." });
         toastService.showSuccess("Tarifa creada.");
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -706,6 +705,7 @@ export function useTarifas() {
     estado,
     refresh,
     loadForEdit,
+    resetToNew,
   ]);
 
   const requestDeactivate = useCallback(() => {

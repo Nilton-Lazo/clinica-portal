@@ -44,4 +44,5 @@ export type AcreditacionPlan = {
   parentesco_seguro: ParentescoSeguro | null;
   fecha_afiliacion: string | null;
   estado: RecordStatus;
+  tarifa_es_precio_directo?: boolean;
 };

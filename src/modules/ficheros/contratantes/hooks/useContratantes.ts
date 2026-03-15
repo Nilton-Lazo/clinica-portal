@@ -250,14 +250,13 @@ export function useContratantes() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createContratante({ ...payloadBase, estado });
+        await createContratante({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Contratante creado." });
         toastService.showSuccess("Contratante creado.");
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -274,7 +273,7 @@ export function useContratantes() {
     } finally {
       setSaving(false);
     }
-  }, [isValid, mode, selected, isDirty, razonSocial, ruc, telefono, direccion, estado, refresh, loadForEdit]);
+  }, [isValid, mode, selected, isDirty, razonSocial, ruc, telefono, direccion, estado, refresh, loadForEdit, resetToNew]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {

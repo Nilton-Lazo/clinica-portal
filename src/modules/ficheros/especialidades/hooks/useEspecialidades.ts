@@ -236,7 +236,7 @@ export function useEspecialidades() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createEspecialidad({
+        await createEspecialidad({
           descripcion: d,
           estado,
         });
@@ -246,8 +246,7 @@ export function useEspecialidades() {
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -268,7 +267,7 @@ export function useEspecialidades() {
     } finally {
       setSaving(false);
     }
-  }, [descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, saving, selected, toast]);
+  }, [descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, resetToNew, saving, selected, toast]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {

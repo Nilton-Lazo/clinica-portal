@@ -1,10 +1,19 @@
 import * as React from "react";
 
+/**
+ * Modo de la columna derecha:
+ * - "scroll": la columna hace scroll (formularios largos, ej. ficheros).
+ * - "fill": la columna ocupa todo el alto y el contenido interno hace scroll (paneles de detalle).
+ */
+export type RightColumnMode = "scroll" | "fill";
+
 export interface CrudSplitLayoutProps {
   left: React.ReactNode;
   right: React.ReactNode;
   rightRef?: React.RefObject<HTMLDivElement | null>;
   formWidth?: string;
+  /** Por defecto "scroll" (comportamiento clásico para formularios). Usar "fill" para paneles de detalle que scrollan por dentro. */
+  rightColumnMode?: RightColumnMode;
 }
 
 const DEFAULT_FORM_WIDTH = "380px";
@@ -13,10 +22,13 @@ export function CrudSplitLayout({
   right,
   rightRef,
   formWidth = DEFAULT_FORM_WIDTH,
+  rightColumnMode = "scroll",
 }: CrudSplitLayoutProps) {
+  const isFill = rightColumnMode === "fill";
+
   return (
     <div
-      className="flex flex-col gap-4 min-h-0 flex-1 overflow-hidden lg:grid lg:items-stretch lg:gap-2"
+      className="flex flex-col gap-4 lg:grid lg:min-h-0 lg:flex-1 lg:items-stretch lg:gap-2 lg:overflow-hidden"
       style={
         {
           ["--form-width" as string]: formWidth,
@@ -24,16 +36,24 @@ export function CrudSplitLayout({
         } as React.CSSProperties
       }
     >
-      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:min-w-0">
+      <div className="flex min-h-0 min-w-0 flex-col lg:overflow-hidden">
         {left}
       </div>
       <div
         ref={rightRef}
-        className="min-w-0 shrink-0 lg:h-full lg:max-h-full lg:overflow-y-auto app-scrollbar-thin lg:w-(--form-width) lg:min-w-(--form-width)"
+        className={
+          isFill
+            ? "flex w-full shrink-0 flex-col lg:min-h-0 lg:w-(--form-width) lg:min-w-(--form-width) lg:flex-none lg:overflow-hidden"
+            : "w-full shrink-0 lg:h-full lg:min-h-0 lg:w-(--form-width) lg:min-w-(--form-width) lg:max-h-full lg:overflow-y-auto lg:app-scrollbar-thin"
+        }
       >
-        <div className="w-full min-h-full lg:h-full">
-          {right}
-        </div>
+        {isFill ? (
+          <div className="flex w-full flex-col lg:h-full lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+            {right}
+          </div>
+        ) : (
+          <div className="w-full lg:h-full lg:min-h-full">{right}</div>
+        )}
       </div>
     </div>
   );

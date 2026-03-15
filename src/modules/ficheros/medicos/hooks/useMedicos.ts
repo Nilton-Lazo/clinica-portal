@@ -552,7 +552,7 @@ export function useMedicos() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createMedico({
+        await createMedico({
           ...payloadBase,
           estado,
         });
@@ -562,8 +562,7 @@ export function useMedicos() {
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -610,6 +609,7 @@ export function useMedicos() {
     estado,
     refresh,
     loadForEdit,
+    resetToNew,
   ]);
 
   const requestDeactivate = useCallback(() => {

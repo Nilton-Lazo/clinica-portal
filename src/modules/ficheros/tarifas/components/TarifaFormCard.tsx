@@ -2,34 +2,11 @@ import * as React from "react";
 import type { IafaLookup, RecordStatus } from "../../types/tarifas.types";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useTarifas";
-import { Calendar, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
+import DateInput from "../../../../shared/ui/DateInput";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
-import { inputBase } from "../../utils/crudShared";
-
-function useIsTouchUi(): boolean {
-  const [isTouch, setIsTouch] = React.useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-  });
-
-  React.useEffect(() => {
-    const mq = window.matchMedia("(hover: none) and (pointer: coarse)");
-    const onChange = () => setIsTouch(mq.matches);
-    onChange();
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  return isTouch;
-}
-
-function formatDateForDisplay(iso: string): string {
-  const t = (iso ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return "";
-  const [y, m, d] = t.split("-");
-  return `${d}/${m}/${y}`;
-}
+import { inputBase, makeEnterKeySaveHandler } from "../../utils/crudShared";
 
 function toIafaLabel(x: IafaLookup): string {
   const c = (x.codigo ?? "").trim();
@@ -246,7 +223,6 @@ export default function TarifaFormCard(props: {
     onDeactivate,
   } = props;
 
-  const isTouchUi = useIsTouchUi();
   const saveEnabled = isValid && isDirty && !saving;
 
   const estadoOptions: SelectOption[] = [
@@ -279,7 +255,10 @@ export default function TarifaFormCard(props: {
   }, []);
 
   return (
-    <div className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div
+      className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4"
+      onKeyDown={makeEnterKeySaveHandler(saveEnabled, onSave)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -352,27 +331,13 @@ export default function TarifaFormCard(props: {
 
         <div>
           <label className="text-sm text-(--color-text-primary)">Fecha de creación</label>
-
-          {isTouchUi ? (
-            <div className="relative mt-1 rounded border border-(--border-color-default) bg-(--color-surface) focus-within:border-(--color-primary) focus-within:ring-0">
-              <div className="h-10 w-full rounded border-0 bg-transparent px-3 pr-10 text-sm flex items-center text-(--color-text-primary)">
-                <span className={fechaCreacion ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
-                  {fechaCreacion ? formatDateForDisplay(fechaCreacion) : "dd/mm/aaaa"}
-                </span>
-              </div>
-
-              <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
-
-              <input type="date" value={fechaCreacion} className="absolute inset-0 h-10 w-full opacity-0" aria-label="Fecha de creación" />
-            </div>
-          ) : (
-            <input
-              type="date"
-              value={fechaCreacion}
-              readOnly
-              className={`mt-1 h-10 w-full ${inputBase}`}
-            />
-          )}
+          <DateInput
+            value={fechaCreacion}
+            onChange={() => {}}
+            aria-label="Fecha de creación"
+            className="mt-1"
+            readOnly
+          />
         </div>
 
         <Section title="Factores de servicios">

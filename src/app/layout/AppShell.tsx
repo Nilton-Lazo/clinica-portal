@@ -36,8 +36,9 @@ export default function AppShell() {
   const isProgramacionMedica = location.pathname.includes("/admision/citas/programacion");
   const isAgendaCitas = location.pathname.includes("/admision/citas/agenda");
   const isTarifario = location.pathname.startsWith("/facturacion/tarifario");
+  const isEmergenciaNuevoRegistro = location.pathname.includes("/emergencia/registro/nuevo");
   const isScrollableContent =
-    (isHistoriaClinicaWizard && !isHistoriaList) || isProgramacionMedica || isAgendaCitas || isTarifario;
+    (isHistoriaClinicaWizard && !isHistoriaList) || isProgramacionMedica || isAgendaCitas || isTarifario || isEmergenciaNuevoRegistro;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const canHover = useMediaQuery("(hover: hover) and (pointer: fine)");
@@ -117,7 +118,7 @@ export default function AppShell() {
           <div
             className={[
               "mx-auto flex min-h-0 w-full flex-1 flex-col p-4 lg:p-2",
-              isScrollableContent ? "overflow-auto" : "overflow-hidden",
+              isScrollableContent ? "overflow-y-auto" : "overflow-y-auto lg:overflow-hidden",
             ].join(" ")}
           >
             <Outlet />

@@ -4,6 +4,7 @@ import type { TipoProgramacionMedica } from "../../types/programacionMedica.type
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
+import { makeEnterKeySaveHandler } from "../../../../ficheros/utils/crudShared";
 
 type Opt = { id: number; label: string };
 
@@ -101,7 +102,10 @@ export default function ProgramacionMedicaFormCard(props: {
   const codigoValue = String(codigo ?? "").trim() !== "" ? codigo : "Generando...";
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div
+      className="flex h-full flex-col rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4"
+      onKeyDown={makeEnterKeySaveHandler(saveEnabled, onSave)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">

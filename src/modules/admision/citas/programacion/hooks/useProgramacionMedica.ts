@@ -28,6 +28,7 @@ import {
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
+export type Notice = { type: "success" | "error"; text: string } | null;
 
 function clampPerPage(n: number) {
   if (n <= 25) return 25;

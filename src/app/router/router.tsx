@@ -34,9 +34,20 @@ import TarifasPage from "../../modules/ficheros/pages/TarifasPage";
 import TiposClientesPage from "../../modules/ficheros/pages/TiposClientesPage";
 import ParametrosIgvPage from "../../modules/ficheros/pages/ParametrosIgvPage";
 import RecargoNochePage from "../../modules/ficheros/pages/RecargoNochePage";
+import EmergenciaParametrosLayout from "../../modules/ficheros/parametros/emergencia/pages/EmergenciaParametrosLayout";
+import EmergenciaParametrosHubPage from "../../modules/ficheros/parametros/emergencia/pages/EmergenciaParametrosHubPage";
+import TipoEmergenciaPage from "../../modules/ficheros/parametros/emergencia/pages/TipoEmergenciaPage";
+import TopicoPage from "../../modules/ficheros/parametros/emergencia/pages/TopicoPage";
+import TipoDocumentoPage from "../../modules/ficheros/parametros/emergencia/pages/TipoDocumentoPage";
+import DocumentoAtencionPage from "../../modules/ficheros/parametros/emergencia/pages/DocumentoAtencionPage";
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
+
+import EmergenciaHomePage from "../../modules/emergencia/pages/EmergenciaHomePage";
+import RegistroEmergenciaPage from "../../modules/emergencia/pages/RegistroEmergenciaPage";
+import AtencionEmergenciaPage from "../../modules/emergencia/pages/AtencionEmergenciaPage";
+import NuevoRegistroEmergenciaPage from "../../modules/emergencia/registro/pages/NuevoRegistroEmergenciaPage";
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +74,15 @@ export const router = createBrowserRouter([
               { path: "farmacia/*",          element: <ComingSoonPage /> },
               { path: "hospital",            element: <ComingSoonPage /> },
               { path: "hospital/*",          element: <ComingSoonPage /> },
+              {
+                path: "emergencia",
+                children: [
+                  { index: true, element: <EmergenciaHomePage /> },
+                  { path: "registro", element: <RegistroEmergenciaPage /> },
+                  { path: "registro/nuevo", element: <NuevoRegistroEmergenciaPage /> },
+                  { path: "atencion/:id", element: <AtencionEmergenciaPage /> },
+                ],
+              },
               { path: "diagnostico-clinico", element: <ComingSoonPage /> },
               { path: "diagnostico-clinico/*", element: <ComingSoonPage /> },
               { path: "gerencia",            element: <ComingSoonPage /> },
@@ -87,6 +107,17 @@ export const router = createBrowserRouter([
                   { path: "tipos-clientes", element: <TiposClientesPage /> },
                   { path: "parametros/igv", element: <ParametrosIgvPage /> },
                   { path: "parametros/recargo-noche", element: <RecargoNochePage /> },
+                  {
+                    path: "parametros/emergencia",
+                    element: <EmergenciaParametrosLayout />,
+                    children: [
+                      { index: true, element: <EmergenciaParametrosHubPage /> },
+                      { path: "tipo", element: <TipoEmergenciaPage /> },
+                      { path: "topico", element: <TopicoPage /> },
+                      { path: "tipo-documento", element: <TipoDocumentoPage /> },
+                      { path: "documento-atencion", element: <DocumentoAtencionPage /> },
+                    ],
+                  },
                 ],
               },
               {

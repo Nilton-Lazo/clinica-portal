@@ -1,6 +1,6 @@
-import type { Notice } from "../hooks/useProgramacionMedica";
+export type Notice = { type: "success" | "error" | "info"; text: string };
 
-export default function NoticeBanner(props: { notice: Notice }) {
+export default function NoticeBanner(props: { notice: Notice | null }) {
   const { notice } = props;
   if (!notice) return null;
 

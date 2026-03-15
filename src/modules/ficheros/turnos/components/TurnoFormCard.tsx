@@ -4,7 +4,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useTurnos";
 import { Clock } from "lucide-react";
 import { SelectMenu as SharedSelectMenu } from "../../../../shared/ui/SelectMenu";
-import { inputBase } from "../../utils/crudShared";
+import { inputBase, makeEnterKeySaveHandler } from "../../utils/crudShared";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 
 type Opt = { value: string; label: string; disabled?: boolean };
@@ -311,7 +311,10 @@ export default function TurnoFormCard(props: {
         : (descripcionPreview ?? "");
 
   return (
-    <div className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div
+      className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4"
+      onKeyDown={makeEnterKeySaveHandler(saveEnabled, onSave)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -366,21 +369,17 @@ export default function TurnoFormCard(props: {
             <label className="text-sm text-(--color-text-primary)">Hora de inicio</label>
 
             {isTouchUi ? (
-              <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
-                  <span className={horaInicio ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
-                    {horaInicio ? normalizeTimeOnBlur(horaInicio) : "HH:MM"}
-                  </span>
-                </div>
-
+              <div className="relative mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center text-(--color-text-primary) focus-within:ring-0 focus-within:border-(--color-primary)">
+                <span className={horaInicio ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
+                  {horaInicio ? normalizeTimeOnBlur(horaInicio) : "HH:MM"}
+                </span>
                 <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
-
                 <input
                   type="time"
                   step={60}
                   value={horaInicio ? normalizeTimeOnBlur(horaInicio) : ""}
                   onChange={(e) => onHoraInicioChange(e.target.value)}
-                  className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                  className="absolute inset-0 w-full h-full cursor-pointer opacity-0 rounded"
                   aria-label="Hora de inicio"
                 />
               </div>
@@ -393,21 +392,17 @@ export default function TurnoFormCard(props: {
             <label className="text-sm text-(--color-text-primary)">Hora de término</label>
 
             {isTouchUi ? (
-              <div className="relative mt-1 rounded-xl focus-within:ring-2 focus-within:ring-(--color-primary)">
-                <div className="h-10 w-full rounded-xl border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center">
-                  <span className={horaFin ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
-                    {horaFin ? normalizeTimeOnBlur(horaFin) : "HH:MM"}
-                  </span>
-                </div>
-
+              <div className="relative mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center text-(--color-text-primary) focus-within:ring-0 focus-within:border-(--color-primary)">
+                <span className={horaFin ? "text-(--color-text-primary)" : "text-(--color-base-primary)"}>
+                  {horaFin ? normalizeTimeOnBlur(horaFin) : "HH:MM"}
+                </span>
                 <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
-
                 <input
                   type="time"
                   step={60}
                   value={horaFin ? normalizeTimeOnBlur(horaFin) : ""}
                   onChange={(e) => onHoraFinChange(e.target.value)}
-                  className="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                  className="absolute inset-0 w-full h-full cursor-pointer opacity-0 rounded"
                   aria-label="Hora de término"
                 />
               </div>

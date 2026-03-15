@@ -38,6 +38,18 @@ function toStrOrNull(v: unknown): string | null {
   return null;
 }
 
+function toUbigeoCode(v: unknown): string | null {
+  if (typeof v === "string") {
+    const x = v.trim();
+    return x ? x : null;
+  }
+  if (v && typeof v === "object" && "codigo" in v && typeof (v as { codigo: unknown }).codigo === "string") {
+    const c = (v as { codigo: string }).codigo.trim();
+    return c ? c : null;
+  }
+  return null;
+}
+
 function toStrOrEmpty(v: unknown): string {
   return toStrOrNull(v) ?? "";
 }
@@ -122,9 +134,9 @@ export async function getPaciente(id: number): Promise<PacienteDetail> {
     fecha_nacimiento: toStrOrNull(x.fecha_nacimiento),
 
     nacionalidad_iso2: toStrOrNull(x.nacionalidad_iso2),
-    ubigeo_nacimiento: toStrOrNull(x.ubigeo_nacimiento),
+    ubigeo_nacimiento: toUbigeoCode(x.ubigeo_nacimiento),
     direccion: toStrOrNull(x.direccion),
-    ubigeo_domicilio: toStrOrNull(x.ubigeo_domicilio),
+    ubigeo_domicilio: toUbigeoCode(x.ubigeo_domicilio),
 
     parentesco_seguro: toStrOrNull(x.parentesco_seguro),
     titular_nombre: toStrOrNull(x.titular_nombre),

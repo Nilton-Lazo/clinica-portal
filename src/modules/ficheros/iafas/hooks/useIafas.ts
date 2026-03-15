@@ -407,14 +407,13 @@ export function useIafas() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createIafa({ ...payloadBase, estado });
+        await createIafa({ ...payloadBase, estado });
         setNotice({ type: "success", text: "IAFAS creada." });
         toastService.showSuccess("IAFAS creada.");
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -449,6 +448,7 @@ export function useIafas() {
     estado,
     refresh,
     loadForEdit,
+    resetToNew,
   ]);
 
   const requestDeactivate = useCallback(() => {

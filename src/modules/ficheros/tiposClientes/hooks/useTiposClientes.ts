@@ -298,14 +298,13 @@ export function useTiposClientes() {
     setSaving(true);
     try {
       if (mode === "new") {
-        const res = await createTipoCliente({ ...payloadBase, estado });
+        await createTipoCliente({ ...payloadBase, estado });
         setNotice({ type: "success", text: "Tipo de cliente creado." });
         toastService.showSuccess("Tipo de cliente creado.");
 
         setPage(1);
         await refresh({ page: 1 });
-
-        loadForEdit(res.data);
+        resetToNew();
         return;
       }
 
@@ -322,7 +321,7 @@ export function useTiposClientes() {
     } finally {
       setSaving(false);
     }
-  }, [isValid, mode, selected, isDirty, tarifaId, contratanteId, estado, refresh, loadForEdit]);
+  }, [isValid, mode, selected, isDirty, tarifaId, contratanteId, estado, refresh, loadForEdit, resetToNew]);
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {

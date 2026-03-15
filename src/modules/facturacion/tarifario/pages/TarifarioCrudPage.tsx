@@ -5,6 +5,7 @@ import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTab
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
 import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { makeEnterKeySaveHandler } from "../../../ficheros/utils/crudShared";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
@@ -1500,7 +1501,10 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
         </div>
 
         <div ref={formRef} className="min-w-0 shrink-0">
-          <div className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+          <div
+            className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
+            onKeyDown={makeEnterKeySaveHandler(Boolean(vm.isValid && vm.isDirty && !vm.saving), vm.onSave)}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -1739,7 +1743,10 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
         </div>
 
         <div ref={formRef} className="min-w-0 shrink-0">
-          <div className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+          <div
+            className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
+            onKeyDown={makeEnterKeySaveHandler(Boolean(vm.isValid && vm.isDirty && !vm.saving), vm.onSave)}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">
@@ -2036,7 +2043,10 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
         </div>
 
         <div ref={formRef} className="lg:w-[380px] lg:min-w-[380px] lg:shrink-0 lg:max-h-full lg:overflow-y-auto app-scrollbar-thin">
-          <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+          <div
+            className="rounded border border-(--border-color-default) bg-(--color-surface) p-4"
+            onKeyDown={makeEnterKeySaveHandler(Boolean(vm.isValid && vm.isDirty && !vm.saving), vm.onSave)}
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">

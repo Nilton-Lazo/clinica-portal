@@ -5,6 +5,7 @@ import type { Mode } from "../useAcreditacionPlanes";
 import { Calendar } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
+import { makeEnterKeySaveHandler } from "../../../../ficheros/utils/crudShared";
 import { TextField } from "./formFields";
 
 function toTipoClienteLabel(x: TipoClienteLookup): string {
@@ -125,7 +126,10 @@ export default function AcreditacionPlanFormCard(props: {
   ];
 
   return (
-    <div className="h-full rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div
+      className="h-full rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4"
+      onKeyDown={makeEnterKeySaveHandler(saveEnabled, onSave)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">

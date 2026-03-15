@@ -72,4 +72,48 @@ export const ficherosMeta: Record<string, RouteMeta> = {
             { label: "Recargo nocturno" },
         ],
     },
+    "/ficheros/parametros/emergencia": {
+        title: "Ficheros",
+        subtitle: "Parámetros del módulo Emergencia.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Emergencia" },
+        ],
+    },
+    "/ficheros/parametros/emergencia/tipo": {
+        title: "Ficheros",
+        subtitle: "Tipo Emergencia.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
+            { label: "Tipo Emergencia" },
+        ],
+    },
+    "/ficheros/parametros/emergencia/topico": {
+        title: "Ficheros",
+        subtitle: "Tópico.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
+            { label: "Tópico" },
+        ],
+    },
+    "/ficheros/parametros/emergencia/tipo-documento": {
+        title: "Ficheros",
+        subtitle: "Tipo Documento.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
+            { label: "Tipo Documento" },
+        ],
+    },
+    "/ficheros/parametros/emergencia/documento-atencion": {
+        title: "Ficheros",
+        subtitle: "Documento de Atención.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
+            { label: "Documento de Atención" },
+        ],
+    },
 };

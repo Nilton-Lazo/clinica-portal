@@ -6,6 +6,20 @@ export const inputBase =
 
 export type Notice = { type: "success" | "error"; text: string } | null;
 
+export function makeEnterKeySaveHandler(
+  saveEnabled: boolean,
+  onSave: () => void
+): React.KeyboardEventHandler<HTMLDivElement> {
+  return (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Enter") return;
+    const target = e.target as HTMLElement;
+    if (target.tagName === "TEXTAREA") return;
+    if (!saveEnabled) return;
+    e.preventDefault();
+    onSave();
+  };
+}
+
 export function useNoticeToToast(notice: Notice) {
   const lastKeyRef = React.useRef<string | null>(null);
 

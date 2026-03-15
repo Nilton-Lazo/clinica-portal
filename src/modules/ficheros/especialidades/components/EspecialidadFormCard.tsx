@@ -3,7 +3,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import type { Mode } from "../hooks/useEspecialidades";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
-import { inputBase } from "../../utils/crudShared";
+import { inputBase, makeEnterKeySaveHandler } from "../../utils/crudShared";
 
 export default function EspecialidadFormCard(props: {
   mode: Mode;
@@ -52,7 +52,10 @@ export default function EspecialidadFormCard(props: {
   ];
 
   return (
-    <div className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+    <div
+      className="flex min-h-full w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4"
+      onKeyDown={makeEnterKeySaveHandler(saveEnabled, onSave)}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-(--color-text-primary)">

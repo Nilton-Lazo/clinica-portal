@@ -15,12 +15,13 @@ type TipoClienteApi = {
   descripcion_tipo_cliente?: unknown;
   iafa_id?: unknown;
   contratante_id?: unknown;
+  tarifa?: { id?: unknown; es_precio_directo?: unknown };
 };
 
 type PlanApi = {
   id: number;
   tipo_cliente_id?: unknown;
-  tipo_cliente?: unknown;
+  tipo_cliente?: TipoClienteApi;
   parentesco_seguro?: unknown;
   fecha_afiliacion?: unknown;
   estado?: unknown;
@@ -115,6 +116,12 @@ function normalizeTipoCliente(x: unknown): TipoClienteLookup | null {
 
 function normalizePlan(x: PlanApi): AcreditacionPlan {
   const tipo = normalizeTipoCliente(x.tipo_cliente);
+  const tarifa = isObject(x.tipo_cliente) && isObject((x.tipo_cliente as Record<string, unknown>).tarifa)
+    ? (x.tipo_cliente as TipoClienteApi).tarifa
+    : undefined;
+  const tarifaEsPrecioDirecto = tarifa && typeof (tarifa as { es_precio_directo?: unknown }).es_precio_directo === "boolean"
+    ? (tarifa as { es_precio_directo: boolean }).es_precio_directo
+    : false;
 
   return {
     id: x.id,
@@ -123,6 +130,7 @@ function normalizePlan(x: PlanApi): AcreditacionPlan {
     parentesco_seguro: normalizeParentesco(x.parentesco_seguro),
     fecha_afiliacion: toStrOrNull(x.fecha_afiliacion),
     estado: normalizeEstado(x.estado),
+    tarifa_es_precio_directo: tarifaEsPrecioDirecto,
   };
 }
 
