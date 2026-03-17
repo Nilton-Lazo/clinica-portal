@@ -92,14 +92,14 @@ export function MobileEntityList<T>(props: {
             onTouchCancel={handleTouchEnd}
             onTouchMove={handleTouchMove}
             className={[
-              "w-full cursor-pointer rounded-lg border border-(--border-color-default) p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)",
+              "w-full cursor-pointer rounded-lg border border-(--border-color-default) p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary)",
               "transition-transform duration-150 active:scale-[0.99]",
               active ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
             ].join(" ")}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">{renderMain(row)}</div>
-              {renderRight ? renderRight(row) : null}
+            <div className="flex items-start justify-between gap-3 min-w-0 w-full">
+              <div className="min-w-0 flex-1">{renderMain(row)}</div>
+              {renderRight ? <div className="shrink-0">{renderRight(row)}</div> : null}
             </div>
           </div>
         );
