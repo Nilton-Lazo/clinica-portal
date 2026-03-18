@@ -29,6 +29,16 @@ export function useRecargoNoche() {
   const [mode, setMode] = React.useState<"new" | "edit">("new");
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = React.useState(false);
 
+  const dispatchRecargoChanged = React.useCallback((nextTarifaId: number | null) => {
+    if (typeof window === "undefined") return;
+    if (!nextTarifaId) return;
+    window.dispatchEvent(
+      new CustomEvent("recargoNoche:changed", {
+        detail: { tarifaId: nextTarifaId },
+      })
+    );
+  }, []);
+
   const [formCategoriaId, setFormCategoriaId] = React.useState<number | null>(null);
   const [formPorcentaje, setFormPorcentaje] = React.useState("");
   const [formHoraDesde, setFormHoraDesde] = React.useState("");
@@ -155,6 +165,7 @@ export function useRecargoNoche() {
         resetToNew();
         setNotice({ type: "success", text: "Regla creada." });
         toastService.showSuccess("Regla creada.");
+        dispatchRecargoChanged(tarifaId);
       } else if (selected) {
         const payload: {
           porcentaje: number;
@@ -172,6 +183,7 @@ export function useRecargoNoche() {
         setSelected(updated);
         setNotice({ type: "success", text: "Regla actualizada." });
         toastService.showSuccess("Regla actualizada.");
+        dispatchRecargoChanged(tarifaId);
       }
     } catch {
       setNotice({ type: "error", text: mode === "new" ? "No se pudo crear." : "No se pudo actualizar." });
@@ -179,7 +191,7 @@ export function useRecargoNoche() {
     } finally {
       setSaving(false);
     }
-  }, [tarifaId, mode, selected, formCategoriaId, formPorcentaje, formHoraDesde, formHoraHasta, formEstado, isValid, resetToNew]);
+  }, [tarifaId, mode, selected, formCategoriaId, formPorcentaje, formHoraDesde, formHoraHasta, formEstado, isValid, resetToNew, dispatchRecargoChanged]);
 
   const cancel = React.useCallback(() => {
     if (selected) {
@@ -214,13 +226,14 @@ export function useRecargoNoche() {
       setMode("new");
       setNotice({ type: "success", text: "Regla desactivada." });
       toastService.showSuccess("Regla desactivada.");
+      dispatchRecargoChanged(tarifaId);
     } catch {
       setNotice({ type: "error", text: "No se pudo desactivar." });
       toastService.showError("No se pudo desactivar.");
     } finally {
       setSaving(false);
     }
-  }, [tarifaId, selected]);
+  }, [tarifaId, selected, dispatchRecargoChanged]);
 
   const canDeactivate = Boolean(selected?.estado === "ACTIVO");
 

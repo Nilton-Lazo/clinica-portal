@@ -30,7 +30,7 @@ export default function RegistroEmergenciaDetailCard(props: {
   const navigate = useNavigate();
 
   const handleAtender = React.useCallback(() => {
-    if (selected?.id) navigate(`/emergencia/atencion/${selected.id}`);
+    if (selected?.id) navigate(`/emergencia/atencion/${selected.id}`, { state: { registro: selected } });
   }, [navigate, selected?.id]);
 
   if (!selected) {

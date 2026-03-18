@@ -5,7 +5,7 @@ import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons
 import { useAuth } from "../../../../../shared/auth/useAuth";
 import { api } from "../../../../../shared/api";
 import { toastService } from "../../../../../shared/notifications";
-import { getAtencionCitaData, getIgvPorcentaje, guardarAtencionCita } from "../services/atencionCita.service";
+import { buscarServiciosTarifa, getAtencionCitaData, getIgvPorcentaje, guardarAtencionCita } from "../services/atencionCita.service";
 import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
 import type {
   AtencionCitaData,
@@ -86,6 +86,11 @@ function calcularPrecios(
   const igv = precioSinIgv * (igvPct / 100);
   const precioConIgv = Math.round((precioSinIgv + igv) * 1000) / 1000;
   return { precioSinIgv, precioConIgv };
+}
+
+function getHoraActual(): string {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 export default function AtencionCitaPage() {
@@ -251,6 +256,119 @@ export default function AtencionCitaPage() {
     return Boolean(plan?.tarifa_es_precio_directo);
   }, [data?.planes, pacientePlanId]);
   const soatDeshabilitado = tarifaEsPrecioDirecto;
+
+  const tarifaIdRef = React.useRef<number | null>(tarifaId);
+  const lineasRef = React.useRef<AtencionServicioLineaDisplay[]>(lineas);
+  const recargoRecalcInFlightRef = React.useRef(false);
+  const recargoRecalcTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const igvPctCacheRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    tarifaIdRef.current = tarifaId;
+  }, [tarifaId]);
+  React.useEffect(() => {
+    lineasRef.current = lineas;
+  }, [lineas]);
+
+  const recalcularRecargoNocheEnLineas = React.useCallback(async () => {
+    const currentTarifaId = tarifaIdRef.current;
+    const snapshot = lineasRef.current;
+    if (!currentTarifaId || snapshot.length === 0) return;
+    if (recargoRecalcInFlightRef.current) return;
+
+    recargoRecalcInFlightRef.current = true;
+    try {
+      const horaReal = getHoraActual();
+      const igvPct = igvPctCacheRef.current ?? (await getIgvPorcentaje());
+      igvPctCacheRef.current = igvPct;
+
+      const updatesByTarifaServicioId = new Map<
+        number,
+        { recargoActivo: boolean; aumentoPct: number; precioSinIgv: number; precioConIgv: number }
+      >();
+
+      const maxConcurrent = 4;
+
+      for (let i = 0; i < snapshot.length; i += maxConcurrent) {
+        const chunk = snapshot.slice(i, i + maxConcurrent);
+        await Promise.all(
+          chunk.map(async (l) => {
+            const codigo = (l.servicio_codigo ?? "").trim();
+            if (!codigo) return;
+            const res = await buscarServiciosTarifa(currentTarifaId, {
+              page: 1,
+              per_page: 25,
+              codigo,
+              status: "ACTIVO",
+              hora: horaReal,
+            });
+
+            const found =
+              res.data.find((s) => s.id === l.tarifa_servicio_id) ??
+              res.data.find((s) => (s.codigo ?? "").trim() === codigo) ??
+              res.data[0];
+
+            if (!found) return;
+
+            const recargoActivo = Boolean(found.recargo_noche_activo);
+            const aumentoPct = recargoActivo ? found.recargo_noche_porcentaje ?? 0 : 0;
+            const precioBase = parseFloat(String(found.precio_sin_igv)) || 0;
+            const cantidad = Math.max(1, Math.floor(Number(l.cantidad ?? 1) || 1));
+            const descuentoPct = Math.max(0, Number(l.descuento_pct ?? 0) || 0);
+
+            const { precioSinIgv, precioConIgv } = calcularPrecios(precioBase, cantidad, descuentoPct, aumentoPct, igvPct);
+
+            updatesByTarifaServicioId.set(l.tarifa_servicio_id, {
+              recargoActivo,
+              aumentoPct,
+              precioSinIgv,
+              precioConIgv,
+            });
+          })
+        );
+      }
+
+      setLineas((prev) =>
+        prev.map((l) => {
+          const upd = updatesByTarifaServicioId.get(l.tarifa_servicio_id);
+          if (!upd) return l;
+          return {
+            ...l,
+            recargo_noche_activo: upd.recargoActivo,
+            aumento_pct: upd.aumentoPct,
+            precio_sin_igv: upd.precioSinIgv,
+            precio_con_igv: upd.precioConIgv,
+            precio_unitario_tarifario_sin_igv: upd.precioSinIgv,
+          };
+        })
+      );
+    } catch {
+    } finally {
+      recargoRecalcInFlightRef.current = false;
+    }
+  }, [setLineas]);
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ tarifaId?: number }>;
+      const nextTarifaId = ce.detail?.tarifaId ?? null;
+      if (!nextTarifaId) return;
+      if (!tarifaIdRef.current) return;
+      if (nextTarifaId !== tarifaIdRef.current) return;
+      if (lineasRef.current.length === 0) return;
+
+      if (recargoRecalcTimeoutRef.current) clearTimeout(recargoRecalcTimeoutRef.current);
+      recargoRecalcTimeoutRef.current = setTimeout(() => {
+        void recalcularRecargoNocheEnLineas();
+      }, 150);
+    };
+
+    window.addEventListener("recargoNoche:changed", handler);
+    return () => {
+      window.removeEventListener("recargoNoche:changed", handler);
+      if (recargoRecalcTimeoutRef.current) clearTimeout(recargoRecalcTimeoutRef.current);
+    };
+  }, [recalcularRecargoNocheEnLineas]);
 
   React.useEffect(() => {
     if (soatDeshabilitado && (soatActivo || soatNumeroPoliza.trim() || soatNumeroPlaca.trim())) {

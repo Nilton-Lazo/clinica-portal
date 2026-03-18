@@ -51,6 +51,8 @@ export class HttpClient {
     const headers: Record<string, string> = {
       Accept: "application/json",
       ...clientContext.toHeaders(),
+      "Cache-Control": "no-cache, no-store, max-age=0",
+      Pragma: "no-cache",
     };
 
     const token = tokenStore.get();
@@ -78,6 +80,7 @@ export class HttpClient {
         body,
         credentials: "omit",
         signal: ac.signal,
+        cache: "no-store",
       });
     } catch (err) {
       clearTimeout(timeoutId);

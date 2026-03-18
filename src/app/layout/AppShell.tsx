@@ -37,8 +37,14 @@ export default function AppShell() {
   const isAgendaCitas = location.pathname.includes("/admision/citas/agenda");
   const isTarifario = location.pathname.startsWith("/facturacion/tarifario");
   const isEmergenciaNuevoRegistro = location.pathname.includes("/emergencia/registro/nuevo");
+  const isEmergenciaAtencion = location.pathname.startsWith("/emergencia/atencion");
   const isScrollableContent =
-    (isHistoriaClinicaWizard && !isHistoriaList) || isProgramacionMedica || isAgendaCitas || isTarifario || isEmergenciaNuevoRegistro;
+    (isHistoriaClinicaWizard && !isHistoriaList) ||
+    isProgramacionMedica ||
+    isAgendaCitas ||
+    isTarifario ||
+    isEmergenciaNuevoRegistro ||
+    isEmergenciaAtencion;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const canHover = useMediaQuery("(hover: hover) and (pointer: fine)");

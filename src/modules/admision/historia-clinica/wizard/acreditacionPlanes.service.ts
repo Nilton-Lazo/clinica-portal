@@ -15,7 +15,15 @@ type TipoClienteApi = {
   descripcion_tipo_cliente?: unknown;
   iafa_id?: unknown;
   contratante_id?: unknown;
-  tarifa?: { id?: unknown; es_precio_directo?: unknown };
+  tarifa?: {
+    id?: unknown;
+    es_precio_directo?: unknown;
+    codigo?: unknown;
+    descripcion?: unknown;
+    tarifa_id?: unknown;
+    tarifa_codigo?: unknown;
+    tarifa_descripcion?: unknown;
+  };
 };
 
 type PlanApi = {
@@ -116,12 +124,59 @@ function normalizeTipoCliente(x: unknown): TipoClienteLookup | null {
 
 function normalizePlan(x: PlanApi): AcreditacionPlan {
   const tipo = normalizeTipoCliente(x.tipo_cliente);
-  const tarifa = isObject(x.tipo_cliente) && isObject((x.tipo_cliente as Record<string, unknown>).tarifa)
-    ? (x.tipo_cliente as TipoClienteApi).tarifa
-    : undefined;
-  const tarifaEsPrecioDirecto = tarifa && typeof (tarifa as { es_precio_directo?: unknown }).es_precio_directo === "boolean"
-    ? (tarifa as { es_precio_directo: boolean }).es_precio_directo
-    : false;
+  const xAny = x as unknown as Record<string, unknown>;
+  const tipoClienteAny = (x.tipo_cliente ?? undefined) as unknown as Record<string, unknown> | undefined;
+
+  const tarifaNested =
+    isObject(x.tipo_cliente) && isObject((x.tipo_cliente as Record<string, unknown>).tarifa)
+      ? (x.tipo_cliente as TipoClienteApi).tarifa
+      : undefined;
+
+  const tarifaSource: Record<string, unknown> | undefined =
+    (tarifaNested as Record<string, unknown> | undefined) ??
+    (tipoClienteAny?.tarifa as Record<string, unknown> | undefined) ??
+    (isObject(xAny.tarifa) ? (xAny.tarifa as Record<string, unknown>) : undefined) ??
+    undefined;
+
+  const tarifaEsPrecioDirecto =
+    (tarifaSource && typeof (tarifaSource as { es_precio_directo?: unknown }).es_precio_directo === "boolean"
+      ? (tarifaSource as { es_precio_directo: boolean }).es_precio_directo
+      : typeof (tipoClienteAny?.tarifa_es_precio_directo as unknown) === "boolean"
+        ? (tipoClienteAny?.tarifa_es_precio_directo as boolean)
+        : typeof (xAny.tarifa_es_precio_directo as unknown) === "boolean"
+          ? (xAny.tarifa_es_precio_directo as boolean)
+          : false) ?? false;
+
+  const tarifaId =
+    (tarifaSource && (toIntOrNull(tarifaSource.tarifa_id ?? tarifaSource.id) ?? null)) ??
+    (typeof tipoClienteAny?.tarifa_id === "string" || typeof tipoClienteAny?.tarifa_id === "number"
+      ? toIntOrNull(tipoClienteAny.tarifa_id as unknown) ?? null
+      : null) ??
+    (typeof xAny.tarifa_id === "string" || typeof xAny.tarifa_id === "number" ? toIntOrNull(xAny.tarifa_id as unknown) : null) ??
+    null;
+
+  const tarifaCodigo =
+    toStrOrNull(
+      (tarifaSource?.codigo as unknown) ??
+        (tarifaSource?.tarifa_codigo as unknown) ??
+        ((tipoClienteAny as Record<string, unknown> | undefined)?.tarifa_codigo as unknown) ??
+        (xAny.tarifa_codigo as unknown) ??
+        null
+    ) ?? null;
+
+  const tarifaDescripcion =
+    toStrOrNull(
+      (tarifaSource?.descripcion as unknown) ??
+        tarifaSource?.tarifa_descripcion ??
+        (tarifaSource as any)?.descripcion_tarifa ??
+        ((tarifaSource as any)?.descripcion_tarifa ?? null) ??
+        (tarifaSource as any)?.descripcion_corta ??
+        ((tipoClienteAny as Record<string, unknown> | undefined)?.tarifa_descripcion as unknown) ??
+        ((tipoClienteAny as Record<string, unknown> | undefined)?.descripcion_corta as unknown) ??
+        xAny.tarifa_descripcion ??
+        xAny.descripcion_corta ??
+        null
+    ) ?? null;
 
   return {
     id: x.id,
@@ -131,6 +186,9 @@ function normalizePlan(x: PlanApi): AcreditacionPlan {
     fecha_afiliacion: toStrOrNull(x.fecha_afiliacion),
     estado: normalizeEstado(x.estado),
     tarifa_es_precio_directo: tarifaEsPrecioDirecto,
+    tarifa_id: tarifaId,
+    tarifa_codigo: tarifaCodigo,
+    tarifa_descripcion: tarifaDescripcion,
   };
 }
 

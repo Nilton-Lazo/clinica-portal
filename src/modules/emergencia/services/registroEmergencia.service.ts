@@ -96,3 +96,10 @@ export function createRegistroEmergencia(
     .post<{ data: RegistroEmergencia }>("/emergencia/registro", payload)
     .then((res) => res.data);
 }
+
+export async function getRegistroEmergencia(id: number): Promise<RegistroEmergencia> {
+  const res = await api.get<{ data?: RegistroEmergencia } | RegistroEmergencia>(`/emergencia/registro/${id}`);
+  const anyRes = res as unknown as { data?: RegistroEmergencia };
+  if (anyRes && anyRes.data) return anyRes.data;
+  return (res as unknown) as RegistroEmergencia;
+}

@@ -45,4 +45,7 @@ export type AcreditacionPlan = {
   fecha_afiliacion: string | null;
   estado: RecordStatus;
   tarifa_es_precio_directo?: boolean;
+  tarifa_id: number | null;
+  tarifa_codigo: string | null;
+  tarifa_descripcion: string | null;
 };
