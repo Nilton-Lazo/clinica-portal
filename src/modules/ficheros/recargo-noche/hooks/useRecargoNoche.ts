@@ -32,11 +32,19 @@ export function useRecargoNoche() {
   const dispatchRecargoChanged = React.useCallback((nextTarifaId: number | null) => {
     if (typeof window === "undefined") return;
     if (!nextTarifaId) return;
+
     window.dispatchEvent(
       new CustomEvent("recargoNoche:changed", {
         detail: { tarifaId: nextTarifaId },
       })
     );
+
+    try {
+      const channel = new BroadcastChannel("recargo-noche-channel");
+      channel.postMessage({ type: "changed", tarifaId: nextTarifaId });
+      channel.close();
+    } catch {
+    }
   }, []);
 
   const [formCategoriaId, setFormCategoriaId] = React.useState<number | null>(null);

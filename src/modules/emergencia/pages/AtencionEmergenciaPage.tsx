@@ -294,9 +294,7 @@ export default function AtencionEmergenciaPage() {
   }, [setLineas]);
 
   React.useEffect(() => {
-    const handler = (e: Event) => {
-      const ce = e as CustomEvent<{ tarifaId?: number }>;
-      const nextTarifaId = ce.detail?.tarifaId ?? null;
+    const applyRecargoUpdate = (nextTarifaId: number | null) => {
       if (!nextTarifaId) return;
       if (!tarifaIdRef.current) return;
       if (nextTarifaId !== tarifaIdRef.current) return;
@@ -308,9 +306,26 @@ export default function AtencionEmergenciaPage() {
       }, 150);
     };
 
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ tarifaId?: number }>;
+      applyRecargoUpdate(ce.detail?.tarifaId ?? null);
+    };
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel("recargo-noche-channel");
+      channel.onmessage = (event) => {
+        if (event.data?.type === "changed") {
+          applyRecargoUpdate(event.data.tarifaId ?? null);
+        }
+      };
+    } catch {
+    }
+
     window.addEventListener("recargoNoche:changed", handler);
     return () => {
       window.removeEventListener("recargoNoche:changed", handler);
+      if (channel) channel.close();
       if (recargoRecalcTimeoutRef.current) clearTimeout(recargoRecalcTimeoutRef.current);
     };
   }, [recalcularRecargoNocheEnLineas]);
