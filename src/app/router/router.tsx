@@ -40,6 +40,7 @@ import TipoEmergenciaPage from "../../modules/ficheros/parametros/emergencia/pag
 import TopicoPage from "../../modules/ficheros/parametros/emergencia/pages/TopicoPage";
 import TipoDocumentoPage from "../../modules/ficheros/parametros/emergencia/pages/TipoDocumentoPage";
 import DocumentoAtencionPage from "../../modules/ficheros/parametros/emergencia/pages/DocumentoAtencionPage";
+import ServiciosDefaultEmergenciaPage from "../../modules/ficheros/parametros/emergencia/pages/ServiciosDefaultEmergenciaPage";
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
@@ -116,6 +117,7 @@ export const router = createBrowserRouter([
                       { path: "topico", element: <TopicoPage /> },
                       { path: "tipo-documento", element: <TipoDocumentoPage /> },
                       { path: "documento-atencion", element: <DocumentoAtencionPage /> },
+                      { path: "servicios-defaults", element: <ServiciosDefaultEmergenciaPage /> },
                     ],
                   },
                 ],

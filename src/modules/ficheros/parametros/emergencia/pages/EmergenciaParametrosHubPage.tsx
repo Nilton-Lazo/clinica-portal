@@ -26,6 +26,12 @@ const options = [
     description: "Gestiona documentos de atención con código único definido por el usuario.",
     icon: FileCheck,
   },
+  {
+    to: "/ficheros/parametros/emergencia/servicios-defaults",
+    label: "Servicios por defecto",
+    description: "Configura servicios precargados por tarifario en Emergencia.",
+    icon: Tag,
+  },
 ];
 
 export default function EmergenciaParametrosHubPage() {

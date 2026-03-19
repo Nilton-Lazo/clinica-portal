@@ -52,3 +52,29 @@ Misma forma de ítem y paginación que Tipo Emergencia.
 ## Escalabilidad
 
 Para añadir más parámetros al módulo Emergencia (p. ej. otro enum/maestra), agregar una nueva opción en el hub de Parámetros > Emergencia, un nuevo recurso bajo `/ficheros/parametros/emergencia/<recurso>` y una página CRUD que reutilice los componentes de este módulo (ParamOptionTable, ParamOptionFormCard, etc.).
+
+### Servicios por defecto (Emergencia)
+
+Base: `/ficheros/parametros/emergencia/servicios-defaults`
+
+Contrato esperado por el frontend:
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/tarifa/:tarifaId` | Retorna la lista de códigos de servicios que se precargan por defecto para ese `tarifaId` |
+| PUT | `/tarifa/:tarifaId` | Guarda/reemplaza la lista de códigos de servicios por defecto para ese `tarifaId` |
+
+Request body (PUT):
+```json
+{
+  "tarifa_id": 123,
+  "servicios": ["00.01.01", "008-ABC"]
+}
+```
+
+Response (GET/PUT):
+- Puede retornar directamente un arreglo de strings o una estructura con `data`/`servicios`.
+- El frontend acepta cualquiera de estas formas:
+  - `{ "data": ["008-001"] }`
+  - `{ "servicios": ["008-001"] }`
+  - `["008-001"]`

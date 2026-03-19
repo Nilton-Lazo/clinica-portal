@@ -21,6 +21,7 @@ import type { RegistroEmergencia } from "../types/registroEmergencia.types";
 import { getRegistroEmergencia } from "../services/registroEmergencia.service";
 import { guardarAtencionEmergencia } from "../services/atencionEmergencia.service";
 import { getTarifasOperativas } from "../../ficheros/services/recargoNoche.service";
+import { listServiciosDefaultEmergenciaByTarifa } from "../../ficheros/parametros/emergencia/services/serviciosDefaultEmergencia.service";
 
 function extractCodigoPrefix(value: string | null | undefined): string {
   const raw = (value ?? "").trim();
@@ -172,6 +173,13 @@ export default function AtencionEmergenciaPage() {
   const serviciosSectionRef = React.useRef<HTMLDivElement | null>(null);
 
   const fullName = React.useMemo(() => (paciente ? nombreCompletoPaciente(paciente) : ""), [paciente]);
+
+  const defaultsAppliedPlanIdRef = React.useRef<number | null>(null);
+  const defaultsApplyingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    defaultsAppliedPlanIdRef.current = null;
+  }, [pacientePlanId]);
 
   const planOptions: SelectOption[] = React.useMemo(() => {
     const opts: SelectOption[] = [{ value: "", label: "Seleccione tipo de cliente" }];
@@ -674,6 +682,82 @@ export default function AtencionEmergenciaPage() {
     },
     [tarifaId, lineas, medicoTratanteId, medicosOptions, registro?.medico_emergencia, medicoCodigoFallback, copVarDefault, user]
   );
+
+  React.useEffect(() => {
+    if (!pacientePlanId || !tarifaId) return;
+    if (!medicoTratanteId || medicoTratanteId <= 0) return;
+    if (lineas.length > 0) return;
+    if (defaultsAppliedPlanIdRef.current === pacientePlanId) return;
+    if (defaultsApplyingRef.current) return;
+
+    defaultsApplyingRef.current = true;
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const horaReal = getHoraActual();
+        const [codigosGlobal, codigosTarifa] = await Promise.all([
+          listServiciosDefaultEmergenciaByTarifa(0).catch(() => [] as string[]),
+          listServiciosDefaultEmergenciaByTarifa(tarifaId),
+        ]);
+        const codigosRaw = [...codigosGlobal, ...codigosTarifa];
+        if (cancelled) return;
+
+        const normalizeServicioCodigo = (c: string) => c.replace(/\./g, "").trim().toUpperCase();
+        const maxDefaults = 30;
+        const codigosOrdenados = codigosRaw
+          .map((c) => c.trim())
+          .filter(Boolean)
+          .slice(0, maxDefaults);
+
+        const codigosUnicos: string[] = [];
+        const seen = new Set<string>();
+        for (const c of codigosOrdenados) {
+          const n = normalizeServicioCodigo(c);
+          if (seen.has(n)) continue;
+          seen.add(n);
+          codigosUnicos.push(c);
+        }
+
+        const servicesToAdd: TarifaServicioBusqueda[] = [];
+        const chunkSize = 4;
+        for (let i = 0; i < codigosUnicos.length; i += chunkSize) {
+          const chunk = codigosUnicos.slice(i, i + chunkSize);
+          const results = await Promise.all(
+            chunk.map(async (codigo) => {
+              const res = await buscarServiciosTarifa(tarifaId, {
+                page: 1,
+                per_page: 25,
+                codigo,
+                status: "ACTIVO",
+                hora: horaReal,
+              });
+              const found =
+                res.data.find((s) => normalizeServicioCodigo(String(s.codigo ?? "")) === normalizeServicioCodigo(codigo)) ??
+                res.data[0];
+              return found ?? null;
+            })
+          );
+
+          for (const found of results) {
+            if (found) servicesToAdd.push(found);
+          }
+        }
+
+        if (servicesToAdd.length) onServiciosSelected(servicesToAdd);
+        if (!cancelled) defaultsAppliedPlanIdRef.current = pacientePlanId;
+      } catch {
+        // No bloquear la atención si falla la precarga de defaults.
+      } finally {
+        defaultsApplyingRef.current = false;
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [pacientePlanId, tarifaId, medicoTratanteId, lineas.length, onServiciosSelected]);
 
   const onRegresar = React.useCallback(() => {
     navigate("/emergencia/registro", { state: { returnFromAtencion: true, registroId } });
