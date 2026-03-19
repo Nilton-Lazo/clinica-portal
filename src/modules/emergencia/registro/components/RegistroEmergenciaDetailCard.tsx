@@ -98,10 +98,7 @@ export default function RegistroEmergenciaDetailCard(props: {
                 <span className="text-(--color-text-secondary) font-normal">
                   {(() => {
                     const edad = selected.edad_paciente;
-                    const sexo = selected.sexo ? selected.sexo.charAt(0).toUpperCase() : null;
-                    if (edad != null && sexo) return `(${edad} años - ${sexo})`;
                     if (edad != null) return `(${edad} años)`;
-                    if (sexo) return `(${sexo})`;
                     return "";
                   })()}
                 </span>
