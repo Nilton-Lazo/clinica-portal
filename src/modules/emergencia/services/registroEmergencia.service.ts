@@ -11,6 +11,7 @@ const CACHE_MAX_ENTRIES = 50;
 type CacheEntry = { data: PaginatedResponse<RegistroEmergencia>; expires: number };
 
 const cache = new Map<string, CacheEntry>();
+const byIdCache = new Map<number, { data: RegistroEmergencia; expires: number }>();
 
 function cacheKey(query: RegistroEmergenciaQuery): string {
   const p = new URLSearchParams();
@@ -66,6 +67,7 @@ export function listRegistroEmergencia(
 
 export function invalidateRegistroEmergenciaCache(): void {
   cache.clear();
+  byIdCache.clear();
 }
 
 export type RegistroEmergenciaStorePayload = {
@@ -82,6 +84,30 @@ export type RegistroEmergenciaStorePayload = {
   topico?: string | null;
   numero_cuenta?: string | null;
   estado?: string | null;
+  tipo_emergencia_id?: number | null;
+  topico_id?: number | null;
+  medico_emergencia_id?: number | null;
+  diagnostico_ingreso?: string | null;
+  soat_activo?: boolean;
+  soat_tipo_documento_id?: number | null;
+  soat_numero_documento?: string | null;
+  soat_titular_referencia?: string | null;
+  soat_poliza?: string | null;
+  soat_placa?: string | null;
+  soat_siniestro?: string | null;
+  soat_tipo_accidente?: string | null;
+  soat_lugar_accidente?: string | null;
+  soat_dni_conductor?: string | null;
+  soat_apellido_paterno_conductor?: string | null;
+  soat_apellido_materno_conductor?: string | null;
+  soat_contacto_conductor?: string | null;
+  soat_fecha_siniestro?: string | null;
+  soat_hora_siniestro?: string | null;
+  soat_datos_intervencion_autoridad?: string | null;
+  soat_documento_atencion_id_1?: number | null;
+  soat_numero_documento_atencion_1?: string | null;
+  soat_documento_atencion_id_2?: number | null;
+  soat_numero_documento_atencion_2?: string | null;
 };
 
 export function getNextOrden(fecha?: string): Promise<{ orden: string }> {
@@ -97,9 +123,29 @@ export function createRegistroEmergencia(
     .then((res) => res.data);
 }
 
+export function updateRegistroEmergencia(
+  id: number,
+  payload: RegistroEmergenciaStorePayload
+): Promise<RegistroEmergencia> {
+  return api
+    .put<{ data: RegistroEmergencia }>(`/emergencia/registro/${id}`, payload)
+    .then((res) => {
+      byIdCache.set(id, { data: res.data, expires: Date.now() + CACHE_TTL_MS });
+      return res.data;
+    });
+}
+
 export async function getRegistroEmergencia(id: number): Promise<RegistroEmergencia> {
+  const hit = byIdCache.get(id);
+  if (hit && hit.expires > Date.now()) return hit.data;
   const res = await api.get<{ data?: RegistroEmergencia } | RegistroEmergencia>(`/emergencia/registro/${id}`);
   const anyRes = res as unknown as { data?: RegistroEmergencia };
-  if (anyRes && anyRes.data) return anyRes.data;
-  return (res as unknown) as RegistroEmergencia;
+  const data = anyRes && anyRes.data ? anyRes.data : ((res as unknown) as RegistroEmergencia);
+  byIdCache.set(id, { data, expires: Date.now() + CACHE_TTL_MS });
+  return data;
+}
+
+export function primeRegistroEmergenciaCache(registro: RegistroEmergencia): void {
+  if (!registro?.id) return;
+  byIdCache.set(registro.id, { data: registro, expires: Date.now() + CACHE_TTL_MS });
 }

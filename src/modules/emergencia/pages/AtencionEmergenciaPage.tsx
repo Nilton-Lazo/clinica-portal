@@ -19,7 +19,7 @@ import { getPaciente, listPacientes, updatePaciente } from "../../admision/histo
 import { CONDICION_OPTIONS } from "../types/nuevoRegistro.types";
 import type { RegistroEmergencia } from "../types/registroEmergencia.types";
 import { getRegistroEmergencia } from "../services/registroEmergencia.service";
-import { guardarAtencionEmergencia } from "../services/atencionEmergencia.service";
+import { guardarAtencionEmergencia, getDatosAtencionEmergencia } from "../services/atencionEmergencia.service";
 import { getTarifasOperativas } from "../../ficheros/services/recargoNoche.service";
 import { listServiciosDefaultEmergenciaByTarifa } from "../../ficheros/parametros/emergencia/services/serviciosDefaultEmergencia.service";
 
@@ -368,23 +368,53 @@ export default function AtencionEmergenciaPage() {
       setError(null);
       try {
         let reg = navState.registro ?? null;
-        if (!reg) reg = await getRegistroEmergencia(registroId);
-        if (cancelled) return;
-        setRegistro(reg);
-        setHoraAsistenciaDisplay(reg.hora ? String(reg.hora).slice(0, 5) : "");
+        let isExistingAtencion = false;
+        
+        try {
+          const atencionData = await getDatosAtencionEmergencia(registroId);
+          if (cancelled) return;
+          reg = atencionData.registro;
+          setRegistro(reg);
+          
+          if (atencionData.paciente) {
+            setPaciente(atencionData.paciente);
+            pacienteCacheById.set(atencionData.paciente.id, atencionData.paciente);
+          }
+          
+          if (atencionData.servicios && atencionData.servicios.length > 0) {
+            setLineas(atencionData.servicios);
+            isExistingAtencion = true;
+          }
+          
+        } catch {
+          if (!reg) reg = await getRegistroEmergencia(registroId);
+          if (cancelled) return;
+          setRegistro(reg);
+        }
+        
+        let pFull = paciente;
 
-        const hc = reg.numero_hc;
-        const pacientesRes = await listPacientes({ page: 1, per_page: 5, q: hc });
-        const match = pacientesRes.data.find((p) => p.hc === hc) ?? pacientesRes.data[0];
-        if (!match) throw new Error("No se pudo encontrar el paciente por el N° de Historia clínica.");
-        const cachedPaciente = pacienteCacheById.get(match.id) ?? null;
-        const full = cachedPaciente ?? (await getPaciente(match.id));
-        if (cancelled) return;
-        setPaciente(full);
-        if (!cachedPaciente) pacienteCacheById.set(full.id, full);
+        if (!pFull) {
+          const hc = reg.numero_hc;
+          const pacientesRes = await listPacientes({ page: 1, per_page: 5, q: hc });
+          const match = pacientesRes.data.find((p) => p.hc === hc) ?? pacientesRes.data[0];
+          if (!match) throw new Error("No se pudo encontrar el paciente por el N° de Historia clínica.");
+          
+          const cachedPaciente = pacienteCacheById.get(match.id) ?? null;
+          pFull = cachedPaciente ?? (await getPaciente(match.id));
+          if (cancelled) return;
+          setPaciente(pFull);
+          if (!cachedPaciente) pacienteCacheById.set(pFull.id, pFull);
+        }
+
+        setHoraAsistenciaDisplay(reg.hora_asistencia ? String(reg.hora_asistencia).slice(0, 5) : (reg.hora ? String(reg.hora).slice(0, 5) : ""));
+
         // Render inmediato: mostramos la pantalla con datos del paciente mientras
         // en paralelo se resuelven los planes (para tarifario/tipo de cliente).
         setLoading(false);
+
+        if (!pFull) return;
+        const full = pFull;
 
         const cachedPlanes = planesCacheByPacienteId.get(full.id) ?? null;
         const planesRaw = cachedPlanes ?? (await listPacientePlanes(full.id));
@@ -392,23 +422,37 @@ export default function AtencionEmergenciaPage() {
         setPlanes(planesRaw);
         if (!cachedPlanes) planesCacheByPacienteId.set(full.id, planesRaw);
 
-        const tipoClienteCode = normalizeCodigoForMatch(extractCodigoPrefix(reg.tipo_cliente ?? null));
-        const initialPlan =
-          planesRaw.find((p) => normalizeCodigoForMatch(p.tipo_cliente?.codigo) === tipoClienteCode) ??
-          planesRaw[0] ??
-          null;
-        const initialPlanId = initialPlan?.id ?? null;
+        // Si ya hay un paciente_plan_id guardado en el registro, usarlo
+        const initialPlanId = reg.paciente_plan_id ?? (() => {
+          const tipoClienteCode = normalizeCodigoForMatch(extractCodigoPrefix(reg.tipo_cliente ?? null));
+          const initialPlan =
+            planesRaw.find((p) => normalizeCodigoForMatch(p.tipo_cliente?.codigo) === tipoClienteCode) ??
+            planesRaw[0] ??
+            null;
+          return initialPlan?.id ?? null;
+        })();
+
         setPacientePlanId(initialPlanId);
         setLastSavedPlanId(initialPlanId);
 
-        const condInit = (full.parentesco_seguro ?? "").trim();
+        const condInit = (reg.parentesco_seguro ?? full.parentesco_seguro ?? "").trim();
         setCondicion(condInit);
         setLastSavedCondicion(condInit);
 
         const isTitular = condInit.toUpperCase() === "TITULAR";
-        const titInit = isTitular ? nombreCompletoPaciente(full) : (full.titular_nombre ?? "");
+        const titInit = reg.titular_nombre ?? (isTitular ? nombreCompletoPaciente(full) : (full.titular_nombre ?? ""));
         setTitularNombre(titInit);
         setLastSavedTitular(titInit);
+        
+        if (reg.monto_a_pagar != null) {
+          setMontoAPagar(Number(reg.monto_a_pagar));
+        }
+
+        // Marcar que ya no necesitamos cargar defaults si ya existen servicios
+        if (isExistingAtencion) {
+          defaultsApplyingRef.current = true; // Para no lanzar la carga de defaults
+          defaultsAppliedPlanIdRef.current = initialPlanId;
+        }
       } catch (e) {
         if (cancelled) return;
         const msg = toUserFriendlyMessage(e, "No se pudo cargar la atención de emergencia.");
@@ -422,6 +466,7 @@ export default function AtencionEmergenciaPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registroId, navState.registro]);
 
   React.useEffect(() => {
@@ -557,6 +602,7 @@ export default function AtencionEmergenciaPage() {
         (titularNombre ?? "").trim() !== (lastSavedTitular ?? "").trim();
 
       if (condChanged) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _id, hc: _hc, nr: _nr, created_at: _ca, updated_at: _ua, nombre_completo: _nc, edad: _ed, ...rest } = paciente;
         const payload: PacienteUpsertPayload = {
           ...rest,

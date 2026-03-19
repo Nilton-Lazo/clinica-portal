@@ -81,6 +81,7 @@ export const router = createBrowserRouter([
                   { index: true, element: <EmergenciaHomePage /> },
                   { path: "registro", element: <RegistroEmergenciaPage /> },
                   { path: "registro/nuevo", element: <NuevoRegistroEmergenciaPage /> },
+                  { path: "registro/:id/editar", element: <NuevoRegistroEmergenciaPage /> },
                   { path: "atencion/:id", element: <AtencionEmergenciaPage /> },
                 ],
               },

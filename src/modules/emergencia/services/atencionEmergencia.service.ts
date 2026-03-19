@@ -11,6 +11,17 @@ export type AtencionEmergenciaStorePayload = {
   servicios?: AtencionServicioLinea[];
 };
 
+export type DatosAtencionEmergenciaResponse = {
+  registro: RegistroEmergencia;
+  paciente: PacienteDetail;
+  servicios: AtencionServicioLineaDisplay[];
+};
+
+export async function getDatosAtencionEmergencia(registroId: number): Promise<DatosAtencionEmergenciaResponse> {
+  const res = await api.get<DatosAtencionEmergenciaResponse>(`/emergencia/atencion/${registroId}`);
+  return res.data ?? res;
+}
+
 export async function guardarAtencionEmergencia(registroId: number, payload: AtencionEmergenciaStorePayload): Promise<unknown> {
   const res = await api.post(`/emergencia/atencion/${registroId}/atencion`, payload);
   return res.data ?? res;

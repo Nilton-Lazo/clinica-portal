@@ -1,9 +1,9 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { toastService } from "../../../../shared/notifications";
-import { getPaciente, updatePaciente } from "../../../admision/historia-clinica/services/historiaClinica.service";
+import { getPaciente, listPacientes, updatePaciente } from "../../../admision/historia-clinica/services/historiaClinica.service";
 import type { PacienteDetail, PacienteUpsertPayload } from "../../../admision/historia-clinica/types/historiaClinica.types";
 import PacientePicker from "../../../admision/citas/agenda/components/PacientePicker";
 import type { PacienteListItem } from "../../../admision/historia-clinica/types/historiaClinica.types";
@@ -24,9 +24,12 @@ import DateInput from "../../../../shared/ui/DateInput";
 import TimeInput from "../../../../shared/ui/TimeInput";
 import {
   createRegistroEmergencia,
+  updateRegistroEmergencia,
+  getRegistroEmergencia,
   getNextOrden,
   invalidateRegistroEmergenciaCache,
 } from "../../services/registroEmergencia.service";
+import type { RegistroEmergencia } from "../../types/registroEmergencia.types";
 
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
@@ -123,6 +126,10 @@ function useIsLgUp(): boolean {
 
 export default function NuevoRegistroEmergenciaPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = Boolean(id);
+  const editId = id ? parseInt(id, 10) : null;
   const isLgUp = useIsLgUp();
   const [form, setForm] = React.useState<NuevoRegistroFormState>(initialFormState);
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -140,8 +147,133 @@ export default function NuevoRegistroEmergenciaPage() {
   const [ubigeoOptions, setUbigeoOptions] = React.useState<SelectOption[]>([]);
   const pacienteDetailRef = React.useRef<PacienteDetail | null>(null);
   const plansListRef = React.useRef<AcreditacionPlan[]>([]);
+  const editTipoClienteRef = React.useRef<string>("");
+  const [loadingEdit, setLoadingEdit] = React.useState(isEditMode);
+  const editErrorShownForIdRef = React.useRef<number | null>(null);
+
+  const applyRegistroToForm = React.useCallback(
+    (registro: RegistroEmergencia, pFull: PacienteDetail | null, matchedPlanId: string) => {
+      editTipoClienteRef.current = registro.tipo_cliente ?? "";
+      if (pFull) {
+        pacienteDetailRef.current = pFull;
+      }
+      setForm({
+        numeroReferencia: registro.cuenta ?? "",
+        numeroHistoria: registro.numero_hc ?? "",
+        hora: registro.hora ?? "",
+        orden: registro.orden ?? "",
+        apellidosNombres: registro.apellidos_nombres ?? "",
+        fechaNacimiento: pFull?.fecha_nacimiento ?? "",
+        edad: pFull?.edad != null ? String(pFull.edad) : "",
+        estadoCivil: pFull?.estado_civil ?? "",
+        direccion: pFull?.direccion ?? "",
+        sexo: pFull?.sexo ?? registro.sexo ?? "",
+        telefono: pFull?.telefono ?? pFull?.celular ?? "",
+        lugarNacimiento: pFull?.ubigeo_nacimiento ?? "",
+        condicion: registro.parentesco_seguro ?? pFull?.parentesco_seguro ?? "",
+        titular: registro.titular_nombre ?? pFull?.titular_nombre ?? "",
+        pacienteId: pFull?.id ?? null,
+        tipoEmergenciaId: registro.tipo_emergencia_id ? String(registro.tipo_emergencia_id) : "",
+        topicoId: registro.topico_id ? String(registro.topico_id) : "",
+        medicoEmergenciaId: registro.medico_emergencia_id ?? null,
+        medicoEmergenciaCmp: "",
+        medicoEmergenciaNombre: registro.medico_emergencia ?? "",
+        planId: matchedPlanId,
+        dxIngreso: registro.diagnostico_ingreso ?? "",
+        tipoDocumentoId: registro.soat_tipo_documento_id ? String(registro.soat_tipo_documento_id) : "",
+        soatNumeroDocumento: registro.soat_numero_documento ?? "",
+        soatTitularReferencia: registro.soat_titular_referencia ?? "",
+        soatPoliza: registro.soat_poliza ?? "",
+        soatPlaca: registro.soat_placa ?? "",
+        soatSiniestro: registro.soat_siniestro ?? "",
+        soatTipoAccidente: registro.soat_tipo_accidente ?? "",
+        soatLugarAccidente: registro.soat_lugar_accidente ?? "",
+        soatDniConductor: registro.soat_dni_conductor ?? "",
+        soatApellidoPaternoConductor: registro.soat_apellido_paterno_conductor ?? "",
+        soatApellidoMaternoConductor: registro.soat_apellido_materno_conductor ?? "",
+        soatContactoConductor: registro.soat_contacto_conductor ?? "",
+        soatFechaSiniestro: registro.soat_fecha_siniestro ?? (() => {
+          const d = new Date();
+          return `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        })(),
+        soatHoraSiniestro: registro.soat_hora_siniestro ?? "",
+        soatDatosIntervencionAutoridad: registro.soat_datos_intervencion_autoridad ?? "",
+        soatDocumentoAtencionId1: registro.soat_documento_atencion_id_1 ? String(registro.soat_documento_atencion_id_1) : "",
+        soatNumeroDocumentoAtencion1: registro.soat_numero_documento_atencion_1 ?? "",
+        soatDocumentoAtencionId2: registro.soat_documento_atencion_id_2 ? String(registro.soat_documento_atencion_id_2) : "",
+        soatNumeroDocumentoAtencion2: registro.soat_numero_documento_atencion_2 ?? "",
+      });
+      setLastSavedCondicion(registro.parentesco_seguro ?? pFull?.parentesco_seguro ?? "");
+      setLastSavedTitular(registro.titular_nombre ?? pFull?.titular_nombre ?? "");
+      setSoatActivo(Boolean(registro.soat_activo));
+    },
+    []
+  );
 
   React.useEffect(() => {
+    if (!isEditMode || !editId) return;
+    let cancelled = false;
+    const fromState = (location.state as { registro?: RegistroEmergencia } | null)?.registro;
+    if (fromState && fromState.id === editId) {
+      applyRegistroToForm(fromState, null, fromState.paciente_plan_id ? String(fromState.paciente_plan_id) : "");
+      setLoadingEdit(false);
+    } else {
+      setLoadingEdit(true);
+    }
+
+    async function fetchEditData() {
+      try {
+        const registro = await getRegistroEmergencia(editId!);
+        if (cancelled) return;
+
+        const pacienteFromApi = (registro as unknown as { paciente?: PacienteDetail | null }).paciente ?? null;
+        let pFull: PacienteDetail | null = pacienteFromApi;
+
+        if (!pFull) {
+          const hc = registro.numero_hc;
+          const pacientesRes = await listPacientes({ page: 1, per_page: 5, q: hc });
+          const match = pacientesRes.data.find((p) => p.hc === hc) ?? pacientesRes.data[0];
+
+          if (match) {
+            pFull = await getPaciente(match.id);
+          }
+        }
+
+        if (cancelled) return;
+
+        if (pFull) {
+          pacienteDetailRef.current = pFull;
+        }
+
+        let matchedPlanId = registro.paciente_plan_id ? String(registro.paciente_plan_id) : "";
+
+        if (pFull && !matchedPlanId && registro.tipo_cliente) {
+          const planesRaw = await listPacientePlanes(pFull.id);
+          const matchCode = (registro.tipo_cliente.match(/^(\d+)/) || [])[1];
+          if (matchCode) {
+            const plan = planesRaw.find(p => p.tipo_cliente?.codigo === matchCode);
+            if (plan) matchedPlanId = String(plan.id);
+          }
+        }
+
+        applyRegistroToForm(registro, pFull, matchedPlanId);
+        
+      } catch {
+        if (editErrorShownForIdRef.current !== editId) {
+          editErrorShownForIdRef.current = editId;
+          toastService.showError("No se pudo cargar el registro de emergencia para editar.");
+        }
+      } finally {
+        if (!cancelled) setLoadingEdit(false);
+      }
+    }
+
+    void fetchEditData();
+    return () => { cancelled = true; };
+  }, [isEditMode, editId, location.state, applyRegistroToForm]);
+
+  React.useEffect(() => {
+    if (isEditMode) return;
     const today = new Date();
     const fecha =
       String(today.getFullYear()) +
@@ -152,7 +284,7 @@ export default function NuevoRegistroEmergenciaPage() {
     getNextOrden(fecha)
       .then((res) => setForm((prev) => ({ ...prev, orden: res.orden })))
       .catch(() => {});
-  }, []);
+  }, [isEditMode]);
 
   React.useEffect(() => {
     catalogoPacienteService.ubigeosFirstPage(500).then((arr: UbigeoItem[]) => {
@@ -171,7 +303,7 @@ export default function NuevoRegistroEmergenciaPage() {
   React.useEffect(() => {
     listTipoEmergencia({ page: 1, per_page: 100, status: "ACTIVO" }).then((res) => {
       setTipoEmergenciaOptions(
-        res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
+        res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.descripcion}` }))
       );
     });
     listTopico({ page: 1, per_page: 100, status: "ACTIVO" }).then((res) => {
@@ -193,9 +325,19 @@ export default function NuevoRegistroEmergenciaPage() {
 
   React.useEffect(() => {
     if (!form.pacienteId) {
-      setPlanOptions([]);
       plansListRef.current = [];
-      setForm((prev) => ({ ...prev, planId: "" }));
+      if (isEditMode && form.planId) {
+        const currentPlanLabel = form.planId.trim()
+          ? (form.planId.includes("·") ? form.planId : "Tipo de cliente actual")
+          : "Seleccione tipo de cliente";
+        setPlanOptions([
+          { value: "", label: "Seleccione tipo de cliente" },
+          { value: form.planId, label: currentPlanLabel },
+        ]);
+      } else {
+        setPlanOptions([]);
+        setForm((prev) => ({ ...prev, planId: "" }));
+      }
       return;
     }
     listPacientePlanes(form.pacienteId)
@@ -213,21 +355,26 @@ export default function NuevoRegistroEmergenciaPage() {
         setPlanOptions(opts);
         setForm((prev) => ({
           ...prev,
-          planId: planes.length > 0 && !prev.planId ? String(planes[0].id) : prev.planId,
+          planId: prev.planId || (planes.length > 0 ? String(planes[0].id) : ""),
         }));
       })
       .catch(() => {
         setPlanOptions([{ value: "", label: "Seleccione tipo de cliente" }]);
         plansListRef.current = [];
       });
-  }, [form.pacienteId]);
+  }, [form.pacienteId, form.planId, isEditMode]);
 
   const soatDeshabilitado = React.useMemo(() => {
     if (!form.planId) return true;
+    if (isEditMode && plansListRef.current.length === 0) {
+      const tipoCliente = editTipoClienteRef.current.trim().toUpperCase();
+      if (!tipoCliente) return true;
+      return tipoCliente.includes("PARTICULAR");
+    }
     const planIdNum = Number(form.planId);
     const plan = plansListRef.current.find((p) => p.id === planIdNum);
     return Boolean(plan?.tarifa_es_precio_directo);
-  }, [form.planId]);
+  }, [form.planId, isEditMode]);
 
   const soatCamposHabilitados = !soatDeshabilitado && soatActivo;
 
@@ -350,9 +497,8 @@ export default function NuevoRegistroEmergenciaPage() {
   const onActualizarDatos = React.useCallback(async () => {
     const p = pacienteDetailRef.current;
     if (!form.pacienteId || !p || !hasPendingDataChanges) return;
-    const { id: _id, hc: _hc, nr: _nr, created_at: _ca, updated_at: _ua, nombre_completo: _nc, edad: _ed, ...rest } = p;
     const payload: PacienteUpsertPayload = {
-      ...rest,
+      ...(p as unknown as PacienteUpsertPayload),
       parentesco_seguro: form.condicion.trim() || null,
       titular_nombre: form.titular.trim() || null,
     };
@@ -374,6 +520,10 @@ export default function NuevoRegistroEmergenciaPage() {
       updateForm({ titular: form.apellidosNombres });
     }
   }, [isTitular, form.pacienteId, form.apellidosNombres, updateForm]);
+
+  const pacienteValidadoParaGuardar = isEditMode
+    ? Boolean(form.numeroHistoria.trim())
+    : form.pacienteId != null;
 
   const datosMedicosCompletos =
     Boolean(form.tipoEmergenciaId.trim()) &&
@@ -413,7 +563,7 @@ export default function NuevoRegistroEmergenciaPage() {
       "-" +
       String(hoy.getDate()).padStart(2, "0");
     try {
-      await createRegistroEmergencia({
+      const payload = {
         orden: form.orden.trim() || null,
         hora: form.hora.trim() || null,
         numero_hc: form.numeroHistoria.trim(),
@@ -427,12 +577,44 @@ export default function NuevoRegistroEmergenciaPage() {
         topico: topicoLabel || null,
         numero_cuenta: null,
         estado: "ACTIVO",
-      });
+        tipo_emergencia_id: form.tipoEmergenciaId ? Number(form.tipoEmergenciaId) : null,
+        topico_id: form.topicoId ? Number(form.topicoId) : null,
+        medico_emergencia_id: form.medicoEmergenciaId,
+        diagnostico_ingreso: form.dxIngreso.trim() || null,
+        soat_activo: soatActivo,
+        soat_tipo_documento_id: form.tipoDocumentoId ? Number(form.tipoDocumentoId) : null,
+        soat_numero_documento: form.soatNumeroDocumento.trim() || null,
+        soat_titular_referencia: form.soatTitularReferencia.trim() || null,
+        soat_poliza: form.soatPoliza.trim() || null,
+        soat_placa: form.soatPlaca.trim() || null,
+        soat_siniestro: form.soatSiniestro.trim() || null,
+        soat_tipo_accidente: form.soatTipoAccidente.trim() || null,
+        soat_lugar_accidente: form.soatLugarAccidente.trim() || null,
+        soat_dni_conductor: form.soatDniConductor.trim() || null,
+        soat_apellido_paterno_conductor: form.soatApellidoPaternoConductor.trim() || null,
+        soat_apellido_materno_conductor: form.soatApellidoMaternoConductor.trim() || null,
+        soat_contacto_conductor: form.soatContactoConductor.trim() || null,
+        soat_fecha_siniestro: form.soatFechaSiniestro || null,
+        soat_hora_siniestro: form.soatHoraSiniestro || null,
+        soat_datos_intervencion_autoridad: form.soatDatosIntervencionAutoridad.trim() || null,
+        soat_documento_atencion_id_1: form.soatDocumentoAtencionId1 ? Number(form.soatDocumentoAtencionId1) : null,
+        soat_numero_documento_atencion_1: form.soatNumeroDocumentoAtencion1.trim() || null,
+        soat_documento_atencion_id_2: form.soatDocumentoAtencionId2 ? Number(form.soatDocumentoAtencionId2) : null,
+        soat_numero_documento_atencion_2: form.soatNumeroDocumentoAtencion2.trim() || null,
+      };
+
+      if (isEditMode && editId) {
+        await updateRegistroEmergencia(editId, payload);
+        toastService.showSuccess("Registro de emergencia actualizado.");
+      } else {
+        await createRegistroEmergencia(payload);
+        toastService.showSuccess("Registro de emergencia guardado.");
+      }
+      
       invalidateRegistroEmergenciaCache();
-      toastService.showSuccess("Registro de emergencia guardado.");
       navigate("/emergencia/registro");
     } catch {
-      toastService.showError("No se pudo guardar el registro de emergencia.");
+      toastService.showError(`No se pudo ${isEditMode ? "actualizar" : "guardar"} el registro de emergencia.`);
     }
   }, [
     form.pacienteId,
@@ -446,9 +628,34 @@ export default function NuevoRegistroEmergenciaPage() {
     form.medicoEmergenciaCmp,
     form.medicoEmergenciaNombre,
     form.topicoId,
+    form.tipoEmergenciaId,
+    form.medicoEmergenciaId,
+    form.dxIngreso,
+    soatActivo,
+    form.tipoDocumentoId,
+    form.soatNumeroDocumento,
+    form.soatTitularReferencia,
+    form.soatPoliza,
+    form.soatPlaca,
+    form.soatSiniestro,
+    form.soatTipoAccidente,
+    form.soatLugarAccidente,
+    form.soatDniConductor,
+    form.soatApellidoPaternoConductor,
+    form.soatApellidoMaternoConductor,
+    form.soatContactoConductor,
+    form.soatFechaSiniestro,
+    form.soatHoraSiniestro,
+    form.soatDatosIntervencionAutoridad,
+    form.soatDocumentoAtencionId1,
+    form.soatNumeroDocumentoAtencion1,
+    form.soatDocumentoAtencionId2,
+    form.soatNumeroDocumentoAtencion2,
     datosMedicosCompletos,
     topicoOptions,
     navigate,
+    isEditMode,
+    editId,
   ]);
 
   const tipoEmergenciaSelectOptions: SelectOption[] = [
@@ -468,10 +675,19 @@ export default function NuevoRegistroEmergenciaPage() {
     ...documentoAtencionOptions,
   ];
 
-  const canRegistrar = Boolean(form.pacienteId) && datosMedicosCompletos;
+  const canRegistrar = pacienteValidadoParaGuardar && datosMedicosCompletos;
+
+  if (loadingEdit) {
+    return (
+      <div className="flex min-h-50 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-(--color-primary) border-t-transparent" />
+        <span className="ml-3 text-sm text-(--color-text-secondary)">Cargando registro...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex w-full min-h-0 flex-col gap-2 pb-2">
+    <div className="flex w-full min-h-0 flex-col gap-2 pb-2 overflow-y-auto">
       <div className="flex min-w-0 flex-col gap-2">
         <div className="min-w-0">
           <div className="flex min-h-0 flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
@@ -482,8 +698,8 @@ export default function NuevoRegistroEmergenciaPage() {
                   Busque un paciente y complete los datos para registrar la emergencia.
                 </div>
               </div>
-              <PrimaryButton onClick={onBuscarPaciente} disabled={loadingPaciente}>
-                {form.pacienteId ? "Cambiar paciente" : "Buscar paciente"}
+              <PrimaryButton onClick={onBuscarPaciente} disabled={loadingPaciente || isEditMode}>
+                {isEditMode ? "Paciente no editable" : (form.pacienteId ? "Cambiar paciente" : "Buscar paciente")}
               </PrimaryButton>
             </div>
 
@@ -725,7 +941,10 @@ export default function NuevoRegistroEmergenciaPage() {
                 aria-label="Habilitar SOAT"
               />
             )}
-            <label htmlFor="soat-activo" className={`text-sm font-semibold text-(--color-text-primary) ${soatDeshabilitado ? "cursor-default" : "cursor-pointer"}`}>
+            <label
+              htmlFor={soatDeshabilitado ? undefined : "soat-activo"}
+              className={`text-sm font-semibold text-(--color-text-primary) ${soatDeshabilitado ? "cursor-default" : "cursor-pointer"}`}
+            >
               SOAT
             </label>
           </div>
@@ -926,7 +1145,7 @@ export default function NuevoRegistroEmergenciaPage() {
       <div className="flex flex-wrap gap-2 justify-end mb-2">
         <SecondaryButton onClick={handleVolver}>Volver</SecondaryButton>
         <PrimaryButton onClick={handleRegistrar} disabled={!canRegistrar}>
-          Registrar
+          {isEditMode ? "Guardar cambios" : "Registrar"}
         </PrimaryButton>
       </div>
       <div className="h-2 shrink-0" aria-hidden="true" />

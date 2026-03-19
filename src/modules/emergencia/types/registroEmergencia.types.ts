@@ -17,6 +17,38 @@ export type RegistroEmergencia = {
   topico: string;
   numero_cuenta?: string | null;
   estado?: string;
+  paciente_plan_id?: number | null;
+  tarifa_id?: number | null;
+  parentesco_seguro?: string | null;
+  titular_nombre?: string | null;
+  monto_a_pagar?: number | string | null;
+  tipo_emergencia_id?: number | null;
+  tipo_emergencia?: { id: number; codigo: string; descripcion: string } | null;
+  tipoEmergencia?: { id: number; codigo: string; descripcion: string } | null;
+  edad_paciente?: number | null;
+  topico_id?: number | null;
+  medico_emergencia_id?: number | null;
+  diagnostico_ingreso?: string | null;
+  soat_activo?: boolean;
+  soat_tipo_documento_id?: number | null;
+  soat_numero_documento?: string | null;
+  soat_titular_referencia?: string | null;
+  soat_poliza?: string | null;
+  soat_placa?: string | null;
+  soat_siniestro?: string | null;
+  soat_tipo_accidente?: string | null;
+  soat_lugar_accidente?: string | null;
+  soat_dni_conductor?: string | null;
+  soat_apellido_paterno_conductor?: string | null;
+  soat_apellido_materno_conductor?: string | null;
+  soat_contacto_conductor?: string | null;
+  soat_fecha_siniestro?: string | null;
+  soat_hora_siniestro?: string | null;
+  soat_datos_intervencion_autoridad?: string | null;
+  soat_documento_atencion_id_1?: number | null;
+  soat_numero_documento_atencion_1?: string | null;
+  soat_documento_atencion_id_2?: number | null;
+  soat_numero_documento_atencion_2?: string | null;
 };
 
 export type RegistroEmergenciaQuery = {
