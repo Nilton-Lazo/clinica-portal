@@ -34,8 +34,9 @@ export function DataTable<T>(props: {
   onDoubleClick?: (row: T) => void;
   onContextMenu?: (row: T, e: React.MouseEvent) => void;
   emptyText?: string;
+  tableClassName?: string;
 }) {
-  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, onContextMenu, emptyText } = props;
+  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, onContextMenu, emptyText, tableClassName } = props;
 
   const showOverlay = loading;
   const showEmptyRow = !loading && rows.length === 0;
@@ -45,7 +46,9 @@ export function DataTable<T>(props: {
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)">
       <div className="min-h-0 min-w-0 flex-1 overflow-x-auto w-full app-scrollbar app-scrollbar-no-gutter">
         <div className="min-h-0 min-w-0 h-full overflow-y-auto app-scrollbar app-scrollbar-no-gutter">
-          <table className="w-full min-w-full border-collapse text-sm">
+          <table
+            className={["w-full border-collapse text-sm", tableClassName ?? "min-w-full"].filter(Boolean).join(" ")}
+          >
           <thead className="sticky top-0 z-1 bg-(--color-primary) text-(--color-text-inverse)">
             <tr>
               {columns.map((c) => (

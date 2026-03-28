@@ -24,30 +24,39 @@ export const admisionMeta: Record<string, RouteMeta> = {
     },
 
     "/admision/citas/programacion": {
-        title: "Programación medica",
+        title: "Programación médica",
         subtitle: "Planificación y control de la atención médica según disponibilidad y especialidad",
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
-            { label: "Programacion" },
+            { label: "Programación médica" },
+        ],
+    },
+    "/admision/citas/presupuestos": {
+        title: "Presupuestos",
+        subtitle: "Gestión de presupuestos de admisión (en desarrollo).",
+        breadcrumb: [
+            { label: "Admisión", path: "/admision" },
+            { label: "Citas", path: "/admision/citas" },
+            { label: "Presupuestos" },
         ],
     },
     "/admision/citas/agenda": {
-        title: "Agenda medica",
+        title: "Gestión de citas",
         subtitle: "Agendamiento de citas según programación médica.",
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
-            { label: "Agenda médica" },
+            { label: "Gestión de citas" },
         ],
     },
     "/admision/citas/agenda/pacientes": {
-        title: "Agenda medica",
+        title: "Gestión de citas",
         subtitle: "Selecciona un paciente para la cita.",
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
-            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Gestión de citas", path: "/admision/citas/agenda" },
             { label: "Pacientes" },
         ],
     },
@@ -57,7 +66,7 @@ export const admisionMeta: Record<string, RouteMeta> = {
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
-            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Gestión de citas", path: "/admision/citas/agenda" },
             { label: "Agendar cita" },
         ],
     },
@@ -67,7 +76,7 @@ export const admisionMeta: Record<string, RouteMeta> = {
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
-            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Gestión de citas", path: "/admision/citas/agenda" },
             { label: "Atención de cita" },
         ],
     },
@@ -77,7 +86,7 @@ export const admisionMeta: Record<string, RouteMeta> = {
         breadcrumb: [
             { label: "Admisión", path: "/admision" },
             { label: "Citas", path: "/admision/citas" },
-            { label: "Agenda médica", path: "/admision/citas/agenda" },
+            { label: "Gestión de citas", path: "/admision/citas/agenda" },
             { label: "Atención de cita", path: "/admision/citas/agenda/:citaId/atencion" },
             { label: "Buscar servicios" },
         ],

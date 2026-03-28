@@ -1,7 +1,7 @@
 import type { ApiError } from "../../../../shared/api/apiError";
 
 /**
- * Mensajes para el usuario final en Citas (Programación médica, Agenda).
+ * Mensajes para el usuario final en Citas (Programación médica, gestión de citas).
  * Sin términos técnicos (token, 401, etc.). Error real en consola solo en desarrollo.
  */
 const FIELD_LABELS: Record<string, string> = {

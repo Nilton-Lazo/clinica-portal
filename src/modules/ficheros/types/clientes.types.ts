@@ -1,0 +1,26 @@
+import type { RecordStatus } from "../../../shared/types/recordStatus";
+import type { PaginatedResponse, PaginationMeta } from "../../../shared/types/pagination";
+
+export type { RecordStatus, PaginatedResponse, PaginationMeta };
+
+export type ClienteTipo = "ASISTENCIAL" | "ADMINISTRATIVO";
+
+export type Cliente = {
+  id: number;
+  codigo: string;
+  tipo: ClienteTipo;
+  nombre: string;
+  dni_o_ruc: string;
+  telefono: string | null;
+  direccion: string | null;
+  estado: RecordStatus;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type ClientesQuery = {
+  page?: number;
+  per_page?: number;
+  q?: string;
+  status?: RecordStatus;
+};

@@ -30,6 +30,38 @@ export const ficherosMeta: Record<string, RouteMeta> = {
         subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
         breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Turnos" }],
     },
+    "/ficheros/clientes": {
+        title: "Ficheros",
+        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
+        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Clientes" }],
+    },
+    "/ficheros/paquetes": {
+        title: "Ficheros",
+        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
+        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Paquetes" }],
+    },
+    "/ficheros/paquetes-servicios": {
+        title: "Ficheros",
+        subtitle: "Asignación de servicios por paquete.",
+        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Servicios por paquete" }],
+    },
+    "/ficheros/parametros/hospitalizacion": {
+        title: "Ficheros",
+        subtitle: "Parámetros del módulo Hospitalización.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Hospitalización" },
+        ],
+    },
+    "/ficheros/parametros/hospitalizacion/cirugias": {
+        title: "Ficheros",
+        subtitle: "Catálogo de cirugías para hospitalización.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Hospitalización", path: "/ficheros/parametros/hospitalizacion" },
+            { label: "Cirugías" },
+        ],
+    },
     "/ficheros/tipos-iafas": {
         title: "Ficheros",
         subtitle: "Gestión de tablas maestras y registros configurables del sistema.",

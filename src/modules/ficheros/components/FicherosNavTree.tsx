@@ -13,6 +13,9 @@ const groups: Group[] = [
       { label: "Consultorios", to: "/ficheros/consultorios" },
       { label: "Médicos", to: "/ficheros/medicos"},
       { label: "Turnos", to: "/ficheros/turnos"},
+      { label: "Clientes", to: "/ficheros/clientes"},
+      { label: "Paquetes", to: "/ficheros/paquetes"},
+      { label: "Servicios por paquete", to: "/ficheros/paquetes-servicios"},
     ],
   },
   {
@@ -31,6 +34,7 @@ const groups: Group[] = [
       { label: "IGV", to: "/ficheros/parametros/igv" },
       { label: "Recargo nocturno", to: "/ficheros/parametros/recargo-noche" },
       { label: "Emergencia", to: "/ficheros/parametros/emergencia" },
+      { label: "Hospitalización", to: "/ficheros/parametros/hospitalizacion" },
     ],
   },
 ];

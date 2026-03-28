@@ -809,7 +809,7 @@ export default function AtencionCitaPage() {
         <div className="rounded-2xl border border-(--color-danger) bg-(--color-surface) p-4 text-(--color-danger)">
           {error ?? "No se encontraron datos."}
         </div>
-        <SecondaryButton onClick={() => navigate("/admision/citas/agenda", { state: { returnFromAtencion: true, citaId: id } })}>Regresar a la agenda</SecondaryButton>
+        <SecondaryButton onClick={() => navigate("/admision/citas/agenda", { state: { returnFromAtencion: true, citaId: id } })}>Regresar a gestión de citas</SecondaryButton>
       </div>
     );
   }
@@ -837,7 +837,7 @@ export default function AtencionCitaPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Acciones de la atención">
-          <SecondaryButton onClick={onRegresar} title="Volver a la agenda (los cambios no guardados se pierden)">
+          <SecondaryButton onClick={onRegresar} title="Volver a gestión de citas (los cambios no guardados se pierden)">
             Regresar
           </SecondaryButton>
           <SecondaryButton

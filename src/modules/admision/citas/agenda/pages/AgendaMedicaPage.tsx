@@ -163,7 +163,7 @@ export default function AgendaMedicaPage() {
           <div className="flex flex-col space-y-4 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:app-scrollbar">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm font-semibold text-(--color-text-primary)">Agenda médica</div>
+                <div className="text-sm font-semibold text-(--color-text-primary)">Gestión de citas</div>
                 <div className="text-xs text-(--color-text-secondary)">
                   Selecciona fecha, servicio y médico para ver las citas.
                 </div>

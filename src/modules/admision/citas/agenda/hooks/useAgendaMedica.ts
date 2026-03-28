@@ -257,7 +257,7 @@ export function useAgendaMedica() {
         }
       })
       .catch((e) => {
-        toast.error(toUserFriendlyMessage(e, "No se pudo cargar la agenda."));
+        toast.error(toUserFriendlyMessage(e, "No se pudo cargar las citas."));
         delete initDataCacheRef.current[selectedDateStr];
         setEspecialidadesList([]);
         setMedicosList([]);

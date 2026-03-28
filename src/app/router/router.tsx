@@ -18,6 +18,12 @@ import EspecialidadesPage from "../../modules/ficheros/pages/EspecialidadesPage"
 import ConsultoriosPage from "../../modules/ficheros/pages/ConsultoriosPage";
 import MedicosPage from "../../modules/ficheros/pages/MedicosPage";
 import TurnosPage from "../../modules/ficheros/pages/TurnosPage";
+import ClientesPage from "../../modules/ficheros/pages/ClientesPage";
+import PaquetesPage from "../../modules/ficheros/pages/PaquetesPage";
+import PaqueteServiciosPage from "../../modules/ficheros/pages/PaqueteServiciosPage";
+import CirugiasPage from "../../modules/ficheros/pages/CirugiasPage";
+import HospitalizacionParametrosLayout from "../../modules/ficheros/parametros/hospitalizacion/pages/HospitalizacionParametrosLayout";
+import HospitalizacionParametrosHubPage from "../../modules/ficheros/parametros/hospitalizacion/pages/HospitalizacionParametrosHubPage";
 
 import ProgramacionMedicaPage from "../../modules/admision/citas/pages/ProgramacionMedicaPage";
 import AgendaMedicaLayout from "../../modules/admision/citas/agenda/pages/AgendaMedicaLayout";
@@ -102,6 +108,9 @@ export const router = createBrowserRouter([
                   { path: "consultorios", element: <ConsultoriosPage /> },
                   { path: "medicos", element: <MedicosPage /> },
                   { path: "turnos", element: <TurnosPage /> },
+                  { path: "clientes", element: <ClientesPage /> },
+                  { path: "paquetes", element: <PaquetesPage /> },
+                  { path: "paquetes-servicios", element: <PaqueteServiciosPage /> },
                   { path: "tipos-iafas", element: <TiposIafasPage /> },
                   { path: "iafas", element: <IafasPage /> },
                   { path: "contratantes", element: <ContratantesPage /> },
@@ -119,6 +128,14 @@ export const router = createBrowserRouter([
                       { path: "tipo-documento", element: <TipoDocumentoPage /> },
                       { path: "documento-atencion", element: <DocumentoAtencionPage /> },
                       { path: "servicios-defaults", element: <ServiciosDefaultEmergenciaPage /> },
+                    ],
+                  },
+                  {
+                    path: "parametros/hospitalizacion",
+                    element: <HospitalizacionParametrosLayout />,
+                    children: [
+                      { index: true, element: <HospitalizacionParametrosHubPage /> },
+                      { path: "cirugias", element: <CirugiasPage /> },
                     ],
                   },
                 ],
@@ -155,6 +172,7 @@ export const router = createBrowserRouter([
                     children: [
                       { index: true, element: <Navigate to="programacion" replace /> },
                       { path: "programacion", element: <ProgramacionMedicaPage /> },
+                      { path: "presupuestos", element: <ComingSoonPage /> },
                       {
                         path: "agenda",
                         element: <AgendaMedicaLayout />,

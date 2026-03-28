@@ -39,9 +39,8 @@ import {
           label: "Programación médica",
           to: "/admision/citas/programacion",
         },
-        { id: "agenda", label: "Agenda de citas", to: "/admision/citas/agenda" },
-        { id: "nueva", label: "Registrar cita", to: "/admision/citas/nueva" },
-        { id: "consultar", label: "Consultar citas", to: "/admision/citas/consulta" },
+        { id: "agenda", label: "Gestión de citas", to: "/admision/citas/agenda" },
+        { id: "presupuestos", label: "Presupuestos", to: "/admision/citas/presupuestos" },
       ],
     },
     {

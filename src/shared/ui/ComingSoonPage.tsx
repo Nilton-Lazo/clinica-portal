@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Construction, ArrowLeft } from "lucide-react";
 import { NAV_ITEMS } from "../../app/layout/nav.registry";
+import { useRouteMeta } from "../../app/router/useRouteMeta";
 
 function getModuleInfo(pathname: string): { label: string; description: string } {
   const segment = "/" + (pathname.split("/")[1] ?? "");
@@ -14,7 +15,10 @@ function getModuleInfo(pathname: string): { label: string; description: string }
 export default function ComingSoonPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const meta = useRouteMeta();
   const { label, description } = getModuleInfo(location.pathname);
+  const title = meta?.title ?? label;
+  const bodyText = meta?.subtitle ?? description;
 
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-8 px-4 py-12">
@@ -31,8 +35,8 @@ export default function ComingSoonPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-(--color-primary)/10 text-(--color-primary) text-xs font-semibold uppercase tracking-wide">
             Próximamente
           </div>
-          <h1 className="text-2xl font-bold text-(--color-text-primary)">{label}</h1>
-          <p className="text-sm text-(--color-text-secondary) leading-relaxed">{description}</p>
+          <h1 className="text-2xl font-bold text-(--color-text-primary)">{title}</h1>
+          <p className="text-sm text-(--color-text-secondary) leading-relaxed">{bodyText}</p>
         </div>
 
         <button
