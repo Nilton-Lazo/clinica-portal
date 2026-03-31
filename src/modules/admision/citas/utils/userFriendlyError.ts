@@ -34,6 +34,8 @@ const FIELD_LABELS: Record<string, string> = {
   tarifa_id: "Tarifa",
   servicios: "Servicios",
   monto_a_pagar: "Monto a pagar",
+  vigencia_hasta: "Vigencia hasta",
+  payload: "Contenido del presupuesto",
   soat_activo: "SOAT",
   soat_numero_poliza: "N° de póliza SOAT",
   soat_numero_placa: "N° de placa SOAT",

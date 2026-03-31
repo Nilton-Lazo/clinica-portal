@@ -36,6 +36,7 @@ function normalizePaquete(x: unknown): PaqueteLookup {
     descripcion: toStr(o.descripcion),
     tarifa_id: toInt(o.tarifa_id),
     estado: (toStr(o.estado).toUpperCase() || "ACTIVO") as PaqueteLookup["estado"],
+    precio_sin_igv: toStr(o.precio_sin_igv),
   };
 }
 
@@ -101,6 +102,17 @@ export async function getTarifaServiciosTree(tarifaId: number): Promise<TarifaSe
 export async function getPaqueteServicios(paqueteId: number): Promise<PaqueteServicioItem[]> {
   const res = await api.get<{ data: { servicios: unknown[] } }>(`/ficheros/paquetes/${paqueteId}/servicios`);
   return (res.data?.servicios ?? []).map(normalizeServicio).filter((x) => x.id > 0);
+}
+
+export async function getPaqueteConServicios(
+  paqueteId: number
+): Promise<{ paquete: PaqueteLookup; servicios: PaqueteServicioItem[] }> {
+  const res = await api.get<{ data: { paquete: unknown; servicios: unknown[] } }>(`/ficheros/paquetes/${paqueteId}/servicios`);
+  const data = res.data ?? { paquete: {}, servicios: [] };
+  return {
+    paquete: normalizePaquete(data.paquete),
+    servicios: (data.servicios ?? []).map(normalizeServicio).filter((x) => x.id > 0),
+  };
 }
 
 export async function syncPaqueteServicios(paqueteId: number, servicioIds: number[]): Promise<PaqueteServicioItem[]> {

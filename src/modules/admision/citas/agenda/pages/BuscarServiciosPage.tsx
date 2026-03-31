@@ -12,7 +12,7 @@ import {
   type TarifaServicioBusqueda,
   type TarifaServiciosBusquedaMeta,
 } from "../services/atencionCita.service";
-import type { AtencionDraft } from "../types/atencionCita.types";
+import type { AtencionDraft, PresupuestoPaqueteSnapshot } from "../types/atencionCita.types";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 
 function useIsLgUp(): boolean {
@@ -37,6 +37,8 @@ type LocationState = {
   returnLineas?: unknown[];
   atencionDraft?: AtencionDraft | null;
   copVarDefault?: number;
+  presupuestoReturnPath?: string;
+  presupuestoPaquete?: PresupuestoPaqueteSnapshot | null;
 };
 
 function normalizeCodigoQuery(raw: string): string {
@@ -68,13 +70,16 @@ function precioConRecargo(
 }
 
 export default function BuscarServiciosPage() {
-  const { citaId } = useParams<"citaId">();
+  const { citaId } = useParams<{ citaId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const navState = React.useMemo(() => (location.state ?? {}) as LocationState, [location.state]);
 
   const tarifaId = navState.tarifaId ?? null;
   const tarifaDescripcion = navState.tarifaDescripcion ?? "—";
+  const presupuestoReturnPath = navState.presupuestoReturnPath;
+  const isPresupuesto = Boolean(presupuestoReturnPath);
+  const citaIdNum = citaId ? parseInt(citaId, 10) : NaN;
 
   const [data, setData] = React.useState<TarifaServicioBusqueda[]>([]);
   const [meta, setMeta] = React.useState<TarifaServiciosBusquedaMeta | null>(null);
@@ -145,48 +150,48 @@ export default function BuscarServiciosPage() {
     }
   }, [qDebounced]);
 
-  const handleRegresar = React.useCallback(() => {
-    navigate(`/admision/citas/agenda/${citaId}/atencion`, {
-      replace: true,
-      state: {
+  const navigateBackToOrigen = React.useCallback(
+    (extra: Record<string, unknown>) => {
+      const state: Record<string, unknown> = {
         returnLineas: navState.returnLineas,
         atencionDraft: navState.atencionDraft,
         scrollToServicios: true,
-      },
-    });
-  }, [navigate, citaId, navState]);
+        copVarDefault: navState.copVarDefault,
+        ...extra,
+      };
+      if (typeof navState.presupuestoPaquete !== "undefined") {
+        state.presupuestoPaquete = navState.presupuestoPaquete;
+      }
+      if (isPresupuesto && presupuestoReturnPath) {
+        navigate(presupuestoReturnPath, { replace: true, state });
+      } else if (Number.isFinite(citaIdNum)) {
+        navigate(`/admision/citas/agenda/${citaIdNum}/atencion`, { replace: true, state });
+      }
+    },
+    [navigate, navState, isPresupuesto, presupuestoReturnPath, citaIdNum]
+  );
+
+  const handleRegresar = React.useCallback(() => {
+    navigateBackToOrigen({});
+  }, [navigateBackToOrigen]);
 
   const handleDoubleClick = React.useCallback(
     (row: TarifaServicioBusqueda) => {
       if (multiSelect) return;
-      navigate(`/admision/citas/agenda/${citaId}/atencion`, {
-        replace: true,
-        state: {
-          selectedServicios: [row],
-          returnLineas: navState.returnLineas,
-          atencionDraft: navState.atencionDraft,
-          copVarDefault: navState.copVarDefault,
-          scrollToServicios: true,
-        },
+      navigateBackToOrigen({
+        selectedServicios: [row],
       });
     },
-    [navigate, citaId, multiSelect, navState]
+    [multiSelect, navigateBackToOrigen]
   );
 
   const handleAgregarSeleccionados = React.useCallback(() => {
     if (selectedItems.size === 0) return;
     const selected = Array.from(selectedItems.values());
-    navigate(`/admision/citas/agenda/${citaId}/atencion`, {
-      replace: true,
-      state: {
-        selectedServicios: selected,
-        returnLineas: navState.returnLineas,
-        atencionDraft: navState.atencionDraft,
-        copVarDefault: navState.copVarDefault,
-        scrollToServicios: true,
-      },
+    navigateBackToOrigen({
+      selectedServicios: selected,
     });
-  }, [navigate, citaId, selectedItems, navState]);
+  }, [selectedItems, navigateBackToOrigen]);
 
   const toggleSelect = React.useCallback((row: TarifaServicioBusqueda) => {
     setSelectedItems((prev) => {
@@ -312,15 +317,30 @@ export default function BuscarServiciosPage() {
     [data, selectedItems]
   );
 
-  if (!citaId || !tarifaId) {
+  if (!tarifaId) {
     return (
       <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-8">
         <p className="text-sm text-(--color-text-secondary)">
-          No hay tarifario asignado. Seleccione un plan en la atención.
+          No hay tarifario asignado. Seleccione un plan en la atención o en el presupuesto.
         </p>
-        <SecondaryButton onClick={() => navigate(`/admision/citas/agenda/${citaId}/atencion`)}>
+        <SecondaryButton
+          onClick={() => {
+            if (isPresupuesto && presupuestoReturnPath) navigate(presupuestoReturnPath, { replace: true });
+            else if (Number.isFinite(citaIdNum)) navigate(`/admision/citas/agenda/${citaIdNum}/atencion`, { replace: true });
+            else navigate(-1);
+          }}
+        >
           Regresar
         </SecondaryButton>
+      </div>
+    );
+  }
+
+  if (!isPresupuesto && !Number.isFinite(citaIdNum)) {
+    return (
+      <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-8">
+        <p className="text-sm text-(--color-text-secondary)">ID de cita inválido.</p>
+        <SecondaryButton onClick={() => navigate("/admision/citas/agenda")}>Regresar</SecondaryButton>
       </div>
     );
   }

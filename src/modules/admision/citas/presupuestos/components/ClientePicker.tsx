@@ -1,14 +1,11 @@
 import * as React from "react";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { SecondaryButton } from "../../../../../shared/ui/buttons";
-import HistoriaClinicaTable from "../../../historia-clinica/components/HistoriaClinicaTable";
-import HistoriaClinicaMobileList from "../../../historia-clinica/components/HistoriaClinicaMobileList";
-import {
-  type PacienteListItem,
-  type PaginatedResponse,
-  type PacientesQuery,
-} from "../../../historia-clinica/types/historiaClinica.types";
-import { listPacientes } from "../../../historia-clinica/services/historiaClinica.service";
+import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
+import ClientesTable from "../../../../ficheros/clientes/components/ClientesTable";
+import ClientesMobileList from "../../../../ficheros/clientes/components/ClientesMobileList";
+import type { Cliente, ClientesQuery, PaginatedResponse } from "../../../../ficheros/types/clientes.types";
+import { listClientes } from "../../../../ficheros/services/clientes.service";
 
 type Variant = "drawer" | "fullscreen";
 
@@ -16,12 +13,9 @@ type Props = {
   open: boolean;
   variant: Variant;
   onClose: () => void;
-  onPicked: (paciente: PacienteListItem) => void;
+  onPicked: (c: Cliente) => void;
   title?: string;
   description?: string;
-  showRegisterButton?: boolean;
-  onRegister?: () => void;
-  onOpenHistoriaClinica?: () => void;
 };
 
 const statusOptions: SelectOption[] = [
@@ -34,57 +28,38 @@ const statusOptions: SelectOption[] = [
 const INITIAL_PAGE = 1;
 const INITIAL_PER_PAGE = 25;
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = React.useState(value);
-
-  React.useEffect(() => {
-    const id = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(id);
-  }, [value, delayMs]);
-
-  return debounced;
-}
-
-export function PacientePicker(props: Props) {
+export default function ClientePicker(props: Props) {
   const {
     open,
     variant,
     onClose,
     onPicked,
-    title = "Seleccionar paciente",
-    description = "Busca y selecciona el paciente (clic en la fila).",
-    showRegisterButton = true,
-    onRegister,
-    onOpenHistoriaClinica,
+    title = "Seleccionar cliente",
+    description = "Busca y selecciona el cliente (clic en la fila).",
   } = props;
 
   const [search, setSearch] = React.useState("");
   const q = useDebouncedValue(search, 300);
-
   const [status, setStatus] = React.useState<string>("");
   const [page, setPage] = React.useState(INITIAL_PAGE);
   const [perPage] = React.useState(INITIAL_PER_PAGE);
   const [loading, setLoading] = React.useState(false);
-  const [data, setData] = React.useState<PaginatedResponse<PacienteListItem>>({
+  const [data, setData] = React.useState<PaginatedResponse<Cliente>>({
     data: [],
     meta: { current_page: INITIAL_PAGE, per_page: INITIAL_PER_PAGE, total: 0, last_page: 1 },
   });
-  const [selected, setSelected] = React.useState<PacienteListItem | null>(null);
-
+  const [selected, setSelected] = React.useState<Cliente | null>(null);
   const requestIdRef = React.useRef(0);
 
   React.useEffect(() => {
     if (!open) return;
-
     setLoading(true);
     const requestId = ++requestIdRef.current;
-
-    const query: PacientesQuery = { q, page, per_page: perPage };
+    const query: ClientesQuery = { q, page, per_page: perPage };
     if (status && ["ACTIVO", "INACTIVO", "SUSPENDIDO"].includes(status)) {
-      query.status = status as PacientesQuery["status"];
+      query.status = status as ClientesQuery["status"];
     }
-
-    listPacientes(query)
+    listClientes(query)
       .then((res) => {
         if (requestId !== requestIdRef.current) return;
         setData(res);
@@ -101,9 +76,9 @@ export function PacientePicker(props: Props) {
   }, [q, status]);
 
   const handleRowSelect = React.useCallback(
-    (p: PacienteListItem) => {
-      setSelected(p);
-      onPicked(p);
+    (c: Cliente) => {
+      setSelected(c);
+      onPicked(c);
       onClose();
     },
     [onPicked, onClose],
@@ -125,24 +100,10 @@ export function PacientePicker(props: Props) {
           <div className="flex flex-col gap-1">
             <div className="text-sm font-semibold text-(--color-text-primary)">{title}</div>
             <div className="text-xs text-(--color-text-secondary)">{description}</div>
-            {onOpenHistoriaClinica ? (
-              <button
-                type="button"
-                onClick={onOpenHistoriaClinica}
-                className="self-start text-xs font-medium text-(--color-primary) hover:underline"
-              >
-                Editar datos en Historia clínica
-              </button>
-            ) : null}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {showRegisterButton && onRegister ? (
-              <SecondaryButton onClick={onRegister}>Registrar paciente</SecondaryButton>
-            ) : null}
-            <SecondaryButton type="button" onClick={onClose}>
-              Cerrar
-            </SecondaryButton>
-          </div>
+          <SecondaryButton type="button" onClick={onClose}>
+            Cerrar
+          </SecondaryButton>
         </div>
 
         <div className="mt-3 flex flex-col gap-3 sm:flex-row">
@@ -151,7 +112,7 @@ export function PacientePicker(props: Props) {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="N° documento, N° historia o nombre"
+              placeholder="Nombre o documento (DNI / RUC)"
               className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
             />
           </div>
@@ -172,7 +133,7 @@ export function PacientePicker(props: Props) {
       </div>
 
       <div className="min-w-0">
-        <HistoriaClinicaTable
+        <ClientesTable
           data={data}
           loading={loading}
           selectedId={selected?.id ?? null}
@@ -182,9 +143,8 @@ export function PacientePicker(props: Props) {
           onNext={onNext}
           onFirst={onFirst}
           onLast={onLast}
-          pickerMode
         />
-        <HistoriaClinicaMobileList
+        <ClientesMobileList
           data={data}
           loading={loading}
           selectedId={selected?.id ?? null}
@@ -241,6 +201,3 @@ export function PacientePicker(props: Props) {
     </div>
   );
 }
-
-export default PacientePicker;
-

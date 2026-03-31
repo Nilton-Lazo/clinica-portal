@@ -1,8 +1,22 @@
 const KEY = "erp:auth:token";
 
 let memoryToken: string | null = null;
+let storageNormalized = false;
+
+function normalizeStorage() {
+  if (storageNormalized) return;
+  storageNormalized = true;
+  try {
+    const fromLocal = localStorage.getItem(KEY);
+    if (fromLocal && !sessionStorage.getItem(KEY)) {
+      sessionStorage.setItem(KEY, fromLocal);
+    }
+    localStorage.removeItem(KEY);
+  } catch {}
+}
 
 function safeGet(): string | null {
+  normalizeStorage();
   try {
     return sessionStorage.getItem(KEY);
   } catch {
@@ -13,17 +27,15 @@ function safeGet(): string | null {
 function safeSet(value: string) {
   try {
     sessionStorage.setItem(KEY, value);
-  } catch {
-    // si el storage falla (modo privado extremo), queda en memoria
-  }
+    localStorage.removeItem(KEY);
+  } catch {}
 }
 
 function safeRemove() {
   try {
     sessionStorage.removeItem(KEY);
-  } catch {
-    // ignore
-  }
+    localStorage.removeItem(KEY);
+  } catch {}
 }
 
 export const tokenStore = {

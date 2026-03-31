@@ -63,6 +63,11 @@ export type AtencionCitaData = {
 
 export type EstadoFacturacionServicio = "PENDIENTE" | "FACTURADO";
 
+/** Líneas de presupuesto (cotización): ciclo distinto a facturación en atención. */
+export type EstadoLineaPresupuesto = "VIGENTE" | "UTILIZADO" | "VENCIDO" | "ANULADO";
+
+export type EstadoServicioLineaUi = EstadoFacturacionServicio | EstadoLineaPresupuesto;
+
 export type AtencionServicioItem = {
   id: number;
   tarifa_servicio_id: number;
@@ -96,7 +101,7 @@ export type AtencionServicioLinea = {
   cantidad?: number;
   precio_sin_igv: number;
   precio_con_igv: number;
-  estado_facturacion?: EstadoFacturacionServicio;
+  estado_facturacion?: EstadoFacturacionServicio | EstadoLineaPresupuesto;
 };
 
 export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
@@ -109,7 +114,7 @@ export type AtencionServicioLineaDisplay = AtencionServicioLinea & {
   medico_codigo?: string | null;
   user_username?: string | null;
   user_nombre?: string | null;
-  estado_facturacion?: EstadoFacturacionServicio;
+  estado_facturacion?: EstadoFacturacionServicio | EstadoLineaPresupuesto;
   recargo_noche_activo?: boolean;
 };
 
@@ -130,6 +135,15 @@ export type PrecargaServicioItem = {
   recargo_noche_activo?: boolean;
 };
 
+export type PresupuestoPaqueteSnapshot = {
+  id: number;
+  codigo: string;
+  descripcion: string;
+  precio_sin_igv: number;
+  precio_con_igv: number;
+  servicios: Array<{ tarifa_servicio_id: number; codigo: string; descripcion: string }>;
+};
+
 export type AtencionDraft = {
   acudio: boolean;
   horaAsistenciaDisplay: string;
@@ -145,6 +159,7 @@ export type AtencionDraft = {
   soatNumeroPoliza: string;
   soatNumeroPlaca: string;
   lineas: AtencionServicioLineaDisplay[];
+  presupuesto_paquete?: PresupuestoPaqueteSnapshot | null;
 };
 
 export type AtencionCitaStorePayload = {

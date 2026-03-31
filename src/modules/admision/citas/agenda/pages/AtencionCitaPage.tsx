@@ -1187,7 +1187,7 @@ export default function AtencionCitaPage() {
           onLineasChange={setLineas}
           medicosOptions={medicosOptions}
           currentUsername={user?.username ?? ""}
-          citaId={id}
+          nav={{ type: "cita", citaId: id }}
           hasPendingDataChanges={hasPendingDataChanges}
           onActualizarDatos={onActualizarDatos}
           pendingChangesMessage={pendingChangesMessage}

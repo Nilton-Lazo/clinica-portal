@@ -33,10 +33,12 @@ export function DataTable<T>(props: {
   onSelect: (row: T, e?: React.MouseEvent) => void;
   onDoubleClick?: (row: T) => void;
   onContextMenu?: (row: T, e: React.MouseEvent) => void;
+  onRowPointerEnter?: (row: T) => void;
   emptyText?: string;
   tableClassName?: string;
+  emptyRowClassName?: string;
 }) {
-  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, onContextMenu, emptyText, tableClassName } = props;
+  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, onContextMenu, onRowPointerEnter, emptyText, tableClassName, emptyRowClassName } = props;
 
   const showOverlay = loading;
   const showEmptyRow = !loading && rows.length === 0;
@@ -72,7 +74,10 @@ export function DataTable<T>(props: {
               </tr>
             ) : showEmptyRow ? (
               <tr>
-                <td className="px-3 py-3 text-(--color-text-secondary)" colSpan={columns.length}>
+                <td
+                  className={["px-3 py-4 text-(--color-text-secondary) text-sm", emptyRowClassName ?? ""].filter(Boolean).join(" ")}
+                  colSpan={columns.length}
+                >
                   {emptyText ?? "No hay registros."}
                 </td>
               </tr>
@@ -83,6 +88,7 @@ export function DataTable<T>(props: {
                 return (
                   <tr
                     key={String(id)}
+                    onPointerEnter={() => onRowPointerEnter?.(row)}
                     onClick={(e) => onSelect(row, e)}
                     onDoubleClick={() => onDoubleClick?.(row)}
                     onContextMenu={(e) => {

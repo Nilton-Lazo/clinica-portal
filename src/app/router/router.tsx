@@ -32,7 +32,8 @@ import AgendaPacienteSelectPage from "../../modules/admision/citas/agenda/pages/
 import AgendaMedicaNuevaCitaPage from "../../modules/admision/citas/agenda/pages/AgendaMedicaNuevaCitaPage";
 import AtencionCitaPage from "../../modules/admision/citas/agenda/pages/AtencionCitaPage";
 import BuscarServiciosPage from "../../modules/admision/citas/agenda/pages/BuscarServiciosPage";
-
+import PresupuestosPage from "../../modules/admision/citas/presupuestos/pages/PresupuestosPage";
+import PresupuestoNuevoPage from "../../modules/admision/citas/presupuestos/pages/PresupuestoNuevoPage";
 import TiposIafasPage from "../../modules/ficheros/pages/TiposIafasPage";
 import IafasPage from "../../modules/ficheros/pages/IafasPage";
 import ContratantesPage from "../../modules/ficheros/pages/ContratantesPage";
@@ -50,6 +51,7 @@ import ServiciosDefaultEmergenciaPage from "../../modules/ficheros/parametros/em
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
+import PreFacturacionHospitalariaPage from "../../modules/admision/historia-clinica/pages/PreFacturacionHospitalariaPage";
 
 import EmergenciaHomePage from "../../modules/emergencia/pages/EmergenciaHomePage";
 import RegistroEmergenciaPage from "../../modules/emergencia/pages/RegistroEmergenciaPage";
@@ -161,7 +163,7 @@ export const router = createBrowserRouter([
                     path: "historia-clinica",
                     children: [
                       { index: true, element: <HistoriaPage /> },
-                  
+                      { path: "pre-facturacion-hospitalaria", element: <PreFacturacionHospitalariaPage /> },
                       { path: "nuevo/*", element: <PacienteWizardPage /> },
                       { path: ":pacienteId/*", element: <PacienteWizardPage /> },
                     ],
@@ -172,7 +174,10 @@ export const router = createBrowserRouter([
                     children: [
                       { index: true, element: <Navigate to="programacion" replace /> },
                       { path: "programacion", element: <ProgramacionMedicaPage /> },
-                      { path: "presupuestos", element: <ComingSoonPage /> },
+                      { path: "presupuestos/nuevo/buscar-servicios", element: <BuscarServiciosPage /> },
+                      { path: "presupuestos/nuevo", element: <PresupuestoNuevoPage /> },
+                      { path: "presupuestos/:id", element: <PresupuestoNuevoPage /> },
+                      { path: "presupuestos", element: <PresupuestosPage /> },
                       {
                         path: "agenda",
                         element: <AgendaMedicaLayout />,

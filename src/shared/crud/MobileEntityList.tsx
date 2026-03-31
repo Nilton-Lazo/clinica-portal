@@ -12,8 +12,9 @@ export function MobileEntityList<T>(props: {
   renderRight?: (row: T) => React.ReactNode;
   emptyText?: string;
   onLongPress?: (row: T) => void;
+  onRowPointerEnter?: (row: T) => void;
 }) {
-  const { rows, loading, selectedId, getRowId, onSelect, renderMain, renderRight, emptyText, onLongPress } = props;
+  const { rows, loading, selectedId, getRowId, onSelect, renderMain, renderRight, emptyText, onLongPress, onRowPointerEnter } = props;
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressHandledRef = React.useRef(false);
 
@@ -76,6 +77,7 @@ export function MobileEntityList<T>(props: {
             key={String(id)}
             role="button"
             tabIndex={0}
+            onPointerEnter={() => onRowPointerEnter?.(row)}
             onClick={() => {
               if (longPressHandledRef.current) return;
               onSelect(row);

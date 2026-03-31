@@ -35,6 +35,7 @@ export default function AppShell() {
   const isHistoriaClinicaWizard = location.pathname.includes("/admision/historia-clinica/");
   const isProgramacionMedica = location.pathname.includes("/admision/citas/programacion");
   const isAgendaCitas = location.pathname.includes("/admision/citas/agenda");
+  const isPresupuestosCitas = location.pathname.includes("/admision/citas/presupuestos");
   const isTarifario = location.pathname.startsWith("/facturacion/tarifario");
   const isEmergenciaRegistro = location.pathname.startsWith("/emergencia/registro");
   const isEmergenciaAtencion = location.pathname.startsWith("/emergencia/atencion");
@@ -42,6 +43,7 @@ export default function AppShell() {
     (isHistoriaClinicaWizard && !isHistoriaList) ||
     isProgramacionMedica ||
     isAgendaCitas ||
+    isPresupuestosCitas ||
     isTarifario ||
     isEmergenciaRegistro ||
     isEmergenciaAtencion;

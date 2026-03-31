@@ -22,9 +22,11 @@ import {
           label: "Historia clínica principal",
           to: "/admision/historia-clinica",
         },
-        { id: "consulta", label: "Consulta Historia clínica", to: "/admision/historia-clinica/consulta" },
-        { id: "busqueda", label: "Búsqueda de atención al paciente", to: "/admision/historia-clinica/busqueda-atencion" },
-        { id: "prestaciones", label: "Prestaciones (Sin Historia clínica)", to: "/admision/historia-clinica/prestaciones-sin-hc" },
+        {
+          id: "pre-facturacion-hospitalaria",
+          label: "Pre-Facturacion Hospitalaria",
+          to: "/admision/historia-clinica/pre-facturacion-hospitalaria",
+        },
       ],
     },
     {

@@ -12,6 +12,7 @@ export type PaqueteLookup = {
   descripcion: string;
   tarifa_id: number;
   estado: RecordStatus;
+  precio_sin_igv?: string;
 };
 
 export type TreeServicio = {
