@@ -4,37 +4,13 @@ import type {
 } from "../../types/registroEmergencia.types";
 import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
-import { ShieldCheck, ClipboardList } from "lucide-react";
+import { AtencionEstadoBadge } from "../../../../shared/ui/AtencionEstadoBadge";
 
 function topicoSoloTexto(value: string): string {
   if (!value || typeof value !== "string") return value ?? "";
   const trimmed = value.trim();
   const match = trimmed.match(/^\d+\s*·\s*(.+)$/);
   return match ? match[1].trim() : trimmed;
-}
-
-function EstadoEmergenciaBadge({ value }: { value?: string | null }) {
-  if (!value) return null;
-  const v = value.trim().toUpperCase();
-  const base =
-    "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold";
-  if (v === "ATENDIDO") {
-    return (
-      <span className={`${base} border-(--color-success) text-(--color-success)`}>
-        <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-        Atendido
-      </span>
-    );
-  }
-  if (v === "REGISTRADO") {
-    return (
-      <span className={`${base} border-(--color-primary) text-(--color-primary)`}>
-        <ClipboardList className="h-4 w-4" aria-hidden="true" />
-        Registrado
-      </span>
-    );
-  }
-  return <span className="text-(--color-text-secondary) text-xs">{value}</span>;
 }
 
 export default function RegistroEmergenciaTable(props: {
@@ -110,7 +86,7 @@ export default function RegistroEmergenciaTable(props: {
       header: "Estado",
       headerClassName: `${centerClass} w-32`,
       cellClassName: "px-3 py-2 align-middle text-center",
-      render: (x) => <EstadoEmergenciaBadge value={x.estado} />,
+      render: (x) => <AtencionEstadoBadge value={x.estado} />,
     },
   ];
 

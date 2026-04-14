@@ -32,6 +32,8 @@ function extractCodigoPrefix(value: string | null | undefined): string {
   return m2?.[1] ? m2[1].trim() : "";
 }
 
+const EMERGENCIA_BUSCAR_SERVICIOS_PATH = "/admision/citas/presupuestos/nuevo/buscar-servicios";
+
 function normalizeCodigoForMatch(value: string | null | undefined): string {
   const raw = (value ?? "").trim();
   if (!raw) return "";
@@ -417,7 +419,12 @@ export default function AtencionEmergenciaPage() {
         const full = pFull;
 
         const cachedPlanes = planesCacheByPacienteId.get(full.id) ?? null;
-        const planesRaw = cachedPlanes ?? (await listPacientePlanes(full.id));
+        const planesRaw =
+          cachedPlanes ??
+          (await listPacientePlanes(full.id, {
+            soloActivos: true,
+            incluirPlanId: reg.paciente_plan_id ?? null,
+          }));
         if (cancelled) return;
         setPlanes(planesRaw);
         if (!cachedPlanes) planesCacheByPacienteId.set(full.id, planesRaw);
@@ -972,7 +979,13 @@ export default function AtencionEmergenciaPage() {
           onLineasChange={setLineas}
           medicosOptions={medicosOptions}
           currentUsername={user?.username ?? ""}
-          citaId={registroId}
+          nav={{
+            type: "emergencia",
+            registroId,
+            buscarPath: EMERGENCIA_BUSCAR_SERVICIOS_PATH,
+            returnPath: `/emergencia/atencion/${registroId}`,
+            draftStorageKey: `emergencia:atencionDraft:${registroId}`,
+          }}
           hasPendingDataChanges={hasPendingDataChanges}
           onActualizarDatos={onActualizarDatos}
           pendingChangesMessage={pendingChangesMessage}

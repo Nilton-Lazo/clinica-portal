@@ -106,7 +106,9 @@ function PrecioCell({ valor }: { valor: number }) {
 
 export type ServiciosSolicitadosNav =
   | { type: "cita"; citaId: number }
-  | { type: "presupuesto"; buscarPath: string; returnPath: string; draftStorageKey: string };
+  | { type: "presupuesto"; buscarPath: string; returnPath: string; draftStorageKey: string }
+  | { type: "pre_facturacion"; buscarPath: string; returnPath: string; draftStorageKey: string }
+  | { type: "emergencia"; registroId: number; buscarPath: string; returnPath: string; draftStorageKey: string };
 
 export type ServiciosSolicitadosSectionProps = {
   medicoTratanteId: number | null;
@@ -167,7 +169,8 @@ export function ServiciosSolicitadosSection({
   readOnly = false,
 }: ServiciosSolicitadosSectionProps) {
   const esPresupuesto = nav.type === "presupuesto";
-  const soloPaquetePresupuesto = esPresupuesto && presupuestoPaquete != null;
+  const navPermitePaquete = esPresupuesto || nav.type === "pre_facturacion";
+  const soloPaquetePresupuesto = navPermitePaquete && presupuestoPaquete != null;
   const navigate = useNavigate();
   const [igvPct, setIgvPct] = React.useState(18);
   const [servicioPickerOpen, setServicioPickerOpen] = React.useState(false);
@@ -209,9 +212,7 @@ export function ServiciosSolicitadosSection({
         const key =
           nav.type === "cita" ? `${DRAFT_STORAGE_KEY_PREFIX}${nav.citaId}` : nav.draftStorageKey;
         window.sessionStorage.setItem(key, JSON.stringify(draft));
-      } catch {
-        // ignore
-      }
+      } catch {}
     }
     const state = {
       tarifaId,
@@ -220,10 +221,12 @@ export function ServiciosSolicitadosSection({
       returnLineas: lineas,
       atencionDraft: draft,
       copVarDefault,
-      ...(nav.type === "presupuesto"
+      ...(nav.type === "presupuesto" || nav.type === "pre_facturacion" || nav.type === "emergencia"
         ? {
             presupuestoReturnPath: nav.returnPath,
-            ...(presupuestoPaquete != null ? { presupuestoPaquete } : {}),
+            ...((nav.type === "presupuesto" || nav.type === "pre_facturacion") && presupuestoPaquete != null
+              ? { presupuestoPaquete }
+              : {}),
           }
         : {}),
     };
@@ -269,7 +272,6 @@ export function ServiciosSolicitadosSection({
       if (onServiciosSelected) openServicioPicker();
       else doNavigateBuscar();
     } catch {
-      // Error ya manejado en el padre
     } finally {
       actualizandoRef.current = false;
       setActualizando(false);
@@ -281,7 +283,9 @@ export function ServiciosSolicitadosSection({
   }, []);
 
   const medicoOptionsForLinea = React.useMemo(() => {
-    return medicosOptions.length ? medicosOptions : [{ value: "", label: "Seleccione médico" }];
+    const placeholder: SelectOption = { value: "", label: "Sin médico asignado" };
+    if (!medicosOptions.length) return [placeholder];
+    return [placeholder, ...medicosOptions];
   }, [medicosOptions]);
 
   const selectedLinea = selectedLineaIdx != null ? lineas[selectedLineaIdx] : null;
@@ -371,8 +375,8 @@ export function ServiciosSolicitadosSection({
     {
       key: "descripcion",
       header: "Descripción de servicio",
-      headerClassName: "text-xs py-1.5 text-left align-middle",
-      cellClassName: "text-xs px-2 py-1.5 max-w-[200px] align-middle",
+      headerClassName: "text-xs py-1.5 text-left min-w-[12rem] align-middle",
+      cellClassName: "text-xs px-2 py-1.5 min-w-0 max-w-[min(36rem,55vw)] align-middle",
       render: (x) => (
         <span className="block wrap-break-word whitespace-normal text-left leading-snug">
           {x.servicio_descripcion ?? "—"}
@@ -640,9 +644,9 @@ export function ServiciosSolicitadosSection({
   }, [lineas, estadoFacturacionFilter, esPresupuesto]);
 
   const montoPaquetePaciente = React.useMemo(() => {
-    if (!esPresupuesto || !presupuestoPaquete) return null;
+    if (!navPermitePaquete || !presupuestoPaquete) return null;
     return presupuestoPaquetePacientePaga(presupuestoPaquete, copVarDefault, igvPct, tarifaEsPrecioDirecto);
-  }, [esPresupuesto, presupuestoPaquete, copVarDefault, igvPct, tarifaEsPrecioDirecto]);
+  }, [navPermitePaquete, presupuestoPaquete, copVarDefault, igvPct, tarifaEsPrecioDirecto]);
 
   const montoAPagarComputed = React.useMemo(() => {
     const pendientes = esPresupuesto
@@ -652,11 +656,11 @@ export function ServiciosSolicitadosSection({
       (sum, l) => sum + pacientePagaConIgv(l, igvPct, tarifaEsPrecioDirecto),
       0
     );
-    if (esPresupuesto && presupuestoPaquete) {
+    if (navPermitePaquete && presupuestoPaquete) {
       total += presupuestoPaquetePacientePaga(presupuestoPaquete, copVarDefault, igvPct, tarifaEsPrecioDirecto);
     }
     return Math.round(total * FACTOR_REDONDO) / FACTOR_REDONDO;
-  }, [lineas, igvPct, tarifaEsPrecioDirecto, esPresupuesto, presupuestoPaquete, copVarDefault]);
+  }, [lineas, igvPct, tarifaEsPrecioDirecto, navPermitePaquete, presupuestoPaquete, copVarDefault]);
 
   React.useEffect(() => {
     onMontoAPagarChange?.(montoAPagarComputed);
@@ -710,10 +714,10 @@ export function ServiciosSolicitadosSection({
 
   const emptyFinalServiciosText = React.useMemo(
     () =>
-      esPresupuesto && presupuestoPaquete
+      navPermitePaquete && presupuestoPaquete
         ? "Sin servicios adicionales del tarifario. Los incluidos en el paquete figuran en el bloque superior."
         : "No hay servicios. Use «Buscar servicio» para agregar.",
-    [esPresupuesto, presupuestoPaquete]
+    [navPermitePaquete, presupuestoPaquete]
   );
 
   const headerDescription = sectionDescription ?? DEFAULT_SECTION_DESCRIPTION;
@@ -735,10 +739,10 @@ export function ServiciosSolicitadosSection({
         />
 
         <div className="flex flex-col gap-2">
-          {!esPresupuesto && (
+          {!esPresupuesto && !soloPaquetePresupuesto && (
             <>
               <span className="text-xs text-(--color-text-secondary)">
-                {selectedLineaIdx != null ? "Médico de la fila seleccionada" : "Médico predeterminado o de la fila que seleccione en la tabla"}
+                {selectedLineaIdx != null ? "Médico de la fila." : "Médico predeterminado."}
               </span>
               <div className="flex flex-wrap items-center gap-3 gap-y-2">
                 <div className="w-full min-w-0 sm:w-[280px] sm:min-w-[200px]">
@@ -789,7 +793,7 @@ export function ServiciosSolicitadosSection({
           )}
         </div>
 
-        {esPresupuesto && presupuestoPaquete != null && (
+        {navPermitePaquete && presupuestoPaquete != null && (
           <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
@@ -801,11 +805,11 @@ export function ServiciosSolicitadosSection({
                 </div>
                 {!tarifaEsPrecioDirecto && (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <label htmlFor="cop-var-paquete-presupuesto" className="text-xs text-(--color-text-secondary) whitespace-nowrap">
+                    <label htmlFor="cop-var-paquete-servicios" className="text-xs text-(--color-text-secondary) whitespace-nowrap">
                       Copago variable
                     </label>
                     <input
-                      id="cop-var-paquete-presupuesto"
+                      id="cop-var-paquete-servicios"
                       type="text"
                       inputMode="numeric"
                       disabled={serviciosBloqueados}

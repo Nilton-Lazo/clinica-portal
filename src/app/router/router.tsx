@@ -163,6 +163,10 @@ export const router = createBrowserRouter([
                     path: "historia-clinica",
                     children: [
                       { index: true, element: <HistoriaPage /> },
+                      {
+                        path: "pre-facturacion-hospitalaria/buscar-servicios",
+                        element: <BuscarServiciosPage />,
+                      },
                       { path: "pre-facturacion-hospitalaria", element: <PreFacturacionHospitalariaPage /> },
                       { path: "nuevo/*", element: <PacienteWizardPage /> },
                       { path: ":pacienteId/*", element: <PacienteWizardPage /> },

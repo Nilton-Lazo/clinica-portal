@@ -240,16 +240,35 @@ export async function listContratantesLookup(): Promise<ContratanteLookup[]> {
     .filter((x) => x.id > 0 && (x.razon_social.trim() || x.codigo.trim()));
 }
 
-export async function listPacientePlanes(pacienteId: number): Promise<AcreditacionPlan[]> {
+export type ListPacientePlanesOpts = {
+  soloActivos?: boolean;
+  incluirPlanId?: number | null;
+};
+
+export async function listPacientePlanes(
+  pacienteId: number,
+  opts?: ListPacientePlanesOpts
+): Promise<AcreditacionPlan[]> {
   const res = await pacienteService.show(pacienteId);
   const data = res.data as unknown;
 
   const planesUnknown = isObject(data) ? (data.planes as unknown) : null;
   if (!Array.isArray(planesUnknown)) return [];
 
-  return (planesUnknown as PlanApi[])
+  const mapped = (planesUnknown as PlanApi[])
     .filter((x) => x && typeof x === "object" && typeof (x as { id?: unknown }).id === "number")
     .map((x) => normalizePlan(x));
+
+  if (!opts?.soloActivos) return mapped;
+
+  const activos = mapped.filter((p) => p.estado === "ACTIVO");
+  const extraId = opts.incluirPlanId;
+  if (extraId == null || Number.isNaN(extraId)) return activos;
+
+  const extra = mapped.find((p) => p.id === extraId);
+  if (!extra) return activos;
+  if (activos.some((a) => a.id === extra.id)) return activos;
+  return [...activos, extra];
 }
 
 export type PlanCreatePayload = {

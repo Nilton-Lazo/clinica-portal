@@ -147,6 +147,7 @@ export default function NuevoRegistroEmergenciaPage() {
   const [ubigeoOptions, setUbigeoOptions] = React.useState<SelectOption[]>([]);
   const pacienteDetailRef = React.useRef<PacienteDetail | null>(null);
   const plansListRef = React.useRef<AcreditacionPlan[]>([]);
+  const editPacientePlanIdRef = React.useRef<number | null>(null);
   const editTipoClienteRef = React.useRef<string>("");
   const [loadingEdit, setLoadingEdit] = React.useState(isEditMode);
   const editErrorShownForIdRef = React.useRef<number | null>(null);
@@ -154,6 +155,10 @@ export default function NuevoRegistroEmergenciaPage() {
   const applyRegistroToForm = React.useCallback(
     (registro: RegistroEmergencia, pFull: PacienteDetail | null, matchedPlanId: string) => {
       editTipoClienteRef.current = registro.tipo_cliente ?? "";
+      const parsedPlan = matchedPlanId.trim() !== "" ? Number(matchedPlanId) : NaN;
+      editPacientePlanIdRef.current =
+        registro.paciente_plan_id ??
+        (!Number.isNaN(parsedPlan) ? parsedPlan : null);
       if (pFull) {
         pacienteDetailRef.current = pFull;
       }
@@ -340,7 +345,10 @@ export default function NuevoRegistroEmergenciaPage() {
       }
       return;
     }
-    listPacientePlanes(form.pacienteId)
+    listPacientePlanes(form.pacienteId, {
+      soloActivos: true,
+      incluirPlanId: isEditMode ? editPacientePlanIdRef.current : null,
+    })
       .then((planes: AcreditacionPlan[]) => {
         plansListRef.current = planes;
         const opts: SelectOption[] = [

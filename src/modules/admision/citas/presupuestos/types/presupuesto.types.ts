@@ -16,4 +16,6 @@ export type PresupuestoPacienteDetalle = {
   nr: string | null;
   nombre_completo: string;
   planes: PresupuestoPacientePlan[];
+  tipo_paciente: string | null;
+  parentesco_seguro: string | null;
 };

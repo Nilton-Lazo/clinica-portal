@@ -34,12 +34,20 @@ export function hydrateDetalleClienteLineasPaquete(payload: Record<string, unkno
       }
     : null;
 
+  const strOrNull = (v: unknown): string | null => {
+    if (typeof v !== "string") return null;
+    const t = v.trim();
+    return t ? t : null;
+  };
+
   const detalle: PresupuestoPacienteDetalle = {
     id: Number(pac.id),
     hc: String(pac.hc ?? ""),
     nr: pac.nr != null && String(pac.nr).trim() !== "" ? String(pac.nr) : null,
     nombre_completo: String(pac.nombre_completo ?? ""),
     planes: plan ? [plan] : [],
+    tipo_paciente: strOrNull(pac.tipo_paciente),
+    parentesco_seguro: strOrNull(pac.parentesco_seguro),
   };
 
   const cli = asRecord(payload.cliente);

@@ -5,6 +5,14 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object";
 }
 
+function toStrOrNull(v: unknown): string | null {
+  if (typeof v === "string") {
+    const x = v.trim();
+    return x ? x : null;
+  }
+  return null;
+}
+
 function unwrapData<T>(res: unknown): T {
   if (isObject(res) && "data" in res) {
     return (res as { data: T }).data;
@@ -94,5 +102,7 @@ export async function fetchPacientePresupuesto(pacienteId: number): Promise<Pres
     nr: x.nr != null && x.nr !== "" ? String(x.nr) : null,
     nombre_completo: String(x.nombre_completo ?? "").trim(),
     planes,
+    tipo_paciente: toStrOrNull(x.tipo_paciente),
+    parentesco_seguro: toStrOrNull(x.parentesco_seguro),
   };
 }
