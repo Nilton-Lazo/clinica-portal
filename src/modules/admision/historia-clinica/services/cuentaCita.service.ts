@@ -7,6 +7,8 @@ function buildQuery(query: CuentasCitaQuery): string {
   params.set("per_page", String(query.per_page ?? 25));
   const q = (query.q ?? "").trim();
   if (q) params.set("q", q);
+  const emisionOrigen = (query.emision_origen ?? "").trim();
+  if (emisionOrigen) params.set("emision_origen", emisionOrigen);
   const s = params.toString();
   return s ? `?${s}` : "";
 }

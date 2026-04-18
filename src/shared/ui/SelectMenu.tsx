@@ -8,6 +8,25 @@ const isSelectPlaceholderLabel = (label: string) => {
   return t.startsWith("selecciona") || t.startsWith("seleccione");
 };
 
+function isScrollableElement(el: HTMLElement): boolean {
+  const s = window.getComputedStyle(el);
+  return /(auto|scroll|overlay)/.test(`${s.overflow}${s.overflowY}${s.overflowX}`);
+}
+
+/** Contenedores con scroll entre el trigger y el documento (p. ej. `<main class="overflow-y-auto">`). */
+function getScrollableAncestors(trigger: HTMLElement | null): HTMLElement[] {
+  const chain: HTMLElement[] = [];
+  if (!trigger) return chain;
+  let cur: HTMLElement | null = trigger.parentElement;
+  while (cur) {
+    if (isScrollableElement(cur)) chain.push(cur);
+    cur = cur.parentElement;
+  }
+  const root = document.scrollingElement;
+  if (root instanceof HTMLElement && !chain.includes(root)) chain.push(root);
+  return chain;
+}
+
 export function SelectMenu(props: {
   value: string;
   onChange: (v: string) => void;
@@ -32,8 +51,14 @@ export function SelectMenu(props: {
   } = props;
 
   const [open, setOpen] = React.useState(false);
-  const [openUp, setOpenUp] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const [menuBox, setMenuBox] = React.useState<{
+    left: number;
+    width: number;
+    placement: "below" | "above";
+    top?: number;
+    bottom?: number;
+  } | null>(null);
   const optionsNoPlaceholder = React.useMemo(() => {
     return options.filter((opt) => {
       if (opt.disabled && opt.value === "") return false;
@@ -52,7 +77,7 @@ export function SelectMenu(props: {
   const btnRef = React.useRef<HTMLButtonElement | null>(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
 
-  const selected = optionsNoPlaceholder.find((o) => o.value === value);
+  const selected = options.find((o) => o.value === value);
 
   const shouldShowSearch = optionsNoPlaceholder.length > 4 && searchable !== false;
 
@@ -89,17 +114,76 @@ export function SelectMenu(props: {
   React.useLayoutEffect(() => {
     if (!open) {
       setQuery("");
+      setMenuBox(null);
       return;
     }
-    const btn = btnRef.current;
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      const menuHeight = 240;
-      setOpenUp(spaceBelow < menuHeight && spaceAbove >= spaceBelow);
+
+    const margin = 8;
+    const menuHeightEstimate = shouldShowSearch ? 300 : 260;
+
+    const update = () => {
+      const btn = btnRef.current;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const spaceBelow = vh - r.bottom - margin;
+      const spaceAbove = r.top - margin;
+      const placement: "below" | "above" =
+        spaceBelow < menuHeightEstimate && spaceAbove >= spaceBelow ? "above" : "below";
+      const width = Math.min(r.width, vw - margin * 2);
+      const left = Math.max(margin, Math.min(r.left, vw - width - margin));
+
+      if (placement === "below") {
+        setMenuBox({
+          left,
+          width,
+          placement,
+          top: r.bottom + margin,
+        });
+      } else {
+        setMenuBox({
+          left,
+          width,
+          placement,
+          bottom: vh - r.top + margin,
+        });
+      }
+    };
+
+    update();
+
+    const triggerEl = btnRef.current;
+    const scrollOpts: AddEventListenerOptions = { passive: true };
+    const scrollParents = getScrollableAncestors(triggerEl);
+    scrollParents.forEach((el) => el.addEventListener("scroll", update, scrollOpts));
+    window.addEventListener("scroll", update, scrollOpts);
+    window.addEventListener("resize", update);
+
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && triggerEl) {
+      ro = new ResizeObserver(() => {
+        requestAnimationFrame(update);
+      });
+      ro.observe(triggerEl);
+      scrollParents.forEach((el) => {
+        if (el !== triggerEl) ro!.observe(el);
+      });
     }
-  }, [open]);
+
+    return () => {
+      scrollParents.forEach((el) => el.removeEventListener("scroll", update));
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      ro?.disconnect();
+    };
+  }, [open, shouldShowSearch]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -118,7 +202,7 @@ export function SelectMenu(props: {
 
   const move = (dir: 1 | -1) => {
     let i = activeIndex;
-    const list = filteredOptions.length ? filteredOptions : options;
+    const list = filteredOptions.length ? filteredOptions : optionsNoPlaceholder;
     for (let k = 0; k < list.length; k++) {
       i = (i + dir + list.length) % list.length;
       if (!list[i].disabled) {
@@ -133,6 +217,15 @@ export function SelectMenu(props: {
     setOpen(false);
     btnRef.current?.focus();
   };
+
+  const menuPopoverClassName = React.useMemo(() => {
+    const raw = (menuClassName ?? "").trim();
+    if (!raw) return "";
+    return raw
+      .split(/\s+/)
+      .filter((c) => c && c !== "min-w-full" && c !== "w-full")
+      .join(" ");
+  }, [menuClassName]);
 
   return (
     <div ref={rootRef} className="relative">
@@ -180,15 +273,24 @@ export function SelectMenu(props: {
 
       <div
         className={[
-          "absolute left-0 right-0 z-50",
-          openUp ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top",
-          "rounded-md border border-(--border-color-default) bg-(--color-surface) shadow-lg",
-          "transition-all duration-150",
-          open ? "opacity-100 translate-y-0 scale-100" : "pointer-events-none opacity-0 scale-[0.98]",
-          !open ? (openUp ? "translate-y-1" : "-translate-y-1") : "",
-          menuClassName ?? "w-full min-w-0",
-          "max-w-[calc(100vw-2rem)]",
+          "z-200 flex max-w-none min-w-0 flex-col rounded-md border border-(--border-color-default) bg-(--color-surface) shadow-lg",
+          "transition-opacity duration-150",
+          open && menuBox ? "fixed opacity-100" : "pointer-events-none fixed opacity-0",
+          menuPopoverClassName,
         ].join(" ")}
+        style={
+          open && menuBox
+            ? {
+                left: menuBox.left,
+                width: menuBox.width,
+                minWidth: menuBox.width,
+                maxWidth: menuBox.width,
+                ...(menuBox.placement === "below"
+                  ? { top: menuBox.top }
+                  : { bottom: menuBox.bottom }),
+              }
+            : { left: 0, top: 0, width: 0, minWidth: 0, maxWidth: 0, overflow: "hidden", visibility: "hidden" }
+        }
         role="listbox"
         aria-label={ariaLabel}
         tabIndex={-1}
@@ -209,10 +311,10 @@ export function SelectMenu(props: {
           }
         }}
       >
-        {open ? (
-          <div className="max-h-60 overflow-auto p-1 app-scrollbar app-scrollbar-no-gutter">
+        {open && menuBox ? (
+          <>
             {shouldShowSearch ? (
-              <div className="px-2 pt-2 pb-1">
+              <div className="shrink-0 px-2 pt-2 pb-1">
                 <input
                   ref={searchRef}
                   value={query}
@@ -223,33 +325,35 @@ export function SelectMenu(props: {
                 />
               </div>
             ) : null}
-            {(filteredOptions.length ? filteredOptions : optionsNoPlaceholder).map((o, idx) => {
-              const isSelected = o.value === value;
-              const isActive = idx === activeIndex;
+            <div className="max-h-60 min-h-0 flex-1 overflow-y-auto p-1 app-scrollbar app-scrollbar-no-gutter">
+              {(filteredOptions.length ? filteredOptions : optionsNoPlaceholder).map((o, idx) => {
+                const isSelected = o.value === value;
+                const isActive = idx === activeIndex;
 
-              return (
-                <button
-                  key={o.value}
-                  type="button"
-                  disabled={o.disabled}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  onClick={() => !o.disabled && pick(o.value)}
-                  className={[
-                    "w-full rounded-md px-3 py-2 text-left text-sm",
-                    "transition-colors",
-                    "whitespace-normal wrap-break-words leading-5",
-                    o.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
-                    isSelected ? "bg-(--color-primary) text-(--color-text-inverse)" : "text-(--color-text-primary)",
-                    !isSelected && isActive ? "bg-(--color-surface-hover)" : "",
-                  ].join(" ")}
-                  role="option"
-                  aria-selected={isSelected}
-                >
-                  {o.label}
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    disabled={o.disabled}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    onClick={() => !o.disabled && pick(o.value)}
+                    className={[
+                      "w-full rounded-md px-3 py-2 text-left text-sm",
+                      "transition-colors",
+                      "whitespace-normal wrap-break-words leading-5",
+                      o.disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer",
+                      isSelected ? "bg-(--color-primary) text-(--color-text-inverse)" : "text-(--color-text-primary)",
+                      !isSelected && isActive ? "bg-(--color-surface-hover)" : "",
+                    ].join(" ")}
+                    role="option"
+                    aria-selected={isSelected}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         ) : null}
       </div>
     </div>

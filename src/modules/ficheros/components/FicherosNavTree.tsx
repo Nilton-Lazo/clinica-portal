@@ -34,6 +34,7 @@ const groups: Group[] = [
       { label: "IGV", to: "/ficheros/parametros/igv" },
       { label: "Recargo nocturno", to: "/ficheros/parametros/recargo-noche" },
       { label: "Emergencia", to: "/ficheros/parametros/emergencia" },
+      { label: "Caja", to: "/ficheros/parametros/caja" },
       { label: "Hospitalización", to: "/ficheros/parametros/hospitalizacion" },
     ],
   },

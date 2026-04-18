@@ -42,6 +42,14 @@ export function AtencionEstadoBadge({ value }: { value?: string | null }) {
       </span>
     );
   }
+  if (v === "CANCELADO_LISTO_PARA_FACTURAR") {
+    return (
+      <span className={`${base} border-(--color-warning) text-(--color-warning)`}>
+        <Clock className="h-4 w-4 shrink-0" aria-hidden="true" />
+        Listo para facturar
+      </span>
+    );
+  }
 
   return <span className="text-(--color-text-secondary) text-xs">{formatFallbackLabel(value)}</span>;
 }

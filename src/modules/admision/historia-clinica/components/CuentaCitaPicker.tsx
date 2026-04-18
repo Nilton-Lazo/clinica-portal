@@ -16,6 +16,7 @@ type Props = {
   onPicked: (row: CuentaCitaListItem) => void;
   title?: string;
   description?: string;
+  emisionOrigen?: string;
 };
 
 const INITIAL_PAGE = 1;
@@ -37,11 +38,19 @@ function formatDMY(iso?: string | null): string {
   const s = iso.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return "—";
   const [y, m, d] = s.split("-");
-  return `${d}-${m}-${y}`;
+  return `${d}/${m}/${y}`;
 }
 
 export function CuentaCitaPicker(props: Props) {
-  const { open, variant, onClose, onPicked, title = "Seleccionar cuenta", description = "Busca y selecciona una cuenta (clic en la fila)." } = props;
+  const {
+    open,
+    variant,
+    onClose,
+    onPicked,
+    title = "Seleccionar cuenta",
+    description = "Busca y selecciona una cuenta (clic en la fila).",
+    emisionOrigen,
+  } = props;
 
   const [search, setSearch] = React.useState("");
   const q = useDebouncedValue(search, 300);
@@ -62,7 +71,12 @@ export function CuentaCitaPicker(props: Props) {
     setLoading(true);
     const requestId = ++requestIdRef.current;
 
-    listCuentasCita({ q, page, per_page: perPage })
+    listCuentasCita({
+      q,
+      page,
+      per_page: perPage,
+      ...(emisionOrigen?.trim() ? { emision_origen: emisionOrigen.trim() } : {}),
+    })
       .then((res) => {
         if (requestId !== requestIdRef.current) return;
         setData(res);
@@ -72,11 +86,11 @@ export function CuentaCitaPicker(props: Props) {
           setLoading(false);
         }
       });
-  }, [open, q, page, perPage]);
+  }, [open, q, page, perPage, emisionOrigen]);
 
   React.useEffect(() => {
     setPage(INITIAL_PAGE);
-  }, [q]);
+  }, [q, emisionOrigen]);
 
   const handleRowSelect = React.useCallback(
     (row: CuentaCitaListItem) => {
@@ -105,6 +119,13 @@ export function CuentaCitaPicker(props: Props) {
       render: (x) => x.nro_cuenta || "—",
     },
     {
+      key: "origen",
+      header: "Origen cuenta",
+      headerClassName: "text-center w-28",
+      cellClassName: "px-3 py-2 text-center text-xs text-(--color-text-secondary) tabular-nums",
+      render: (x) => x.origen_sigla || "—",
+    },
+    {
       key: "nr",
       header: "N° Referencia",
       headerClassName: "text-center w-36",
@@ -130,7 +151,7 @@ export function CuentaCitaPicker(props: Props) {
       header: "Fecha",
       headerClassName: "text-center w-36",
       cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => formatDMY(x.fecha),
+      render: (x) => <span className="whitespace-nowrap">{formatDMY(x.fecha)}</span>,
     },
     {
       key: "estado",
@@ -169,9 +190,9 @@ export function CuentaCitaPicker(props: Props) {
         </div>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-          <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+        <div className="hidden min-h-0 flex-1 flex-col lg:flex">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <DataTable
               rows={data.data}
               columns={columns}
@@ -203,7 +224,7 @@ export function CuentaCitaPicker(props: Props) {
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-(--color-text-secondary)">
                     <span>
-                      HC {x.hc ?? "—"} · Ref {x.nr ?? "—"} · {formatDMY(x.fecha)}
+                      {(x.origen_sigla || "—")} · HC {x.hc ?? "—"} · Ref {x.nr ?? "—"} · {formatDMY(x.fecha)}
                     </span>
                     <AtencionEstadoBadge value={x.estado} />
                   </div>

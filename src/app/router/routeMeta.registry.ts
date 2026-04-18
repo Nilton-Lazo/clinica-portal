@@ -6,10 +6,9 @@ import { facturacionMeta } from "../../modules/facturacion/meta";
 import { admisionMeta } from "../../modules/admision/meta";
 import { ficherosMeta } from "../../modules/ficheros/meta";
 import { emergenciaMeta } from "../../modules/emergencia/meta";
+import { cajaMeta } from "../../modules/caja/meta";
 
 const comingSoonMeta: Record<string, RouteMeta> = {
-  "/caja":                { title: "Caja",                subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Caja" }] },
-  "/caja/*":              { title: "Caja",                subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Caja" }] },
   "/farmacia":            { title: "Farmacia",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Farmacia" }] },
   "/farmacia/*":          { title: "Farmacia",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Farmacia" }] },
   "/hospital":            { title: "Hospital",            subtitle: "Módulo en desarrollo", breadcrumb: [{ label: "Hospital" }] },
@@ -29,6 +28,7 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   ...admisionMeta,
   ...ficherosMeta,
   ...emergenciaMeta,
+  ...cajaMeta,
   ...comingSoonMeta,
 };
 

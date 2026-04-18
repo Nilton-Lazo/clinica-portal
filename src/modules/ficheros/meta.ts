@@ -148,4 +148,30 @@ export const ficherosMeta: Record<string, RouteMeta> = {
             { label: "Documento de Atención" },
         ],
     },
+    "/ficheros/parametros/caja": {
+        title: "Ficheros",
+        subtitle: "Parámetros del módulo Caja.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Caja" },
+        ],
+    },
+    "/ficheros/parametros/caja/area-jefatura": {
+        title: "Ficheros",
+        subtitle: "Área o Jefatura.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Caja", path: "/ficheros/parametros/caja" },
+            { label: "Área o Jefatura" },
+        ],
+    },
+    "/ficheros/parametros/caja/banco-tarjeta": {
+        title: "Ficheros",
+        subtitle: "Banco o tarjeta.",
+        breadcrumb: [
+            { label: "Ficheros", path: "/ficheros" },
+            { label: "Caja", path: "/ficheros/parametros/caja" },
+            { label: "Banco o tarjeta" },
+        ],
+    },
 };

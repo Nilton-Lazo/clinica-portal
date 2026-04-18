@@ -203,7 +203,6 @@ export function useTopico() {
     mode,
     selected,
     codigo,
-    setCodigo,
     descripcion,
     setDescripcion,
     estado,

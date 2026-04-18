@@ -39,6 +39,9 @@ export default function AppShell() {
   const isTarifario = location.pathname.startsWith("/facturacion/tarifario");
   const isEmergenciaRegistro = location.pathname.startsWith("/emergencia/registro");
   const isEmergenciaAtencion = location.pathname.startsWith("/emergencia/atencion");
+  const isCajaScroll =
+    location.pathname.startsWith("/caja/apertura") ||
+    location.pathname.startsWith("/caja/emision-comprobantes");
   const isScrollableContent =
     (isHistoriaClinicaWizard && !isHistoriaList) ||
     isProgramacionMedica ||
@@ -46,7 +49,8 @@ export default function AppShell() {
     isPresupuestosCitas ||
     isTarifario ||
     isEmergenciaRegistro ||
-    isEmergenciaAtencion;
+    isEmergenciaAtencion ||
+    isCajaScroll;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const canHover = useMediaQuery("(hover: hover) and (pointer: fine)");
@@ -125,8 +129,10 @@ export default function AppShell() {
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto min-w-0">
           <div
             className={[
-              "mx-auto flex min-h-0 w-full flex-1 flex-col p-4 lg:p-2",
-              isScrollableContent ? "overflow-y-auto" : "overflow-y-auto lg:overflow-hidden",
+              "mx-auto flex w-full flex-col p-4 lg:p-2",
+              isScrollableContent
+                ? ""
+                : "min-h-0 flex-1 overflow-y-auto lg:overflow-hidden",
             ].join(" ")}
           >
             <Outlet />

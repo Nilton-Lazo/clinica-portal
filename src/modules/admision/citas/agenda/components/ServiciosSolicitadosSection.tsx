@@ -133,6 +133,11 @@ export type ServiciosSolicitadosSectionProps = {
   sectionDescription?: string;
   presupuestoPaquete?: PresupuestoPaqueteSnapshot | null;
   readOnly?: boolean;
+  hideEditionControls?: boolean;
+  hideMedicoUsuarioColumns?: boolean;
+  hideEstado?: boolean;
+  largerTypography?: boolean;
+  hideCopagoControls?: boolean;
 };
 
 const PRESUPUESTO_ESTADO_OPTIONS_FILTRO: SelectOption[] = [
@@ -167,6 +172,11 @@ export function ServiciosSolicitadosSection({
   sectionDescription,
   presupuestoPaquete = null,
   readOnly = false,
+  hideEditionControls = false,
+  hideMedicoUsuarioColumns = false,
+  hideEstado = false,
+  largerTypography = false,
+  hideCopagoControls = false,
 }: ServiciosSolicitadosSectionProps) {
   const esPresupuesto = nav.type === "presupuesto";
   const navPermitePaquete = esPresupuesto || nav.type === "pre_facturacion";
@@ -582,7 +592,7 @@ export function ServiciosSolicitadosSection({
           </div>
         ),
     },
-    ...(esPresupuesto
+    ...(esPresupuesto || hideMedicoUsuarioColumns
       ? []
       : [
           {
@@ -594,21 +604,27 @@ export function ServiciosSolicitadosSection({
               getMedicoCodigo(x.medico_id, x.medico_codigo, medicosOptions),
           } satisfies DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>,
         ]),
-    { key: "usuario", header: "Usuario", headerClassName: "text-xs py-1.5 text-center w-28 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center align-middle", render: (x) => (x.user_username ?? x.user_nombre ?? "—") },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
-      cellClassName: "text-xs px-2 py-1.5 text-center align-middle",
-      render: (x) =>
-        esPresupuesto ? (
-          <div className="flex justify-center" onClick={(ev) => ev.stopPropagation()}>
-            <EstadoFacturacionBadge estado={x.estado_facturacion} size="sm" mode="presupuesto" />
-          </div>
-        ) : (
-          <EstadoFacturacionBadge estado={x.estado_facturacion} size="sm" mode="facturacion" />
-        ),
-    },
+    ...(hideMedicoUsuarioColumns
+      ? []
+      : [{ key: "usuario", header: "Usuario", headerClassName: "text-xs py-1.5 text-center w-28 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center align-middle", render: (x) => (x.user_username ?? x.user_nombre ?? "—") }]),
+    ...(hideEstado
+      ? []
+      : [
+          {
+            key: "estado",
+            header: "Estado",
+            headerClassName: "text-xs py-1.5 text-center w-24 align-middle",
+            cellClassName: "text-xs px-2 py-1.5 text-center align-middle",
+            render: (x: AtencionServicioLineaDisplay & { _idx: number }) =>
+              esPresupuesto ? (
+                <div className="flex justify-center" onClick={(ev) => ev.stopPropagation()}>
+                  <EstadoFacturacionBadge estado={x.estado_facturacion} size="sm" mode="presupuesto" />
+                </div>
+              ) : (
+                <EstadoFacturacionBadge estado={x.estado_facturacion} size="sm" mode="facturacion" />
+              ),
+          } satisfies DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>,
+        ]),
     ...(readOnly
       ? []
       : [
@@ -630,7 +646,7 @@ export function ServiciosSolicitadosSection({
             ),
           } satisfies DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>,
         ]),
-  ], [esPresupuesto, medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing, copFijoEditing, tarifaEsPrecioDirecto, readOnly]);
+  ], [esPresupuesto, medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing, copFijoEditing, tarifaEsPrecioDirecto, readOnly, hideMedicoUsuarioColumns, hideEstado]);
 
   const finalRows = React.useMemo(() => {
     const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
@@ -723,7 +739,11 @@ export function ServiciosSolicitadosSection({
   const headerDescription = sectionDescription ?? DEFAULT_SECTION_DESCRIPTION;
 
   return (
-    <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
+    <div
+      className={`rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3 ${
+        largerTypography ? "[&_th]:text-sm [&_td]:text-sm [&_label]:text-sm [&_p]:text-sm [&_span]:text-sm [&_h2]:text-base" : ""
+      }`}
+    >
       <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios solicitados</h2>
       <p className="mt-0.5 text-xs leading-snug text-(--color-text-secondary)">{headerDescription}</p>
 
@@ -739,7 +759,7 @@ export function ServiciosSolicitadosSection({
         />
 
         <div className="flex flex-col gap-2">
-          {!esPresupuesto && !soloPaquetePresupuesto && (
+          {!hideEditionControls && !esPresupuesto && !soloPaquetePresupuesto && (
             <>
               <span className="text-xs text-(--color-text-secondary)">
                 {selectedLineaIdx != null ? "Médico de la fila." : "Médico predeterminado."}
@@ -779,7 +799,7 @@ export function ServiciosSolicitadosSection({
               </div>
             </>
           )}
-          {esPresupuesto && !soloPaquetePresupuesto && !readOnly && (
+          {!hideEditionControls && esPresupuesto && !soloPaquetePresupuesto && !readOnly && (
             <div className="flex flex-wrap items-center gap-3 gap-y-2">
               <PrimaryButton onClick={handleBuscarServicio} disabled={serviciosBloqueados}>
                 Buscar servicio
@@ -915,7 +935,7 @@ export function ServiciosSolicitadosSection({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3 gap-y-1">
               <h3 className="text-sm font-medium text-(--color-text-primary)">Servicios finales</h3>
-              {!tarifaEsPrecioDirecto && (
+              {!tarifaEsPrecioDirecto && !hideCopagoControls && (
                 <>
                   <span className="hidden sm:block h-5 w-px shrink-0 bg-(--border-color-default)" aria-hidden />
                   <div className="flex items-center gap-2">
@@ -950,7 +970,7 @@ export function ServiciosSolicitadosSection({
               )}
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              {selectedLineaIdx != null && (
+              {selectedLineaIdx != null && !hideMedicoUsuarioColumns && (
                 <>
                   {!esPresupuesto && (
                     <span className="text-sm text-(--color-text-primary)">
@@ -962,17 +982,19 @@ export function ServiciosSolicitadosSection({
                   </span>
                 </>
               )}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-(--color-text-secondary)">{esPresupuesto ? "Estado de línea:" : "Estado:"}</span>
-                <SelectMenu
-                  value={estadoFacturacionFilter}
-                  onChange={setEstadoFacturacionFilter}
-                  options={estadoFacturacionOptions}
-                  ariaLabel={esPresupuesto ? "Filtrar por estado de línea" : "Filtrar por estado"}
-                  buttonClassName="h-8 rounded min-w-[120px]"
-                  menuClassName="min-w-[120px]"
-                />
-              </div>
+              {!hideEstado ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-(--color-text-secondary)">{esPresupuesto ? "Estado de línea:" : "Estado:"}</span>
+                  <SelectMenu
+                    value={estadoFacturacionFilter}
+                    onChange={setEstadoFacturacionFilter}
+                    options={estadoFacturacionOptions}
+                    ariaLabel={esPresupuesto ? "Filtrar por estado de línea" : "Filtrar por estado"}
+                    buttonClassName="h-8 rounded min-w-[120px]"
+                    menuClassName="min-w-[120px]"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="hidden lg:block">
@@ -1150,26 +1172,30 @@ export function ServiciosSolicitadosSection({
                               />
                             )}
                           </div>
-                          {!esPresupuesto && (
+                          {!esPresupuesto && !hideMedicoUsuarioColumns && (
                             <div className="flex flex-col gap-1">
                               <span className="text-(--color-text-secondary)">Médico</span>
                               <span className="h-9 flex items-center text-xs text-(--color-text-primary)">{getMedicoCodigo(item.medico_id, item.medico_codigo, medicosOptions)}</span>
                             </div>
                           )}
-                          <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Usuario</span>
-                            <span className="h-9 flex items-center text-xs text-(--color-text-primary)">{item.user_username ?? item.user_nombre ?? "—"}</span>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-(--color-text-secondary)">Estado</span>
-                            <div onClick={(ev) => ev.stopPropagation()} className="h-9 flex items-center">
-                              {esPresupuesto ? (
-                                <EstadoFacturacionBadge estado={item.estado_facturacion} mode="presupuesto" />
-                              ) : (
-                                <EstadoFacturacionBadge estado={item.estado_facturacion} mode="facturacion" />
-                              )}
+                          {!hideMedicoUsuarioColumns ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-(--color-text-secondary)">Usuario</span>
+                              <span className="h-9 flex items-center text-xs text-(--color-text-primary)">{item.user_username ?? item.user_nombre ?? "—"}</span>
                             </div>
-                          </div>
+                          ) : null}
+                          {!hideEstado ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-(--color-text-secondary)">Estado</span>
+                              <div onClick={(ev) => ev.stopPropagation()} className="h-9 flex items-center">
+                                {esPresupuesto ? (
+                                  <EstadoFacturacionBadge estado={item.estado_facturacion} mode="presupuesto" />
+                                ) : (
+                                  <EstadoFacturacionBadge estado={item.estado_facturacion} mode="facturacion" />
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -1178,7 +1204,7 @@ export function ServiciosSolicitadosSection({
             )}
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-(--border-color-default) pt-4">
-            {!tarifaEsPrecioDirecto && (
+              {!tarifaEsPrecioDirecto && !hideCopagoControls && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-(--color-text-secondary)">Monto a pagar aseguradora S/.</span>
                 <span className="min-w-28 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-sm font-semibold tabular-nums text-(--color-text-primary)">

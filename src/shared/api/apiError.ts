@@ -4,7 +4,7 @@ export type ApiError =
   | { kind: "validation"; status: 422; message: string; errors: ApiValidationErrors }
   | { kind: "unauthorized"; status: 401; message: string; code?: string }
   | { kind: "forbidden"; status: 403; message: string }
-  | { kind: "server"; status: 500; message: string }
+  | { kind: "server"; status: number; message: string }
   | { kind: "network"; status: 0; message: string };
 
 export function toApiError(input: unknown): ApiError {

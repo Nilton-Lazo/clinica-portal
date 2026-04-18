@@ -11,7 +11,6 @@ export default function ParamOptionFormCard(props: {
   mode: Mode;
   selected: ParamOption | null;
   codigo: string;
-  onCodigoChange: (v: string) => void;
   saving: boolean;
   descripcion: string;
   onDescripcionChange: (v: string) => void;
@@ -29,7 +28,6 @@ export default function ParamOptionFormCard(props: {
     mode,
     selected,
     codigo,
-    onCodigoChange,
     saving,
     descripcion,
     onDescripcionChange,
@@ -70,9 +68,9 @@ export default function ParamOptionFormCard(props: {
             <label className="text-sm text-(--color-text-primary)">Código</label>
             <input
               value={codigo}
-              onChange={(e) => onCodigoChange(e.target.value)}
+              readOnly
+              placeholder={mode === "new" ? "Generando" : ""}
               className={`mt-1 h-10 w-full ${inputBase}`}
-              placeholder="Código"
             />
           </div>
           <div>

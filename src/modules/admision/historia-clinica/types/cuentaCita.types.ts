@@ -5,6 +5,7 @@ export type { PaginatedResponse, PaginationMeta };
 export type CuentaCitaListItem = {
   nro_cuenta: string;
   origen: string;
+  origen_sigla: string;
   origen_id: number;
   nr: string | null;
   hc: string | null;
@@ -19,4 +20,5 @@ export type CuentasCitaQuery = {
   page?: number;
   per_page?: number;
   q?: string;
+  emision_origen?: string;
 };

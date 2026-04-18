@@ -203,7 +203,6 @@ export function useTipoDocumento() {
     mode,
     selected,
     codigo,
-    setCodigo,
     descripcion,
     setDescripcion,
     estado,

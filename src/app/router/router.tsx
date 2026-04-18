@@ -48,6 +48,14 @@ import TopicoPage from "../../modules/ficheros/parametros/emergencia/pages/Topic
 import TipoDocumentoPage from "../../modules/ficheros/parametros/emergencia/pages/TipoDocumentoPage";
 import DocumentoAtencionPage from "../../modules/ficheros/parametros/emergencia/pages/DocumentoAtencionPage";
 import ServiciosDefaultEmergenciaPage from "../../modules/ficheros/parametros/emergencia/pages/ServiciosDefaultEmergenciaPage";
+import CajaParametrosLayout from "../../modules/ficheros/parametros/caja/pages/CajaParametrosLayout";
+import CajaParametrosHubPage from "../../modules/ficheros/parametros/caja/pages/CajaParametrosHubPage";
+import AreaJefaturaPage from "../../modules/ficheros/parametros/caja/pages/AreaJefaturaPage";
+import TipoDocumentoCajaPage from "../../modules/ficheros/parametros/caja/pages/TipoDocumentoCajaPage";
+import NumeracionComprobanteCajaPage from "../../modules/ficheros/parametros/caja/pages/NumeracionComprobanteCajaPage";
+import FormaPagoCajaPage from "../../modules/ficheros/parametros/caja/pages/FormaPagoCajaPage";
+import MedioPagoCajaPage from "../../modules/ficheros/parametros/caja/pages/MedioPagoCajaPage";
+import BancoTarjetaCajaPage from "../../modules/ficheros/parametros/caja/pages/BancoTarjetaCajaPage";
 
 import HistoriaPage from "../../modules/admision/historia-clinica/pages/HistoriaPage";
 import PacienteWizardPage from "../../modules/admision/historia-clinica/pages/PacienteWizardPage";
@@ -57,6 +65,9 @@ import EmergenciaHomePage from "../../modules/emergencia/pages/EmergenciaHomePag
 import RegistroEmergenciaPage from "../../modules/emergencia/pages/RegistroEmergenciaPage";
 import AtencionEmergenciaPage from "../../modules/emergencia/pages/AtencionEmergenciaPage";
 import NuevoRegistroEmergenciaPage from "../../modules/emergencia/registro/pages/NuevoRegistroEmergenciaPage";
+import CajaHomePage from "../../modules/caja/pages/CajaHomePage";
+import AperturaCajaPage from "../../modules/caja/pages/AperturaCajaPage";
+import EmisionComprobantesPage from "../../modules/caja/pages/EmisionComprobantesPage";
 
 export const router = createBrowserRouter([
   {
@@ -77,8 +88,14 @@ export const router = createBrowserRouter([
             children: [
               { path: "inicio", element: <HomePage /> },
 
-              { path: "caja",                element: <ComingSoonPage /> },
-              { path: "caja/*",              element: <ComingSoonPage /> },
+              {
+                path: "caja",
+                children: [
+                  { index: true, element: <CajaHomePage /> },
+                  { path: "apertura", element: <AperturaCajaPage /> },
+                  { path: "emision-comprobantes", element: <EmisionComprobantesPage /> },
+                ],
+              },
               { path: "farmacia",            element: <ComingSoonPage /> },
               { path: "farmacia/*",          element: <ComingSoonPage /> },
               { path: "hospital",            element: <ComingSoonPage /> },
@@ -138,6 +155,19 @@ export const router = createBrowserRouter([
                     children: [
                       { index: true, element: <HospitalizacionParametrosHubPage /> },
                       { path: "cirugias", element: <CirugiasPage /> },
+                    ],
+                  },
+                  {
+                    path: "parametros/caja",
+                    element: <CajaParametrosLayout />,
+                    children: [
+                      { index: true, element: <CajaParametrosHubPage /> },
+                      { path: "area-jefatura", element: <AreaJefaturaPage /> },
+                      { path: "tipo-documento", element: <TipoDocumentoCajaPage /> },
+                      { path: "numeracion-comprobante", element: <NumeracionComprobanteCajaPage /> },
+                      { path: "forma-pago", element: <FormaPagoCajaPage /> },
+                      { path: "medio-pago", element: <MedioPagoCajaPage /> },
+                      { path: "banco-tarjeta", element: <BancoTarjetaCajaPage /> },
                     ],
                   },
                 ],

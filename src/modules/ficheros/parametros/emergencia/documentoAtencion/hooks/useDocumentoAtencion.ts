@@ -189,7 +189,6 @@ export function useDocumentoAtencion() {
     mode,
     selected,
     codigo,
-    setCodigo,
     descripcion,
     setDescripcion,
     estado,

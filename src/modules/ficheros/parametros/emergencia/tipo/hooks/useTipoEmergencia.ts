@@ -203,7 +203,6 @@ export function useTipoEmergencia() {
     mode,
     selected,
     codigo,
-    setCodigo,
     descripcion,
     setDescripcion,
     estado,
