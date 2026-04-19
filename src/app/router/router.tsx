@@ -68,6 +68,7 @@ import NuevoRegistroEmergenciaPage from "../../modules/emergencia/registro/pages
 import CajaHomePage from "../../modules/caja/pages/CajaHomePage";
 import AperturaCajaPage from "../../modules/caja/pages/AperturaCajaPage";
 import EmisionComprobantesPage from "../../modules/caja/pages/EmisionComprobantesPage";
+import ReporteIngresosCajaPage from "../../modules/caja/pages/ReporteIngresosCajaPage";
 
 export const router = createBrowserRouter([
   {
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
                   { index: true, element: <CajaHomePage /> },
                   { path: "apertura", element: <AperturaCajaPage /> },
                   { path: "emision-comprobantes", element: <EmisionComprobantesPage /> },
+                  { path: "reporte-ingresos", element: <ReporteIngresosCajaPage /> },
                 ],
               },
               { path: "farmacia",            element: <ComingSoonPage /> },

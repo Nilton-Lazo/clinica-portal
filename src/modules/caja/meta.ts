@@ -23,4 +23,12 @@ export const cajaMeta: Record<string, RouteMeta> = {
       { label: "Emisión de comprobantes" },
     ],
   },
+  "/caja/reporte-ingresos": {
+    title: "Caja",
+    subtitle: "Reporte de ingresos de caja.",
+    breadcrumb: [
+      { label: "Caja", path: "/caja" },
+      { label: "Reporte de ingresos" },
+    ],
+  },
 };

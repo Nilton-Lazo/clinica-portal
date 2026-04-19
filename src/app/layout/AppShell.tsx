@@ -41,7 +41,8 @@ export default function AppShell() {
   const isEmergenciaAtencion = location.pathname.startsWith("/emergencia/atencion");
   const isCajaScroll =
     location.pathname.startsWith("/caja/apertura") ||
-    location.pathname.startsWith("/caja/emision-comprobantes");
+    location.pathname.startsWith("/caja/emision-comprobantes") ||
+    location.pathname.startsWith("/caja/reporte-ingresos");
   const isScrollableContent =
     (isHistoriaClinicaWizard && !isHistoriaList) ||
     isProgramacionMedica ||
