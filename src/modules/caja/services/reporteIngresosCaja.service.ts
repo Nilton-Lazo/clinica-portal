@@ -73,5 +73,5 @@ export async function fetchReporteIngresosMovimientos(params: {
   if (isObject(res) && "data" in res) {
     return (res as { data: ReporteIngresosMovimientosPayload }).data;
   }
-  throw new Error("Respuesta inválida del servidor.");
+  throw new Error("El servidor no devolvió los movimientos del reporte de ingresos.");
 }

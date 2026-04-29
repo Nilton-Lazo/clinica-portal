@@ -15,7 +15,7 @@ import {
 } from "../../services/bancoTarjetaCaja.service";
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
-import type { ApiError } from "../../../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
@@ -24,12 +24,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function sortedKey(ids: number[]): string {
@@ -144,9 +138,9 @@ export function useBancoTarjetaCaja() {
         setMediosDisponibles(merged);
         const allowed = new Set(merged.map((m) => m.id));
         setMedioPagoIds((prev) => prev.filter((id) => allowed.has(id)));
-      } catch {
+      } catch (e) {
         if (!alive || gen !== fetchMediosGen.current) return;
-        toast.error("No se pudieron cargar los medios de pago para las formas seleccionadas.");
+        toast.error(getApiErrorMessage(e, "No se pudieron cargar los medios de pago para la forma seleccionada."));
         setMediosDisponibles([]);
       } finally {
         if (alive && gen === fetchMediosGen.current) setLoadingMedios(false);
@@ -245,7 +239,7 @@ export function useBancoTarjetaCaja() {
         lastToastedErrorRef.current = null;
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de bancos y tarjetas.");
         if (lastToastedErrorRef.current !== msg) {
           lastToastedErrorRef.current = msg;
           toast.error(msg);
@@ -278,11 +272,11 @@ export function useBancoTarjetaCaja() {
       return;
     }
     if (mode === "edit" && !selected) {
-      toast.error("Selecciona un registro.");
+      toast.error("Selecciona un banco o tarjeta para editar.");
       return;
     }
     if (!isDirty) {
-      toast.error("No hay cambios.");
+      toast.error("No hay cambios para guardar.");
       return;
     }
     if (saving) return;
@@ -313,7 +307,7 @@ export function useBancoTarjetaCaja() {
         loadForEdit(res.data);
       }
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo guardar.");
+      toast.error(getApiErrorMessage(e, "No se pudo guardar el banco o tarjeta."));
     } finally {
       setSaving(false);
     }
@@ -336,7 +330,7 @@ export function useBancoTarjetaCaja() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      toast.error("Selecciona un registro.");
+      toast.error("Selecciona un banco o tarjeta para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -354,7 +348,7 @@ export function useBancoTarjetaCaja() {
       loadForEdit(res.data);
     } catch (e) {
       setConfirmDeactivateOpen(false);
-      toast.error(isApiError(e) ? e.message : "No se pudo desactivar.");
+      toast.error(getApiErrorMessage(e, "No se pudo desactivar el banco o tarjeta."));
     } finally {
       setSaving(false);
     }

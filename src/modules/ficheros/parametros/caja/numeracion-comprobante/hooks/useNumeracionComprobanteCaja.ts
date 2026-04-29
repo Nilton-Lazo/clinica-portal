@@ -12,7 +12,7 @@ import {
 } from "../../services/numeracionComprobanteCaja.service";
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
-import type { ApiError } from "../../../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
@@ -21,12 +21,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function formatNumero(n: number): string {
@@ -76,7 +70,7 @@ export function useNumeracionComprobanteCaja() {
       const items = await listTiposDocumentoCajaActivos();
       setTiposDocumento(items);
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo cargar tipos de documento.");
+      toast.error(getApiErrorMessage(e, "No se pudieron cargar los tipos de documento activos."));
     }
   }, [toast]);
 
@@ -162,7 +156,7 @@ export function useNumeracionComprobanteCaja() {
         lastToastedErrorRef.current = null;
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de numeraciones de comprobante.");
         if (lastToastedErrorRef.current !== msg) {
           lastToastedErrorRef.current = msg;
           toast.error(msg);
@@ -201,11 +195,11 @@ export function useNumeracionComprobanteCaja() {
       return;
     }
     if (mode === "edit" && !selected) {
-      toast.error("Selecciona un registro.");
+      toast.error("Selecciona una numeración de comprobante para editar.");
       return;
     }
     if (!isDirty) {
-      toast.error("No hay cambios.");
+      toast.error("No hay cambios para guardar.");
       return;
     }
     if (saving) return;
@@ -236,7 +230,7 @@ export function useNumeracionComprobanteCaja() {
         loadForEdit(res.data);
       }
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo guardar.");
+      toast.error(getApiErrorMessage(e, "No se pudo guardar la numeración de comprobante."));
     } finally {
       setSaving(false);
     }
@@ -244,7 +238,7 @@ export function useNumeracionComprobanteCaja() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      toast.error("Selecciona un registro.");
+      toast.error("Selecciona una numeración de comprobante para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -262,7 +256,7 @@ export function useNumeracionComprobanteCaja() {
       loadForEdit(res.data);
     } catch (e) {
       setConfirmDeactivateOpen(false);
-      toast.error(isApiError(e) ? e.message : "No se pudo desactivar.");
+      toast.error(getApiErrorMessage(e, "No se pudo desactivar la numeración de comprobante."));
     } finally {
       setSaving(false);
     }

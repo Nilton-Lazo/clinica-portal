@@ -98,7 +98,7 @@ export default function TipoDocumentoCajaPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar tipo de documento"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un tipo de documento."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

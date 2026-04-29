@@ -127,7 +127,7 @@ export default function IafasPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar IAFAS"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedRazonSocial}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedRazonSocial}"?` : "Selecciona una IAFAS."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

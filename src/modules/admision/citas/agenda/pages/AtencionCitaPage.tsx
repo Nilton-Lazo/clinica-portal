@@ -143,7 +143,7 @@ export default function AtencionCitaPage() {
     try {
       window.sessionStorage.removeItem(`${DRAFT_STORAGE_KEY_PREFIX}${citaId}`);
     } catch {
-      // ignore
+      void 0;
     }
   }, []);
 
@@ -343,6 +343,7 @@ export default function AtencionCitaPage() {
         })
       );
     } catch {
+      void 0;
     } finally {
       recargoRecalcInFlightRef.current = false;
     }
@@ -375,6 +376,7 @@ export default function AtencionCitaPage() {
         }
       };
     } catch {
+      void 0;
     }
 
     window.addEventListener("recargoNoche:changed", handler);
@@ -679,6 +681,10 @@ export default function AtencionCitaPage() {
 
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(id)) return;
+    if (data?.bloqueada_facturacion || data?.cuenta?.bloqueada) {
+      toastService.showError("La cuenta está cancelada/facturada. No se permiten modificaciones.");
+      return;
+    }
     if (!acudio) {
       toastService.showError("Debe marcar la casilla «Hora de atención» para guardar la atención.");
       return;
@@ -728,14 +734,18 @@ export default function AtencionCitaPage() {
         state: { returnFromAtencion: true, citaId: id },
       });
     } catch (e) {
-      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la atención."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la atención de la cita."));
     } finally {
       setSavingState(null);
     }
-  }, [id, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita]);
+  }, [id, data?.bloqueada_facturacion, data?.cuenta?.bloqueada, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita]);
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!Number.isFinite(id) || !hasPendingDataChanges) return;
+    if (data?.bloqueada_facturacion || data?.cuenta?.bloqueada) {
+      toastService.showError("La cuenta está cancelada/facturada. No se permiten modificaciones.");
+      return;
+    }
     const planChanged = pacientePlanId !== lastSavedPlanId;
     setSavingState("actualizar");
     const serviciosPayload: AtencionServicioLinea[] =
@@ -776,14 +786,14 @@ export default function AtencionCitaPage() {
       actualizarGuardado(res);
       if (planChanged) setLineas([]);
       clearDraftForCita(id);
-      toastService.showSuccess("Datos actualizados.");
+      toastService.showSuccess("Datos de la atención actualizados correctamente.");
     } catch (e) {
-      toastService.showError(toUserFriendlyMessage(e, "No se pudieron actualizar los datos."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudieron actualizar los datos de la atención."));
       throw e;
     } finally {
       setSavingState(null);
     }
-  }, [id, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita]);
+  }, [id, hasPendingDataChanges, data?.bloqueada_facturacion, data?.cuenta?.bloqueada, pacientePlanId, lastSavedPlanId, acudio, horaAsistenciaDisplay, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita]);
 
   const pendingChangesMessage = React.useMemo(() => {
     const partes: string[] = [];
@@ -817,6 +827,7 @@ export default function AtencionCitaPage() {
   const { cita, programacion, paciente } = data;
   const fechaDisplay = cita.fecha ? cita.fecha.split("-").reverse().join("/") : "—";
   const nroCuenta = cita.cuenta ?? data.atencion?.nro_cuenta ?? "";
+  const bloqueadaFacturacion = Boolean(data.bloqueada_facturacion || data.cuenta?.bloqueada);
 
   return (
     <div className="flex w-full min-w-0 flex-col space-y-4 lg:space-y-2">
@@ -847,29 +858,34 @@ export default function AtencionCitaPage() {
               setParentescoSeguro(lastSavedParentesco);
               setTitularNombre(lastSavedTitular);
             }}
-            disabled={saving || !hasPendingDataChanges}
+            disabled={saving || !hasPendingDataChanges || bloqueadaFacturacion}
             title="Descartar cambios en plan, parentesco y titular (restaurar últimos guardados)"
           >
             Cancelar
           </SecondaryButton>
           <SecondaryButton
             onClick={onActualizarDatos}
-            disabled={saving || !hasPendingDataChanges}
+            disabled={saving || !hasPendingDataChanges || bloqueadaFacturacion}
             title="Guardar solo los datos del paciente en el servidor (plan, parentesco, titular)"
           >
             {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
           </SecondaryButton>
           <PrimaryButton
             onClick={onGuardar}
-            disabled={saving || !canGuardarAtencion}
+            disabled={saving || !canGuardarAtencion || bloqueadaFacturacion}
             title="Guardar la atención completa (asistencia, servicios y montos)"
           >
             {savingState === "guardar" ? "Guardando…" : "Guardar atención"}
           </PrimaryButton>
         </div>
       </div>
+      {bloqueadaFacturacion ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          Esta cuenta ya está cancelada y facturada. La atención queda en modo solo lectura.
+        </div>
+      ) : null}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
+      <div className={`grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2 ${bloqueadaFacturacion ? "pointer-events-none opacity-70" : ""}`}>
         <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos de la cita</h2>
           <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-2 lg:gap-2">
@@ -975,7 +991,7 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
+      <div className={`rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3 ${bloqueadaFacturacion ? "pointer-events-none opacity-70" : ""}`}>
         <h2 className="text-sm font-semibold text-(--color-text-primary)">Datos del paciente</h2>
         <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-2 lg:grid-cols-4 lg:gap-3">
           <div>
@@ -1072,7 +1088,7 @@ export default function AtencionCitaPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2">
+      <div className={`grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-2 ${bloqueadaFacturacion ? "pointer-events-none opacity-70" : ""}`}>
         <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
           <h2 className="text-sm font-semibold text-(--color-text-primary)">Indicadores de atención</h2>
           <div className="mt-4 flex flex-col gap-3 lg:mt-2 lg:gap-2">
@@ -1196,6 +1212,8 @@ export default function AtencionCitaPage() {
           onCopVarDefaultChange={setCopVarDefault}
           getAtencionDraft={getAtencionDraft}
           onServiciosSelected={onServiciosSelected}
+          readOnly={bloqueadaFacturacion}
+          hideEditionControls={bloqueadaFacturacion}
         />
       </div>
     </div>

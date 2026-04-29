@@ -12,7 +12,7 @@ import { toastService } from "../../../../shared/notifications";
 import { listCirugias } from "../../../ficheros/services/cirugias.service";
 import { getPacienteFormCatalogs } from "../services/historiaClinica.service";
 import type { PacienteFormCatalogs } from "../types/historiaClinica.types";
-import { toApiError } from "../../../../shared/api/apiError";
+import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 import { autorizacionSitedsFromCuentaDetalle, fetchCuentaDetalle } from "../services/cuentaDetalle.service";
 import { guardarPreFacturacionHospitalaria } from "../services/preFacturacionHospitalaria.service";
 import DateInput from "../../../../shared/ui/DateInput";
@@ -573,11 +573,12 @@ export default function PreFacturacionHospitalariaPage() {
                 setMedicoServiciosNombre(medHint.nombre);
               }
             }
-          } catch {
+          } catch (e) {
             setAutorizacionSiteds("");
+            toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el detalle de la cuenta seleccionada."));
           }
         }
-      } catch {
+      } catch (e) {
         setDetalle(null);
         setSelectedPlanId("");
         setCuentaNro("");
@@ -595,7 +596,7 @@ export default function PreFacturacionHospitalariaPage() {
         setLineas([]);
         setPresupuestoPaquete(null);
         processedServiciosRef.current = null;
-        toastService.showError("No se pudieron cargar los datos del paciente.");
+        toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los datos del paciente para pre-facturación hospitalaria."));
       } finally {
         setLoadingPaciente(false);
       }
@@ -604,7 +605,14 @@ export default function PreFacturacionHospitalariaPage() {
   );
 
   const handleGuardarRegistro = React.useCallback(async () => {
-    if (!detalle || !canSaveRegistro) return;
+    if (!detalle) {
+      toastService.showError("Selecciona un paciente o una cuenta antes de guardar la pre-facturación hospitalaria.");
+      return;
+    }
+    if (!canSaveRegistro) {
+      toastService.showError("Completa plan, médico tratante y al menos un servicio o paquete antes de guardar.");
+      return;
+    }
     const planId = pacientePlanIdParaGuardar;
     if (planId <= 0) {
       toastService.showError("El paciente debe tener un plan de salud.");
@@ -637,10 +645,10 @@ export default function PreFacturacionHospitalariaPage() {
         ...(cuentaNro.trim() ? { nro_cuenta: cuentaNro.trim() } : {}),
         form,
       });
-      toastService.showInfo("Registro guardado.");
+      toastService.showInfo("Pre-facturación hospitalaria guardada correctamente.");
       await loadPacienteDetalle(detalle.id, res.nro_cuenta, planId, null);
     } catch (e: unknown) {
-      toastService.showError(toApiError(e).message);
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la pre-facturación hospitalaria."));
     } finally {
       setSavingRegistro(false);
     }
@@ -693,8 +701,11 @@ export default function PreFacturacionHospitalariaPage() {
       .then((c) => {
         if (!cancelled) setCatalogs(c);
       })
-      .catch(() => {
-        if (!cancelled) setCatalogs(null);
+      .catch((e) => {
+        if (!cancelled) {
+          setCatalogs(null);
+          toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los catálogos del paciente."));
+        }
       });
     return () => {
       cancelled = true;
@@ -713,10 +724,10 @@ export default function PreFacturacionHospitalariaPage() {
         }));
         setCirugiaOptions(options);
       })
-      .catch(() => {
+      .catch((e) => {
         if (!cancelled) {
           setCirugiaOptions([]);
-          toastService.showError("No se pudo cargar la lista de cirugías activas.");
+          toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar la lista de cirugías activas."));
         }
       })
       .finally(() => {
@@ -752,7 +763,10 @@ export default function PreFacturacionHospitalariaPage() {
         });
         setMedicosOptions(opts);
       })
-      .catch(() => setMedicosOptions([]));
+      .catch((e) => {
+        setMedicosOptions([]);
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar la lista de médicos activos."));
+      });
   }, []);
 
   const getAtencionDraft = React.useCallback((): AtencionDraft => {
@@ -830,6 +844,8 @@ export default function PreFacturacionHospitalariaPage() {
         requestAnimationFrame(() => {
           serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
+      }).catch((e) => {
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular los servicios."));
       });
     },
     [
@@ -964,6 +980,8 @@ export default function PreFacturacionHospitalariaPage() {
       });
       setLineas((prev) => [...(restoreLineas ?? prev), ...nuevas]);
       processedServiciosRef.current = null;
+    }).catch((e) => {
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular los servicios."));
     });
   }, [
     location.state,
@@ -1357,8 +1375,8 @@ export default function PreFacturacionHospitalariaPage() {
               requestAnimationFrame(() => {
                 serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               });
-            } catch {
-              toastService.showError("No se pudo cargar el paquete.");
+            } catch (e) {
+              toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el paquete seleccionado para pre-facturación hospitalaria."));
             }
           })();
         }}

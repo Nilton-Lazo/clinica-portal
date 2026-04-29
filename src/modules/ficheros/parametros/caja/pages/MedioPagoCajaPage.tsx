@@ -107,7 +107,7 @@ export default function MedioPagoCajaPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar medio de pago"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un medio de pago."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

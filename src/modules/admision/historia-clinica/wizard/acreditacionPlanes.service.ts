@@ -168,9 +168,8 @@ function normalizePlan(x: PlanApi): AcreditacionPlan {
     toStrOrNull(
       (tarifaSource?.descripcion as unknown) ??
         tarifaSource?.tarifa_descripcion ??
-        (tarifaSource as any)?.descripcion_tarifa ??
-        ((tarifaSource as any)?.descripcion_tarifa ?? null) ??
-        (tarifaSource as any)?.descripcion_corta ??
+        tarifaSource?.descripcion_tarifa ??
+        tarifaSource?.descripcion_corta ??
         ((tipoClienteAny as Record<string, unknown> | undefined)?.tarifa_descripcion as unknown) ??
         ((tipoClienteAny as Record<string, unknown> | undefined)?.descripcion_corta as unknown) ??
         xAny.tarifa_descripcion ??

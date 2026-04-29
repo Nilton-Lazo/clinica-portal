@@ -2,14 +2,22 @@ import { api } from "../../../shared/api";
 
 export type EmisionComprobantesRegistrarPayload = {
   nro_cuenta: string;
+  numeracion_id: number;
   servicio_linea_ids: number[];
   numero_operacion: string | null;
+  fecha_vencimiento: string | null;
   snapshot: Record<string, unknown>;
 };
 
 export type EmisionComprobantesRegistrarResponse = {
   id: number;
   nro_cuenta: string;
+  serie: string | null;
+  numero_emitido: number | null;
+  numero_formateado: string | null;
+  fecha_vencimiento: string | null;
+  total_paciente: string | null;
+  total_lineas: number;
   created_at: string | null;
 };
 
@@ -27,5 +35,5 @@ export async function postEmisionComprobantesRegistrar(
       return d;
     }
   }
-  throw new Error("Respuesta inválida del servidor.");
+  throw new Error("El servidor no devolvió los datos de la emisión del comprobante.");
 }

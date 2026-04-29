@@ -30,6 +30,7 @@ import {
   invalidateRegistroEmergenciaCache,
 } from "../../services/registroEmergencia.service";
 import type { RegistroEmergencia } from "../../types/registroEmergencia.types";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
@@ -263,10 +264,10 @@ export default function NuevoRegistroEmergenciaPage() {
 
         applyRegistroToForm(registro, pFull, matchedPlanId);
         
-      } catch {
+      } catch (e) {
         if (editErrorShownForIdRef.current !== editId) {
           editErrorShownForIdRef.current = editId;
-          toastService.showError("No se pudo cargar el registro de emergencia para editar.");
+          toastService.showError(getApiErrorMessage(e, "No se pudo cargar el registro de emergencia para editar."));
         }
       } finally {
         if (!cancelled) setLoadingEdit(false);
@@ -288,44 +289,71 @@ export default function NuevoRegistroEmergenciaPage() {
       String(today.getDate()).padStart(2, "0");
     getNextOrden(fecha)
       .then((res) => setForm((prev) => ({ ...prev, orden: res.orden })))
-      .catch(() => {});
+      .catch((e) => {
+        toastService.showError(getApiErrorMessage(e, "No se pudo generar el orden del registro de emergencia."));
+      });
   }, [isEditMode]);
 
   React.useEffect(() => {
-    catalogoPacienteService.ubigeosFirstPage(500).then((arr: UbigeoItem[]) => {
-      const opts: SelectOption[] = arr
-        .filter((r) => (r.codigo ?? "").trim() !== "")
-        .map((r) => {
-          const codigo = (r.codigo ?? "").trim();
-          const dist = (r.distrito ?? "").trim();
-          return { value: codigo, label: dist ? `${codigo} · ${dist}` : codigo };
-        })
-        .sort((a, b) => (a.label.localeCompare(b.label, "es", { sensitivity: "base" })));
-      setUbigeoOptions(opts);
-    });
+    catalogoPacienteService.ubigeosFirstPage(500)
+      .then((arr: UbigeoItem[]) => {
+        const opts: SelectOption[] = arr
+          .filter((r) => (r.codigo ?? "").trim() !== "")
+          .map((r) => {
+            const codigo = (r.codigo ?? "").trim();
+            const dist = (r.distrito ?? "").trim();
+            return { value: codigo, label: dist ? `${codigo} · ${dist}` : codigo };
+          })
+          .sort((a, b) => (a.label.localeCompare(b.label, "es", { sensitivity: "base" })));
+        setUbigeoOptions(opts);
+      })
+      .catch((e) => {
+        setUbigeoOptions([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de ubigeos."));
+      });
   }, []);
 
   React.useEffect(() => {
-    listTipoEmergencia({ page: 1, per_page: 100, status: "ACTIVO" }).then((res) => {
-      setTipoEmergenciaOptions(
-        res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.descripcion}` }))
-      );
-    });
-    listTopico({ page: 1, per_page: 100, status: "ACTIVO" }).then((res) => {
-      setTopicoOptions(
-        res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
-      );
-    });
-    listTipoDocumento({ page: 1, per_page: 100, status: "ACTIVO" }).then((res) => {
-      setTipoDocumentoOptions(
-        res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
-      );
-    });
-    listDocumentoAtencion({ page: 1, per_page: 100, status: "ACTIVO" }).then((res) => {
-      setDocumentoAtencionOptions(
-        res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
-      );
-    });
+    listTipoEmergencia({ page: 1, per_page: 100, status: "ACTIVO" })
+      .then((res) => {
+        setTipoEmergenciaOptions(
+          res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.descripcion}` }))
+        );
+      })
+      .catch((e) => {
+        setTipoEmergenciaOptions([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de tipos de emergencia."));
+      });
+    listTopico({ page: 1, per_page: 100, status: "ACTIVO" })
+      .then((res) => {
+        setTopicoOptions(
+          res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
+        );
+      })
+      .catch((e) => {
+        setTopicoOptions([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de tópicos."));
+      });
+    listTipoDocumento({ page: 1, per_page: 100, status: "ACTIVO" })
+      .then((res) => {
+        setTipoDocumentoOptions(
+          res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
+        );
+      })
+      .catch((e) => {
+        setTipoDocumentoOptions([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de tipos de documento SOAT."));
+      });
+    listDocumentoAtencion({ page: 1, per_page: 100, status: "ACTIVO" })
+      .then((res) => {
+        setDocumentoAtencionOptions(
+          res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
+        );
+      })
+      .catch((e) => {
+        setDocumentoAtencionOptions([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de documentos de atención SOAT."));
+      });
   }, []);
 
   React.useEffect(() => {
@@ -366,9 +394,10 @@ export default function NuevoRegistroEmergenciaPage() {
           planId: prev.planId || (planes.length > 0 ? String(planes[0].id) : ""),
         }));
       })
-      .catch(() => {
+      .catch((e) => {
         setPlanOptions([{ value: "", label: "Seleccione tipo de cliente" }]);
         plansListRef.current = [];
+        toastService.showError(getApiErrorMessage(e, "No se pudieron cargar los planes activos del paciente."));
       });
   }, [form.pacienteId, form.planId, isEditMode]);
 
@@ -473,8 +502,8 @@ export default function NuevoRegistroEmergenciaPage() {
         setLastSavedCondicion(patch.condicion ?? "");
         setLastSavedTitular(patch.titular ?? "");
         setPickerOpen(false);
-      } catch {
-        toastService.showError("No se pudo cargar los datos del paciente.");
+      } catch (e) {
+        toastService.showError(getApiErrorMessage(e, "No se pudieron cargar los datos del paciente seleccionado."));
       } finally {
         setLoadingPaciente(false);
       }
@@ -504,7 +533,11 @@ export default function NuevoRegistroEmergenciaPage() {
 
   const onActualizarDatos = React.useCallback(async () => {
     const p = pacienteDetailRef.current;
-    if (!form.pacienteId || !p || !hasPendingDataChanges) return;
+    if (!form.pacienteId || !p) {
+      toastService.showError("Selecciona un paciente antes de actualizar sus datos.");
+      return;
+    }
+    if (!hasPendingDataChanges) return;
     const payload: PacienteUpsertPayload = {
       ...(p as unknown as PacienteUpsertPayload),
       parentesco_seguro: form.condicion.trim() || null,
@@ -515,9 +548,9 @@ export default function NuevoRegistroEmergenciaPage() {
       await updatePaciente(p.id, payload);
       setLastSavedCondicion(form.condicion);
       setLastSavedTitular(form.titular);
-      toastService.showSuccess("Datos actualizados.");
-    } catch {
-      toastService.showError("No se pudieron actualizar los datos.");
+      toastService.showSuccess("Datos del paciente actualizados correctamente.");
+    } catch (e) {
+      toastService.showError(getApiErrorMessage(e, "No se pudieron actualizar los datos del paciente."));
     } finally {
       setSavingActualizar(false);
     }
@@ -548,11 +581,11 @@ export default function NuevoRegistroEmergenciaPage() {
 
   const handleRegistrar = React.useCallback(async () => {
     if (!form.pacienteId) {
-      toastService.showInfo("Seleccione un paciente con Buscar paciente.");
+      toastService.showInfo("Selecciona un paciente con Buscar paciente antes de registrar la emergencia.");
       return;
     }
     if (!datosMedicosCompletos) {
-      toastService.showInfo("Complete todos los campos del contenedor Datos médicos.");
+      toastService.showInfo("Completa tipo de emergencia, tópico, tipo de cliente, médico, diagnóstico, condición y titular cuando corresponda.");
       return;
     }
     const plan = plansListRef.current.find((p) => p.id === Number(form.planId));
@@ -621,8 +654,8 @@ export default function NuevoRegistroEmergenciaPage() {
       
       invalidateRegistroEmergenciaCache();
       navigate("/emergencia/registro");
-    } catch {
-      toastService.showError(`No se pudo ${isEditMode ? "actualizar" : "guardar"} el registro de emergencia.`);
+    } catch (e) {
+      toastService.showError(getApiErrorMessage(e, `No se pudo ${isEditMode ? "actualizar" : "guardar"} el registro de emergencia.`));
     }
   }, [
     form.pacienteId,

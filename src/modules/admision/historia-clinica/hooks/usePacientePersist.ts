@@ -30,7 +30,7 @@ export function usePacientePersist() {
         }
         setNotice({ type: "success", text: "Guardado correctamente." });
       } catch (e) {
-        setNotice({ type: "error", text: toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo.") });
+        setNotice({ type: "error", text: toUserFriendlyMessage(e, "No se pudo guardar la historia clínica del paciente.") });
         throw e;
       } finally {
         setSaving(false);

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { PrimaryButton } from "../../../shared/ui/buttons";
 import { api } from "../../../shared/api";
+import { getApiErrorMessage } from "../../../shared/api/apiError";
 import { useNoticeToToast, inputBase } from "../utils/crudShared";
 
 export default function ParametrosIgvPage() {
@@ -17,7 +18,10 @@ export default function ParametrosIgvPage() {
       .then((res) => {
         setIgv(String(res.igv_porcentaje ?? 18));
       })
-      .catch(() => setIgv("18"))
+      .catch((e) => {
+        setIgv("18");
+        setNotice({ type: "error", text: getApiErrorMessage(e, "No se pudo cargar el porcentaje de IGV configurado.") });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -32,8 +36,8 @@ export default function ParametrosIgvPage() {
     try {
       await api.put("/ficheros/parametros/igv", { igv_porcentaje: num });
       setNotice({ type: "success", text: "IGV actualizado correctamente." });
-    } catch {
-      setNotice({ type: "error", text: "No se pudo guardar el IGV." });
+    } catch (e) {
+      setNotice({ type: "error", text: getApiErrorMessage(e, "No se pudo guardar el porcentaje de IGV.") });
     } finally {
       setSaving(false);
     }

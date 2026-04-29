@@ -112,7 +112,7 @@ export default function EspecialidadesPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?`
-            : "Selecciona un registro."
+            : "Selecciona una especialidad."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

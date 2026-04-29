@@ -11,7 +11,7 @@ import {
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../shared/feedback";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -21,12 +21,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useCirugias() {
@@ -74,9 +68,7 @@ export function useCirugias() {
         const res = await getNextCirugiaCodigo();
         if (!alive) return;
         setCodigo(res.codigo);
-      } catch {
-        // preview opcional; el backend genera al crear
-      }
+      } catch {}
     })();
 
     return () => {
@@ -179,7 +171,7 @@ export function useCirugias() {
         });
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de cirugías.");
         setNotice({ type: "error", text: msg });
         toast.error(msg);
       } finally {
@@ -214,14 +206,14 @@ export function useCirugias() {
     const d = descripcion.trim();
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Completa la descripción correctamente." });
-      toast.error("Completa la descripción correctamente.");
+      setNotice({ type: "error", text: "Completa la descripción de la cirugía correctamente." });
+      toast.error("Completa la descripción de la cirugía correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toast.error("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona una cirugía para editar." });
+      toast.error("Selecciona una cirugía para editar.");
       return;
     }
 
@@ -261,7 +253,7 @@ export function useCirugias() {
 
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar la cirugía.");
       setNotice({ type: "error", text: msg });
       toast.error(msg);
     } finally {
@@ -271,8 +263,8 @@ export function useCirugias() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toast.error("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona una cirugía para desactivar." });
+      toast.error("Selecciona una cirugía para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -282,8 +274,8 @@ export function useCirugias() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toast.error("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona una cirugía para desactivar." });
+      toast.error("Selecciona una cirugía para desactivar.");
       return;
     }
 
@@ -299,7 +291,7 @@ export function useCirugias() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar la cirugía.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toast.error(msg);

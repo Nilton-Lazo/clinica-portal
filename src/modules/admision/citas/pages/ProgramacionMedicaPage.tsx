@@ -150,7 +150,7 @@ export default function ProgramacionMedicaPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.codigo} · ${vm.selected.fecha}"?`
-            : "Selecciona un registro."
+            : "Selecciona una programación médica."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

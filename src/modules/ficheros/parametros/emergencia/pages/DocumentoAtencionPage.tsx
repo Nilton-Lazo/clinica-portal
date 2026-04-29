@@ -98,7 +98,7 @@ export default function DocumentoAtencionPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar documento de atención"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un documento de atención."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

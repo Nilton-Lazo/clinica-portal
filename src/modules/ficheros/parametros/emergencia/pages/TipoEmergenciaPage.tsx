@@ -98,7 +98,7 @@ export default function TipoEmergenciaPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar tipo de emergencia"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un tipo de emergencia."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

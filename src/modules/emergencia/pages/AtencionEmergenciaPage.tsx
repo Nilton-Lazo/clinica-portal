@@ -298,6 +298,7 @@ export default function AtencionEmergenciaPage() {
         })
       );
     } catch {
+      void 0;
     } finally {
       recargoRecalcInFlightRef.current = false;
     }
@@ -330,6 +331,7 @@ export default function AtencionEmergenciaPage() {
         }
       };
     } catch {
+      void 0;
     }
 
     window.addEventListener("recargoNoche:changed", handler);
@@ -371,6 +373,7 @@ export default function AtencionEmergenciaPage() {
       try {
         let reg = navState.registro ?? null;
         let isExistingAtencion = false;
+        let pFull: PacienteDetail | null = null;
         
         try {
           const atencionData = await getDatosAtencionEmergencia(registroId);
@@ -379,6 +382,7 @@ export default function AtencionEmergenciaPage() {
           setRegistro(reg);
           
           if (atencionData.paciente) {
+            pFull = atencionData.paciente;
             setPaciente(atencionData.paciente);
             pacienteCacheById.set(atencionData.paciente.id, atencionData.paciente);
           }
@@ -393,8 +397,6 @@ export default function AtencionEmergenciaPage() {
           if (cancelled) return;
           setRegistro(reg);
         }
-        
-        let pFull = paciente;
 
         if (!pFull) {
           const hc = reg.numero_hc;
@@ -411,8 +413,6 @@ export default function AtencionEmergenciaPage() {
 
         setHoraAsistenciaDisplay(reg.hora_asistencia ? String(reg.hora_asistencia).slice(0, 5) : (reg.hora ? String(reg.hora).slice(0, 5) : ""));
 
-        // Render inmediato: mostramos la pantalla con datos del paciente mientras
-        // en paralelo se resuelven los planes (para tarifario/tipo de cliente).
         setLoading(false);
 
         if (!pFull) return;
@@ -429,7 +429,6 @@ export default function AtencionEmergenciaPage() {
         setPlanes(planesRaw);
         if (!cachedPlanes) planesCacheByPacienteId.set(full.id, planesRaw);
 
-        // Si ya hay un paciente_plan_id guardado en el registro, usarlo
         const initialPlanId = reg.paciente_plan_id ?? (() => {
           const tipoClienteCode = normalizeCodigoForMatch(extractCodigoPrefix(reg.tipo_cliente ?? null));
           const initialPlan =
@@ -455,9 +454,8 @@ export default function AtencionEmergenciaPage() {
           setMontoAPagar(Number(reg.monto_a_pagar));
         }
 
-        // Marcar que ya no necesitamos cargar defaults si ya existen servicios
         if (isExistingAtencion) {
-          defaultsApplyingRef.current = true; // Para no lanzar la carga de defaults
+          defaultsApplyingRef.current = true;
           defaultsAppliedPlanIdRef.current = initialPlanId;
         }
       } catch (e) {
@@ -473,7 +471,6 @@ export default function AtencionEmergenciaPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registroId, navState.registro]);
 
   React.useEffect(() => {
@@ -538,7 +535,6 @@ export default function AtencionEmergenciaPage() {
       return;
     }
 
-    // Fallback por nombre (cuando el backend no entrega el codigo en medico_emergencia).
     const registroNameRaw = registroRaw.includes("·")
       ? registroRaw.split("·").slice(1).join("·").trim()
       : registroRaw;
@@ -554,7 +550,6 @@ export default function AtencionEmergenciaPage() {
         .map((t) => t.trim())
         .filter(Boolean);
       if (!registroTokens.length || !optTokens.length) return false;
-      // Orden no importa: usamos subconjunto de tokens.
       return registroTokens.every((t) => optTokens.includes(t));
     });
 
@@ -585,9 +580,10 @@ export default function AtencionEmergenciaPage() {
         if (!alive) return;
         setTarifasOperativasById(m);
       })
-      .catch(() => {
+      .catch((e) => {
         if (!alive) return;
         setTarifasOperativasById(new Map());
+        toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar las tarifas operativas para la atención de emergencia."));
       });
 
     return () => {
@@ -609,10 +605,12 @@ export default function AtencionEmergenciaPage() {
         (titularNombre ?? "").trim() !== (lastSavedTitular ?? "").trim();
 
       if (condChanged) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id: _id, hc: _hc, nr: _nr, created_at: _ca, updated_at: _ua, nombre_completo: _nc, edad: _ed, ...rest } = paciente;
+        const rest = { ...paciente } as Record<string, unknown>;
+        ["id", "hc", "nr", "created_at", "updated_at", "nombre_completo", "edad"].forEach((key) => {
+          delete rest[key];
+        });
         const payload: PacienteUpsertPayload = {
-          ...rest,
+          ...(rest as PacienteUpsertPayload),
           parentesco_seguro: (condicion ?? "").trim() || null,
           titular_nombre: (titularNombre ?? "").trim() || null,
         };
@@ -622,9 +620,9 @@ export default function AtencionEmergenciaPage() {
       }
 
       if (planChanged) setLastSavedPlanId(pacientePlanId);
-      toastService.showSuccess("Datos actualizados.");
+      toastService.showSuccess("Datos de la atención actualizados correctamente.");
     } catch (e) {
-      const msg = toUserFriendlyMessage(e, "No se pudieron actualizar los datos.");
+      const msg = toUserFriendlyMessage(e, "No se pudieron actualizar los datos del paciente para la atención de emergencia.");
       toastService.showError(msg);
       throw e;
     } finally {
@@ -635,11 +633,11 @@ export default function AtencionEmergenciaPage() {
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(registroId)) return;
     if (!lineas.length) {
-      toastService.showError("Debe haber al menos un servicio en la tabla Servicios finales para guardar la atención.");
+      toastService.showError("Agrega al menos un servicio final antes de guardar la atención de emergencia.");
       return;
     }
     if (pacientePlanId == null) {
-      toastService.showError("Debe seleccionar el tipo de cliente para guardar la atención.");
+      toastService.showError("Selecciona el tipo de cliente del paciente antes de guardar la atención de emergencia.");
       return;
     }
 
@@ -669,10 +667,10 @@ export default function AtencionEmergenciaPage() {
       };
 
       await guardarAtencionEmergencia(registroId, payload);
-      toastService.showSuccess("Atención guardada correctamente.");
+      toastService.showSuccess("Atención de emergencia guardada correctamente.");
       navigate("/emergencia/registro", { replace: true });
     } catch (e) {
-      const msg = toUserFriendlyMessage(e, "No se pudo guardar la atención.");
+      const msg = toUserFriendlyMessage(e, "No se pudo guardar la atención de emergencia.");
       toastService.showError(msg);
     } finally {
       setSavingState(null);
@@ -697,41 +695,45 @@ export default function AtencionEmergenciaPage() {
       const medicoLabel = medicoOpt?.label ?? registro?.medico_emergencia ?? "";
       const codigoMedico = medicoCodigoFromLabel(medicoLabel) || medicoCodigoFallback || "";
 
-      void getIgvPorcentaje().then((igvPct) => {
-        const nuevas: AtencionServicioLineaDisplay[] = toAdd.map((s) => {
-          const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
-          const recargoNoche = Boolean(s.recargo_noche_activo);
-          const aumentoPct = recargoNoche ? (s.recargo_noche_porcentaje ?? 0) : 0;
-          const { precioSinIgv, precioConIgv } = calcularPrecios(precioBase, 1, 0, aumentoPct, igvPct);
-          const esCat50 = String(s.categoria_codigo ?? "").trim() === "50";
-          return {
-            tarifa_servicio_id: s.id,
-            servicio_codigo: s.codigo ?? "",
-            servicio_descripcion: s.descripcion ?? "",
-            categoria_codigo: s.categoria_codigo ?? null,
-            desea_liberar_precio: s.desea_liberar_precio ?? false,
-            cop_var: esCat50 ? 0 : copVarDefault,
-            cop_fijo: 0,
-            descuento_pct: 0,
-            aumento_pct: aumentoPct,
-            cantidad: 1,
-            precio_sin_igv: precioSinIgv,
-            precio_con_igv: precioConIgv,
-            precio_unitario_tarifario_sin_igv: precioSinIgv,
-            medico_id: medicoId,
-            medico_codigo: codigoMedico || medicoLabel,
-            user_username: user?.username ?? "",
-            user_nombre: userNombreCompleto(user),
-            estado_facturacion: "PENDIENTE",
-            recargo_noche_activo: recargoNoche,
-          };
-        });
+      void getIgvPorcentaje()
+        .then((igvPct) => {
+          const nuevas: AtencionServicioLineaDisplay[] = toAdd.map((s) => {
+            const precioBase = parseFloat(String(s.precio_sin_igv)) || 0;
+            const recargoNoche = Boolean(s.recargo_noche_activo);
+            const aumentoPct = recargoNoche ? (s.recargo_noche_porcentaje ?? 0) : 0;
+            const { precioSinIgv, precioConIgv } = calcularPrecios(precioBase, 1, 0, aumentoPct, igvPct);
+            const esCat50 = String(s.categoria_codigo ?? "").trim() === "50";
+            return {
+              tarifa_servicio_id: s.id,
+              servicio_codigo: s.codigo ?? "",
+              servicio_descripcion: s.descripcion ?? "",
+              categoria_codigo: s.categoria_codigo ?? null,
+              desea_liberar_precio: s.desea_liberar_precio ?? false,
+              cop_var: esCat50 ? 0 : copVarDefault,
+              cop_fijo: 0,
+              descuento_pct: 0,
+              aumento_pct: aumentoPct,
+              cantidad: 1,
+              precio_sin_igv: precioSinIgv,
+              precio_con_igv: precioConIgv,
+              precio_unitario_tarifario_sin_igv: precioSinIgv,
+              medico_id: medicoId,
+              medico_codigo: codigoMedico || medicoLabel,
+              user_username: user?.username ?? "",
+              user_nombre: userNombreCompleto(user),
+              estado_facturacion: "PENDIENTE",
+              recargo_noche_activo: recargoNoche,
+            };
+          });
 
-        setLineas((prev) => [...prev, ...nuevas]);
-        requestAnimationFrame(() => {
-          serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          setLineas((prev) => [...prev, ...nuevas]);
+          requestAnimationFrame(() => {
+            serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        })
+        .catch((e) => {
+          toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular los servicios de emergencia."));
         });
-      });
     },
     [tarifaId, lineas, medicoTratanteId, medicosOptions, registro?.medico_emergencia, medicoCodigoFallback, copVarDefault, user]
   );
@@ -799,8 +801,8 @@ export default function AtencionEmergenciaPage() {
 
         if (servicesToAdd.length) onServiciosSelected(servicesToAdd);
         if (!cancelled) defaultsAppliedPlanIdRef.current = pacientePlanId;
-      } catch {
-        // No bloquear la atención si falla la precarga de defaults.
+      } catch (e) {
+        toastService.showWarning(toUserFriendlyMessage(e, "No se pudieron precargar los servicios por defecto de emergencia."));
       } finally {
         defaultsApplyingRef.current = false;
       }

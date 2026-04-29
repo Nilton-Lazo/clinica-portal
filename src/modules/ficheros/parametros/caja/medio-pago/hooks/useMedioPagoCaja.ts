@@ -13,7 +13,7 @@ import {
 } from "../../services/medioPagoCaja.service";
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
-import type { ApiError } from "../../../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
@@ -22,12 +22,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useMedioPagoCaja() {
@@ -59,7 +53,7 @@ export function useMedioPagoCaja() {
       const rows = await listFormasPagoActivas();
       setFormasPago(rows);
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudieron cargar formas de pago.");
+      toast.error(getApiErrorMessage(e, "No se pudieron cargar las formas de pago activas."));
     }
   }, [toast]);
 
@@ -154,7 +148,7 @@ export function useMedioPagoCaja() {
       lastToastedErrorRef.current = null;
       setData(res);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+      const msg = getApiErrorMessage(e, "No se pudo cargar la lista de medios de pago.");
       if (lastToastedErrorRef.current !== msg) {
         lastToastedErrorRef.current = msg;
         toast.error(msg);
@@ -187,11 +181,11 @@ export function useMedioPagoCaja() {
       return;
     }
     if (mode === "edit" && !selected) {
-      toast.error("Selecciona un registro.");
+      toast.error("Selecciona un medio de pago para editar.");
       return;
     }
     if (!isDirty) {
-      toast.error("No hay cambios.");
+      toast.error("No hay cambios para guardar.");
       return;
     }
     if (saving) return;
@@ -210,7 +204,7 @@ export function useMedioPagoCaja() {
         loadForEdit(res.data);
       }
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo guardar.");
+      toast.error(getApiErrorMessage(e, "No se pudo guardar el medio de pago."));
     } finally {
       setSaving(false);
     }
@@ -218,7 +212,7 @@ export function useMedioPagoCaja() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      toast.error("Selecciona un registro.");
+      toast.error("Selecciona un medio de pago para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -236,7 +230,7 @@ export function useMedioPagoCaja() {
       loadForEdit(res.data);
     } catch (e) {
       setConfirmDeactivateOpen(false);
-      toast.error(isApiError(e) ? e.message : "No se pudo desactivar.");
+      toast.error(getApiErrorMessage(e, "No se pudo desactivar el medio de pago."));
     } finally {
       setSaving(false);
     }

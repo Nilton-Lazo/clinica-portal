@@ -120,7 +120,7 @@ export default function CirugiasPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?`
-            : "Selecciona un registro."
+            : "Selecciona una cirugía."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

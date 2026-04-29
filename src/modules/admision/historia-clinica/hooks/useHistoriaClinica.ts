@@ -118,7 +118,7 @@ export function useHistoriaClinica() {
       } catch (e) {
         setNotice({
           type: "error",
-          text: toUserFriendlyMessage(e, "No se pudo cargar la lista. Intenta de nuevo."),
+          text: toUserFriendlyMessage(e, "No se pudo cargar la lista de historias clínicas."),
         });
       } finally {
         setLoading(false);

@@ -23,7 +23,8 @@ export function useServerDateTime(pollMs = 30000) {
   }, []);
 
   useEffect(() => {
-    void fetchDt();
+    const id = window.setTimeout(() => void fetchDt(), 0);
+    return () => window.clearTimeout(id);
   }, [fetchDt]);
 
   useEffect(() => {

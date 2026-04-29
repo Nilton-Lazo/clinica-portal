@@ -26,7 +26,6 @@ function PanelBody({
 
   return (
     <div className="h-full flex flex-col min-h-0">
-      {/* ── Cabecera del módulo ── */}
       <div
         className={[
           compact ? "px-4 py-4" : "px-5 py-5",

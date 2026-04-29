@@ -9,7 +9,7 @@ import {
 } from "../../services/tipoDocumentoCaja.service";
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
-import type { ApiError } from "../../../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
@@ -18,12 +18,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useTipoDocumentoCaja() {
@@ -117,7 +111,7 @@ export function useTipoDocumentoCaja() {
       lastToastedErrorRef.current = null;
       setData(res);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+      const msg = getApiErrorMessage(e, "No se pudo cargar la lista de tipos de documento de caja.");
       if (lastToastedErrorRef.current !== msg) {
         lastToastedErrorRef.current = msg;
         toast.error(msg);
@@ -141,8 +135,8 @@ export function useTipoDocumentoCaja() {
     const c = codigo.trim();
     const d = descripcion.trim();
     if (!isValid) { toast.error("Completa código y descripción."); return; }
-    if (mode === "edit" && !selected) { toast.error("Selecciona un registro."); return; }
-    if (!isDirty) { toast.error("No hay cambios."); return; }
+    if (mode === "edit" && !selected) { toast.error("Selecciona un tipo de documento para editar."); return; }
+    if (!isDirty) { toast.error("No hay cambios para guardar."); return; }
     if (saving) return;
     setSaving(true);
     try {
@@ -159,14 +153,14 @@ export function useTipoDocumentoCaja() {
         loadForEdit(res.data);
       }
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo guardar.");
+      toast.error(getApiErrorMessage(e, "No se pudo guardar el tipo de documento."));
     } finally {
       setSaving(false);
     }
   }, [codigo, descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, resetToNew, saving, selected, toast]);
 
   const requestDeactivate = useCallback(() => {
-    if (!selected) { toast.error("Selecciona un registro."); return; }
+    if (!selected) { toast.error("Selecciona un tipo de documento para desactivar."); return; }
     if (selected.estado === "INACTIVO") return;
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
@@ -182,7 +176,7 @@ export function useTipoDocumentoCaja() {
       loadForEdit(res.data);
     } catch (e) {
       setConfirmDeactivateOpen(false);
-      toast.error(isApiError(e) ? e.message : "No se pudo desactivar.");
+      toast.error(getApiErrorMessage(e, "No se pudo desactivar el tipo de documento."));
     } finally {
       setSaving(false);
     }

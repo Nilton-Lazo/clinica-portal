@@ -158,7 +158,7 @@ export function AcreditacionStep() {
         <ConfirmDialog
           open={vm.confirmDeactivateOpen}
           title="Desactivar plan afiliado"
-          description={vm.selected ? `¿Deseas desactivar "${vm.selectedLabel}"?` : "Selecciona un registro."}
+          description={vm.selected ? `¿Deseas desactivar "${vm.selectedLabel}"?` : "Selecciona un plan afiliado."}
           confirmText="Desactivar"
           cancelText="Cancelar"
           destructive

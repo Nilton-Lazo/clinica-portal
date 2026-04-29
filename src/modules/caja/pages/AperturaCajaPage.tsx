@@ -15,7 +15,7 @@ import { SelectMenu, type SelectOption } from "../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import { useAuth } from "../../../shared/auth/useAuth";
 import { useToast } from "../../../shared/feedback";
-import type { ApiError } from "../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../shared/api/apiError";
 import { useServerDateTime } from "../hooks/useServerDateTime";
 import { listUsuariosActivos } from "../services/usuariosSistema.service";
 import {
@@ -27,12 +27,6 @@ import {
 import { listAreaJefatura } from "../../ficheros/parametros/caja/services/areaJefatura.service";
 import type { CajaAperturaTipo } from "../types/aperturaCaja.types";
 import type { AuthUser } from "../../login/types/auth.types";
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
-}
 
 function displayNameUser(u: AuthUser): string {
   const full = [u.nombres, u.apellido_paterno, u.apellido_materno ?? ""].filter(Boolean).join(" ").trim();
@@ -88,7 +82,7 @@ export default function AperturaCajaPage() {
       ]);
       setResumen(res);
     } catch (e) {
-      setLoadError(isApiError(e) ? e.message : "No se pudieron cargar los datos.");
+      setLoadError(getApiErrorMessage(e, "No se pudieron cargar usuarios, áreas y estado actual de caja."));
     }
   }, []);
 
@@ -101,7 +95,7 @@ export default function AperturaCajaPage() {
       const c = await getNextCodigoApertura();
       setCodigo(c);
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo obtener el código.");
+      toast.error(getApiErrorMessage(e, "No se pudo obtener el siguiente código de apertura de caja."));
     }
   }, [toast]);
 
@@ -122,7 +116,7 @@ export default function AperturaCajaPage() {
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!user) {
-        toast.error("Sesión no válida.");
+        toast.error("La sesión no es válida para aperturar caja. Vuelve a iniciar sesión.");
         return;
       }
       const uid = parseInt(userEntregaId, 10);
@@ -130,15 +124,15 @@ export default function AperturaCajaPage() {
       const m = String(monto).trim().replace(",", ".");
       const montoNum = Number(m);
       if (!userEntregaId || Number.isNaN(uid)) {
-        toast.error("Selecciona personal que entrega.");
+        toast.error("Selecciona el personal que entrega el monto inicial de caja.");
         return;
       }
       if (!areaId || Number.isNaN(aid)) {
-        toast.error("Selecciona área o jefatura.");
+        toast.error("Selecciona el área o jefatura responsable de la apertura.");
         return;
       }
       if (m === "" || Number.isNaN(montoNum) || montoNum < 0) {
-        toast.error("Ingresa un monto de inicio válido.");
+        toast.error("Ingresa un monto de inicio válido, igual o mayor que cero.");
         return;
       }
       if (cajaYaAperturadaParaTipo) {
@@ -154,10 +148,10 @@ export default function AperturaCajaPage() {
           monto_inicio: montoNum,
           observaciones: observaciones.trim() || null,
         });
-        toast.success("Caja abierta correctamente.");
+        toast.success(`Caja ${tab === "NORMAL" ? "normal" : "chica"} aperturada correctamente.`);
         navigate("/caja", { replace: true });
       } catch (err) {
-        toast.error(isApiError(err) ? err.message : "No se pudo guardar.");
+        toast.error(getApiErrorMessage(err, "No se pudo registrar la apertura de caja."));
       } finally {
         setSaving(false);
       }

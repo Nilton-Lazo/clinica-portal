@@ -10,6 +10,7 @@ import { listTarifas } from "../../../services/tarifas.service";
 import { upsertServiciosDefaultEmergenciaByTarifa, listServiciosDefaultEmergenciaByTarifa } from "../services/serviciosDefaultEmergencia.service";
 import { ServicioPicker } from "../../../../admision/citas/agenda/components/ServicioPicker";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { getApiErrorMessage } from "../../../../../shared/api/apiError";
 import {
   buscarServiciosTarifa,
   getIgvPorcentaje,
@@ -434,8 +435,8 @@ export default function ServiciosDefaultEmergenciaPage() {
       }
       setDirty(false);
       toastService.showSuccess("Servicios por defecto guardados.");
-    } catch {
-      toastService.showError("No se pudieron guardar los servicios por defecto.");
+    } catch (e) {
+      toastService.showError(getApiErrorMessage(e, "No se pudieron guardar los servicios por defecto."));
     } finally {
       setSaving(false);
     }

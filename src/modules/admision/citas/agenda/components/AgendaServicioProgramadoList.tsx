@@ -36,7 +36,6 @@ export default function AgendaServicioProgramadoList({
     <div className="w-full min-w-0 overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)">
       <div className="max-h-[320px] min-h-0 overflow-hidden">
         <div className={`grid min-w-0 ${gridCols}`}>
-          {/* Cabecera */}
           <div
             className={`border-b border-r border-(--border-color-default) bg-(--color-panel-context) px-2 py-2 text-center text-xs font-semibold text-(--color-text-secondary) last:border-r-0`}
           >
@@ -52,7 +51,6 @@ export default function AgendaServicioProgramadoList({
           >
             Cupos
           </div>
-          {/* Filas: cada botón ocupa las 3 columnas y dentro repite el mismo grid para alinear */}
           {list.map((e) => {
             const isSelected = selectedId === e.id;
             const cupos = e.cupos_disponibles ?? 0;

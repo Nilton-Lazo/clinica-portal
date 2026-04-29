@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { toastService } from "../../../../shared/notifications";
-import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import type {
   PaqueteLookup,
   PaqueteServicioItem,
@@ -16,19 +15,13 @@ import {
   syncPaqueteServicios,
 } from "../../services/paqueteServicios.service";
 
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
-}
-
 function toUserMessage(e: unknown, fallback: string): string {
-  if (!isApiError(e)) return fallback;
-  const msg = (e.message ?? "").trim().toLowerCase();
+  const message = getApiErrorMessage(e, fallback);
+  const msg = message.trim().toLowerCase();
   if (msg.includes("servicio_ids") || msg.includes("no pertenecen") || msg.includes("activos")) {
-    return "Algunos servicios ya no son validos para este paquete. Actualiza la pantalla e intenta otra vez.";
+    return "Algunos servicios ya no son válidos para este paquete. Actualiza la pantalla e intenta otra vez.";
   }
-  return e.message;
+  return message;
 }
 
 function setsEqual(a: Set<number>, b: Set<number>): boolean {
@@ -181,7 +174,6 @@ export function usePaqueteServicios() {
     return { subsByCat, svcsBySub };
   }, [tree]);
 
-  /** Cadenas ya normalizadas por nodo: evita miles de toLowerCase/replace en cada tecla. */
   const treeSearchIndex = useMemo(() => {
     if (!tree) return null;
     const cats = new Map<number, { normCode: string; text: string }>();
@@ -414,7 +406,7 @@ export function usePaqueteServicios() {
 
   const onSave = useCallback(async () => {
     if (!paqueteId) {
-      toastService.showError("Selecciona un paquete para guardar.");
+      toastService.showError("Selecciona un paquete antes de guardar sus servicios.");
       return;
     }
     if (!isDirty) {
@@ -431,7 +423,7 @@ export function usePaqueteServicios() {
       setWorkingAssigned(new Set(saved));
       toastService.showSuccess("Los servicios del paquete se actualizaron correctamente.");
     } catch (e) {
-      toastService.showError(toUserMessage(e, "No se pudieron guardar los cambios. Intenta otra vez."));
+      toastService.showError(toUserMessage(e, "No se pudieron guardar los servicios del paquete. Intenta otra vez."));
     } finally {
       setSaving(false);
     }

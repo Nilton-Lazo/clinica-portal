@@ -5,7 +5,6 @@ import type {
   AgendaCitasPaginated,
   AgendaEspecialidadOption,
   AgendaMedicoOption,
-  // AgendaOpciones,
   AgendaProgramacion,
   AgendaSlotsResponse,
   CitaAtencionEstado,
@@ -56,7 +55,6 @@ export function useAgendaMedica() {
   const draftLoadedRef = React.useRef(false);
   const draftReadyRef = React.useRef(false);
   const opcionesCacheRef = React.useRef<Record<string, AgendaMedicoOption[]>>({});
-  /** Cache de init por fecha: al volver a una fecha ya visitada la carga es al instante. */
   const initDataCacheRef = React.useRef<Record<string, AgendaInitData>>({});
 
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(new Date());
@@ -181,7 +179,6 @@ export function useAgendaMedica() {
     (slots?.slots_adicional ?? []).every((h) => takenSet.has(h));
   const canAddExtra = baseFull && adicionalesAllTaken && extraVisible < extrasTotal;
 
-  // Carga inicial consolidada: cache por fecha para respuesta al instante al volver a una fecha ya visitada.
   React.useEffect(() => {
     if (!selectedDateStr) {
       setEspecialidadesList([]);
@@ -257,7 +254,7 @@ export function useAgendaMedica() {
         }
       })
       .catch((e) => {
-        toast.error(toUserFriendlyMessage(e, "No se pudo cargar las citas."));
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar las citas de la agenda médica."));
         delete initDataCacheRef.current[selectedDateStr];
         setEspecialidadesList([]);
         setMedicosList([]);
@@ -269,7 +266,7 @@ export function useAgendaMedica() {
       })
       .finally(() => {
         setInitLoading(false);
-        setLoading(false); // Desactiva el spinner principal
+        setLoading(false);
       });
   }, [selectedDateStr, reloadFlag, perPage, toast]);
 
@@ -295,7 +292,7 @@ export function useAgendaMedica() {
         setMedicoId(data.medicos[0]?.id ?? null);
       })
       .catch((e) => {
-        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar los médicos programados."));
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar los médicos programados para la especialidad seleccionada."));
         setMedicosList([]);
         setMedicoId(null);
       })
@@ -320,7 +317,7 @@ export function useAgendaMedica() {
         setProgramacion(res.programacion ?? null);
       })
       .catch((e) => {
-        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar los horarios disponibles."));
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar los horarios disponibles del médico seleccionado."));
         setSlots(null);
         setProgramacion(null);
       })
@@ -340,7 +337,7 @@ export function useAgendaMedica() {
         setProgramacion((p) => res.programacion ?? p);
       })
       .catch((e) => {
-        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar las citas."));
+        toast.error(toUserFriendlyMessage(e, "No se pudieron cargar las citas del médico seleccionado."));
       })
       .finally(() => setLoading(false));
   }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, initLoading, toast]);
@@ -435,7 +432,7 @@ export function useAgendaMedica() {
         setIafaId(p.iafas[0].id);
       }
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo cargar el paciente."));
+      toast.error(toUserFriendlyMessage(e, "No se pudo cargar el paciente seleccionado para la cita."));
     } finally {
       setPacienteLoading(false);
     }
@@ -494,7 +491,18 @@ export function useAgendaMedica() {
   }, [onSelectPaciente, setSelectedDateStr]);
 
   const onAgendar = React.useCallback(async () => {
-    if (!programacion || !hora || !paciente) return false;
+    if (!programacion) {
+      toast.error("Selecciona una programación médica disponible para agendar la cita.");
+      return false;
+    }
+    if (!hora) {
+      toast.error("Selecciona un horario disponible para agendar la cita.");
+      return false;
+    }
+    if (!paciente) {
+      toast.error("Selecciona un paciente para agendar la cita.");
+      return false;
+    }
     try {
       await createAgendaCita({
         programacion_medica_id: programacion.id,
@@ -520,18 +528,24 @@ export function useAgendaMedica() {
       setPage(1);
       return true;
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo agendar la cita."));
+      toast.error(toUserFriendlyMessage(e, "No se pudo agendar la cita médica."));
       return false;
     }
   }, [programacion, hora, paciente, motivo, observacion, autorizacion, iafaId, toast]);
 
   const requestEliminarCita = React.useCallback(() => {
-    if (!selectedCita) return;
+    if (!selectedCita) {
+      toast.error("Selecciona una cita para eliminar.");
+      return;
+    }
     setConfirmEliminarOpen(true);
-  }, [selectedCita]);
+  }, [selectedCita, toast]);
 
   const onEliminarCitaConfirmed = React.useCallback(async () => {
-    if (!selectedCita) return;
+    if (!selectedCita) {
+      toast.error("Selecciona una cita para confirmar la eliminación.");
+      return;
+    }
     setConfirmEliminarOpen(false);
     try {
       await anularAgendaCita(selectedCita.id);
@@ -539,7 +553,7 @@ export function useAgendaMedica() {
       setSelectedCita(null);
       setReloadFlag((v) => v + 1);
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo eliminar la cita."));
+      toast.error(toUserFriendlyMessage(e, "No se pudo eliminar la cita médica seleccionada."));
     }
   }, [selectedCita, toast]);
 

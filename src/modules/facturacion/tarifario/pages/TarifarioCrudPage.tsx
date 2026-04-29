@@ -10,7 +10,7 @@ import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
@@ -49,12 +49,6 @@ import {
 
 type Mode = "new" | "edit";
 type StatusFilter = "ALL" | RecordStatus;
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
-}
 
 function mensajePropagacion(prop: PropagacionResultado | undefined): string | null {
   if (!prop || !prop.tiene_alertas) return null;
@@ -175,7 +169,9 @@ function useCategoriasCrud(tarifaId: number | null) {
         if (!alive) return;
         setCodigo(res.codigo);
       })
-      .catch(() => {});
+      .catch(() => {
+        setCodigo("");
+      });
     return () => {
       alive = false;
     };
@@ -210,7 +206,7 @@ function useCategoriasCrud(tarifaId: number | null) {
         setData(res);
         return res;
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar categorías.";
+        const msg = getApiErrorMessage(e, "No se pudieron cargar las categorías de la tarifa.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
         return null;
@@ -280,13 +276,13 @@ function useCategoriasCrud(tarifaId: number | null) {
     if (!tarifaId) return;
     setNotice(null);
     if (!isValid) {
-      const msg = "Completa la descripción correctamente.";
+      const msg = "Completa la descripción de la categoría correctamente.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
     }
     if (mode === "edit" && !selected) {
-      const msg = "Selecciona un registro para editar.";
+      const msg = "Selecciona una categoría para editar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -324,7 +320,7 @@ function useCategoriasCrud(tarifaId: number | null) {
         const updated = refreshed?.data.find((x) => x.id === res.id);
         if (updated) {
           if (updated.estado !== estado) {
-            const errMsg = "El servidor no confirmó el cambio de estado.";
+            const errMsg = "El servidor no confirmó el cambio de estado de la categoría.";
             setNotice({ type: "error", text: errMsg });
             toastService.showError(errMsg);
             return;
@@ -333,7 +329,7 @@ function useCategoriasCrud(tarifaId: number | null) {
         }
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar la categoría.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar la categoría de la tarifa.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -356,7 +352,7 @@ function useCategoriasCrud(tarifaId: number | null) {
 
   const requestDeactivate = React.useCallback(() => {
     if (!selected) {
-      const msg = "Selecciona un registro para desactivar.";
+      const msg = "Selecciona una categoría para desactivar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -368,7 +364,7 @@ function useCategoriasCrud(tarifaId: number | null) {
   const onDeactivateConfirmed = React.useCallback(async () => {
     if (!tarifaId || !selected) {
       setConfirmDeactivateOpen(false);
-      const msg = "Selecciona un registro para desactivar.";
+      const msg = "Selecciona una categoría para desactivar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -387,7 +383,7 @@ function useCategoriasCrud(tarifaId: number | null) {
       const updated = refreshed?.data.find((x) => x.id === res.id);
       if (updated) {
         if (updated.estado !== "INACTIVO") {
-          const errMsg = "El servidor no confirmó la desactivación.";
+          const errMsg = "El servidor no confirmó la desactivación de la categoría.";
           setNotice({ type: "error", text: errMsg });
           toastService.showError(errMsg);
           return;
@@ -395,7 +391,7 @@ function useCategoriasCrud(tarifaId: number | null) {
         loadForEdit(updated);
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar la categoría.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar la categoría de la tarifa.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
@@ -487,7 +483,9 @@ function useSubcategoriasCrud(tarifaId: number | null) {
     if (!tarifaId) return;
     lookupCategorias(tarifaId, true)
       .then(setCategorias)
-      .catch(() => {});
+      .catch(() => {
+        setCategorias([]);
+      });
   }, [tarifaId]);
 
   React.useEffect(() => {
@@ -498,7 +496,9 @@ function useSubcategoriasCrud(tarifaId: number | null) {
         if (!alive) return;
         setCodigo(res.codigo);
       })
-      .catch(() => {});
+      .catch(() => {
+        setCodigo("");
+      });
     return () => {
       alive = false;
     };
@@ -559,7 +559,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
         setData(res);
         return res;
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar subcategorías.";
+        const msg = getApiErrorMessage(e, "No se pudieron cargar las subcategorías de la tarifa.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
         return null;
@@ -637,13 +637,13 @@ function useSubcategoriasCrud(tarifaId: number | null) {
     if (!tarifaId) return;
     setNotice(null);
     if (!isValid) {
-      const msg = "Completa los campos obligatorios.";
+      const msg = "Selecciona una categoría y completa la descripción de la subcategoría.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
     }
     if (mode === "edit" && !selected) {
-      const msg = "Selecciona un registro para editar.";
+      const msg = "Selecciona una subcategoría para editar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -685,7 +685,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
         const updated = refreshed?.data.find((x) => x.id === res.id);
         if (updated) {
           if (updated.estado !== estado) {
-            const errMsg = "El servidor no confirmó el cambio de estado.";
+            const errMsg = "El servidor no confirmó el cambio de estado de la subcategoría.";
             setNotice({ type: "error", text: errMsg });
             toastService.showError(errMsg);
             return;
@@ -694,7 +694,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
         }
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar la subcategoría.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar la subcategoría de la tarifa.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -718,7 +718,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
 
   const requestDeactivate = React.useCallback(() => {
     if (!selected) {
-      const msg = "Selecciona un registro para desactivar.";
+      const msg = "Selecciona una subcategoría para desactivar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -730,7 +730,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
   const onDeactivateConfirmed = React.useCallback(async () => {
     if (!tarifaId || !selected) {
       setConfirmDeactivateOpen(false);
-      const msg = "Selecciona un registro para desactivar.";
+      const msg = "Selecciona una subcategoría para desactivar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -749,7 +749,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
       const updated = refreshed?.data.find((x) => x.id === res.id);
       if (updated) {
         if (updated.estado !== "INACTIVO") {
-          const errMsg = "El servidor no confirmó la desactivación.";
+          const errMsg = "El servidor no confirmó la desactivación de la subcategoría.";
           setNotice({ type: "error", text: errMsg });
           toastService.showError(errMsg);
           return;
@@ -757,7 +757,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
         loadForEdit(updated);
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar la subcategoría.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar la subcategoría de la tarifa.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
@@ -863,7 +863,11 @@ function useServiciosCrud(tarifaId: number | null) {
   } | null>(null);
 
   React.useEffect(() => {
-    lookupGruposServicio().then(setGrupos).catch(() => {});
+    lookupGruposServicio()
+      .then(setGrupos)
+      .catch(() => {
+        setGrupos([]);
+      });
   }, []);
 
   const gruposOpciones = React.useMemo(() => {
@@ -888,7 +892,9 @@ function useServiciosCrud(tarifaId: number | null) {
     if (!tarifaId) return;
     lookupCategorias(tarifaId, false)
       .then(setCategorias)
-      .catch(() => {});
+      .catch(() => {
+        setCategorias([]);
+      });
   }, [tarifaId]);
 
   React.useEffect(() => {
@@ -903,7 +909,9 @@ function useServiciosCrud(tarifaId: number | null) {
           setSubcategoriaId(null);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setSubcategorias([]);
+      });
   }, [tarifaId, categoriaId, subcategoriaId]);
 
   React.useEffect(() => {
@@ -913,7 +921,9 @@ function useServiciosCrud(tarifaId: number | null) {
     }
     lookupSubcategorias(tarifaId, filterCategoriaId, false)
       .then(setSubcategoriasFilter)
-      .catch(() => {});
+      .catch(() => {
+        setSubcategoriasFilter([]);
+      });
   }, [tarifaId, filterCategoriaId]);
 
   React.useEffect(() => {
@@ -924,7 +934,9 @@ function useServiciosCrud(tarifaId: number | null) {
         if (!alive) return;
         setCodigo(res.codigo);
       })
-      .catch(() => {});
+      .catch(() => {
+        setCodigo("");
+      });
     return () => {
       alive = false;
     };
@@ -947,7 +959,7 @@ function useServiciosCrud(tarifaId: number | null) {
     if (!categoriaId || !subcategoriaId) return false;
     if (!d) return false;
     if (!Number.isFinite(p) || p < 0) return false;
-    if (!Number.isFinite(u) || u < 0) return false; // Cambiado de u <= 0 a u < 0
+    if (!Number.isFinite(u) || u < 0) return false;
     if (mode === "new" && !codigo.trim()) return false;
     return true;
   }, [descripcion, precio, unidad, categoriaId, subcategoriaId, codigo, mode]);
@@ -956,7 +968,6 @@ function useServiciosCrud(tarifaId: number | null) {
     const o = originalRef.current;
     if (!o) return mode === "new" ? isValid : false;
     
-    // Normalizar valores para comparación consistente
     const descripcionActual = descripcion.trim();
     const nomencladorActual = nomenclador.trim();
     const precioActual = precio.trim();
@@ -997,7 +1008,7 @@ function useServiciosCrud(tarifaId: number | null) {
         setData(res);
         return res;
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar servicios.";
+        const msg = getApiErrorMessage(e, "No se pudieron cargar los servicios de la tarifa.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
         return null;
@@ -1117,13 +1128,13 @@ function useServiciosCrud(tarifaId: number | null) {
     if (!tarifaId) return;
     setNotice(null);
     if (!isValid) {
-      const msg = "Completa los campos obligatorios.";
+      const msg = "Selecciona categoría, subcategoría y completa los datos obligatorios del servicio.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
     }
     if (mode === "edit" && !selected) {
-      const msg = "Selecciona un registro para editar.";
+      const msg = "Selecciona un servicio para editar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -1176,7 +1187,7 @@ function useServiciosCrud(tarifaId: number | null) {
         const updated = refreshed?.data.find((x) => x.id === res.id);
         if (updated) {
           if (updated.estado !== estado) {
-            const errMsg = "El servidor no confirmó el cambio de estado.";
+            const errMsg = "El servidor no confirmó el cambio de estado del servicio.";
             setNotice({ type: "error", text: errMsg });
             toastService.showError(errMsg);
             return;
@@ -1185,7 +1196,7 @@ function useServiciosCrud(tarifaId: number | null) {
         }
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar el servicio.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar el servicio de la tarifa.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -1215,7 +1226,7 @@ function useServiciosCrud(tarifaId: number | null) {
 
   const requestDeactivate = React.useCallback(() => {
     if (!selected) {
-      const msg = "Selecciona un registro para desactivar.";
+      const msg = "Selecciona un servicio para desactivar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -1227,7 +1238,7 @@ function useServiciosCrud(tarifaId: number | null) {
   const onDeactivateConfirmed = React.useCallback(async () => {
     if (!tarifaId || !selected) {
       setConfirmDeactivateOpen(false);
-      const msg = "Selecciona un registro para desactivar.";
+      const msg = "Selecciona un servicio para desactivar.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
@@ -1246,7 +1257,7 @@ function useServiciosCrud(tarifaId: number | null) {
       const updated = refreshed?.data.find((x) => x.id === res.id);
       if (updated) {
         if (updated.estado !== "INACTIVO") {
-          const errMsg = "El servidor no confirmó la desactivación.";
+          const errMsg = "El servidor no confirmó la desactivación del servicio.";
           setNotice({ type: "error", text: errMsg });
           toastService.showError(errMsg);
           return;
@@ -1254,7 +1265,7 @@ function useServiciosCrud(tarifaId: number | null) {
         loadForEdit(updated);
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar el servicio.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar el servicio de la tarifa.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

@@ -129,7 +129,7 @@ export default function PaquetesPage() {
         open={vm.confirmDeactivateOpen}
         title="Desactivar paquete"
         description={
-          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?` : "Selecciona un registro."
+          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?` : "Selecciona un paquete."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

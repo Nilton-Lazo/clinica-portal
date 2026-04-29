@@ -1,3 +1,4 @@
+import { getApiErrorMessage, isApiError } from "../../../../shared/api/apiError";
 import type { ApiError } from "../../../../shared/api/apiError";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -40,19 +41,7 @@ function getFieldLabel(field: string): string {
   return FIELD_LABELS[field] ?? field.replace(/_/g, " ");
 }
 
-function isApiError(e: unknown): e is ApiError {
-  return typeof e === "object" && e !== null && "kind" in e && "message" in e;
-}
-
 function toUserMessage(apiError: ApiError): string {
-  try {
-    if (import.meta.env?.DEV) {
-      console.error("[Historia Clínica] Error técnico (no mostrar al usuario):", apiError);
-    }
-  } catch {
-    // ignore
-  }
-
   switch (apiError.kind) {
     case "unauthorized":
       return "Tu sesión ha expirado o no es válida. Inicia sesión de nuevo.";
@@ -65,7 +54,7 @@ function toUserMessage(apiError: ApiError): string {
     case "validation": {
       const errors = apiError.errors ?? {};
       const entries = Object.entries(errors);
-      if (entries.length === 0) return "Completa los campos requeridos antes de continuar.";
+      if (entries.length === 0) return apiError.message || "Completa los campos requeridos antes de continuar.";
       const [field, msgs] = entries[0];
       const detail = Array.isArray(msgs) ? msgs[0] : String(msgs ?? "");
       const label = getFieldLabel(field);
@@ -83,5 +72,5 @@ export function toUserFriendlyMessage(error: unknown, fallback: string): string 
   if (isApiError(error)) {
     return toUserMessage(error);
   }
-  return fallback;
+  return getApiErrorMessage(error, fallback);
 }

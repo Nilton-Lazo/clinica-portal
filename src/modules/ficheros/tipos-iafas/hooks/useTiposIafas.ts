@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PaginatedResponse, RecordStatus, TipoIafa, TiposIafasQuery } from "../../types/tiposIafas.types";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import {
   createTipoIafa,
   deactivateTipoIafa,
@@ -19,12 +19,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useTiposIafas() {
@@ -148,7 +142,7 @@ export function useTiposIafas() {
         const res = await listTiposIafas(query);
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de tipos de IAFAS.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
       } finally {
@@ -181,14 +175,14 @@ export function useTiposIafas() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Datos inválidos." });
-      toastService.showError("Datos inválidos.");
+      setNotice({ type: "error", text: "Completa la descripción del tipo de IAFAS correctamente." });
+      toastService.showError("Completa la descripción del tipo de IAFAS correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toastService.showError("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona un tipo de IAFAS para editar." });
+      toastService.showError("Selecciona un tipo de IAFAS para editar.");
       return;
     }
 
@@ -222,7 +216,7 @@ export function useTiposIafas() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar el tipo de IAFAS.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -232,8 +226,8 @@ export function useTiposIafas() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un tipo de IAFAS para desactivar." });
+      toastService.showError("Selecciona un tipo de IAFAS para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -243,8 +237,8 @@ export function useTiposIafas() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un tipo de IAFAS para desactivar." });
+      toastService.showError("Selecciona un tipo de IAFAS para desactivar.");
       return;
     }
 
@@ -258,7 +252,7 @@ export function useTiposIafas() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar el tipo de IAFAS.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

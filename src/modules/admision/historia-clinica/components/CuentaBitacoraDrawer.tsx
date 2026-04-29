@@ -8,6 +8,7 @@ import {
   listPacienteBitacoraNotas,
   type CuentaBitacoraNotaItem,
 } from "../services/cuentaBitacora.service";
+import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 
 type Variant = "drawer" | "fullscreen";
 
@@ -68,10 +69,10 @@ export default function CuentaBitacoraDrawer(props: Props) {
       }
       if (requestIdRef.current !== rid) return;
       setItems(data);
-    } catch {
+    } catch (e) {
       if (requestIdRef.current !== rid) return;
       setItems([]);
-      toastService.showError("No se pudieron cargar las notas.");
+      toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar las notas de bitácora."));
     } finally {
       if (requestIdRef.current === rid) setLoading(false);
     }
@@ -85,7 +86,14 @@ export default function CuentaBitacoraDrawer(props: Props) {
 
   const handleSave = React.useCallback(async () => {
     const text = draft.trim();
-    if (!text || !canUseBitacora) return;
+    if (!text) {
+      toastService.showError("Escribe una nota antes de guardarla en la bitácora.");
+      return;
+    }
+    if (!canUseBitacora) {
+      toastService.showError("Selecciona una cuenta o paciente para registrar la nota de bitácora.");
+      return;
+    }
     setSaving(true);
     try {
       let created: CuentaBitacoraNotaItem;
@@ -102,8 +110,8 @@ export default function CuentaBitacoraDrawer(props: Props) {
       requestAnimationFrame(() => {
         listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
-    } catch {
-      toastService.showError("No se pudo guardar la nota.");
+    } catch (e) {
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la nota de bitácora."));
     } finally {
       setSaving(false);
     }

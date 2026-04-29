@@ -114,7 +114,7 @@ export default function ContratantesPage() {
         open={vm.confirmDeactivateOpen}
         title="Desactivar contratante"
         description={
-          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedRazonSocial}"?` : "Selecciona un registro."
+          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedRazonSocial}"?` : "Selecciona un contratante."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

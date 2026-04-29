@@ -138,7 +138,7 @@ export default function RecargoNochePage() {
         description={
           vm.selected
             ? `¿Deseas desactivar la regla de recargo para "${vm.selected.categoria_nombre ?? vm.selected.categoria_codigo ?? "categoría"}"?`
-            : "Selecciona un registro."
+            : "Selecciona una regla de recargo nocturno."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

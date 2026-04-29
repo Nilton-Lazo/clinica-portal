@@ -43,7 +43,7 @@ export default function AdmisionHomePage() {
     (to: string, label?: string) => {
       const screen = label ? `Admision:${label}` : `Admision:${to}`;
       clientContext.set({ path: to, screen });
-      void navigationService.track({ path: to, screen }).catch(() => {});
+      void navigationService.track({ path: to, screen }).catch(() => undefined);
       navigate(to);
     },
     [navigate]

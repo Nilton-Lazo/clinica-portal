@@ -12,6 +12,8 @@ import {
   type TarifaServicioBusqueda,
   type TarifaServiciosBusquedaMeta,
 } from "../services/atencionCita.service";
+import { toastService } from "../../../../../shared/notifications";
+import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import type { AtencionDraft, PresupuestoPaqueteSnapshot } from "../types/atencionCita.types";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 
@@ -112,7 +114,11 @@ export default function BuscarServiciosPage() {
   const isLgUp = useIsLgUp();
 
   React.useEffect(() => {
-    getIgvPorcentaje().then(setIgvPct).catch(() => {});
+    getIgvPorcentaje()
+      .then(setIgvPct)
+      .catch((e) => {
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular los servicios."));
+      });
   }, []);
 
   const refresh = React.useCallback(() => {
@@ -131,9 +137,10 @@ export default function BuscarServiciosPage() {
         setData(res.data ?? []);
         setMeta(res.meta ?? null);
       })
-      .catch(() => {
+      .catch((e) => {
         setData([]);
         setMeta(null);
+        toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los servicios activos del tarifario seleccionado."));
       })
       .finally(() => setLoading(false));
   }, [tarifaId, page, perPage, qNormalized]);

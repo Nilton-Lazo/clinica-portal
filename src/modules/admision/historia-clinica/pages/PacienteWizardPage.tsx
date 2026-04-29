@@ -58,6 +58,10 @@ export default function PacienteWizardPage() {
   useEffect(() => {
     getWizardCatalog()
       .then(setCatalog)
+      .catch((e) => {
+        setCatalog(null);
+        toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los catálogos para registrar pacientes."));
+      })
       .finally(() => setCatalogLoading(false));
   }, []);
 
@@ -75,6 +79,8 @@ export default function PacienteWizardPage() {
       try {
         const res = await pacienteService.show(id);
         setInitialDraft(mapPacienteToDraft(res.data));
+      } catch (e) {
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar la historia clínica del paciente."));
       } finally {
         setLoadingPaciente(false);
       }
@@ -181,7 +187,7 @@ function WizardInner({
         navigate(`/admision/historia-clinica/${saved.id}/datos-generales`, { replace: true });
       }
     } catch (e) {
-      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la historia clínica del paciente."));
     } finally {
       actions.markSaving(false);
     }

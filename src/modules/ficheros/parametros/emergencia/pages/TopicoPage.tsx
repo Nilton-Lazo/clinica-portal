@@ -98,7 +98,7 @@ export default function TopicoPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar tópico"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un tópico."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

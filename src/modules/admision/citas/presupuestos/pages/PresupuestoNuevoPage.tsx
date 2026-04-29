@@ -621,10 +621,10 @@ export default function PresupuestoNuevoPage() {
       if (!d.planes.length) {
         toastService.showInfo("Este paciente no tiene planes activos registrados.");
       }
-    } catch {
+    } catch (e) {
       setDetalle(null);
       setSelectedPlanId("");
-      toastService.showError("No se pudieron cargar los datos del paciente.");
+      toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los datos del paciente para el presupuesto."));
     } finally {
       setPacienteLoading(false);
     }
@@ -657,10 +657,23 @@ export default function PresupuestoNuevoPage() {
     tieneContenidoServicios;
 
   const handleGuardarPresupuesto = React.useCallback(async () => {
-    if (!detalle || !selectedPlanId || tarifaId == null) return;
-    if (!presupuestoPaquete && lineas.length === 0) return;
+    if (!detalle) {
+      toastService.showError("Selecciona un paciente antes de guardar el presupuesto.");
+      return;
+    }
+    if (!selectedPlanId || tarifaId == null) {
+      toastService.showError("Selecciona un plan con tarifa vigente antes de guardar el presupuesto.");
+      return;
+    }
+    if (!presupuestoPaquete && lineas.length === 0) {
+      toastService.showError("Agrega al menos un servicio o paquete antes de guardar el presupuesto.");
+      return;
+    }
     const pacientePlanId = Number(selectedPlanId);
-    if (!Number.isFinite(pacientePlanId)) return;
+    if (!Number.isFinite(pacientePlanId)) {
+      toastService.showError("El plan seleccionado no es válido para generar el presupuesto.");
+      return;
+    }
 
     setGuardandoPresupuesto(true);
     try {
@@ -1067,8 +1080,8 @@ export default function PresupuestoNuevoPage() {
               requestAnimationFrame(() => {
                 serviciosSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               });
-            } catch {
-              toastService.showError("No se pudo cargar el paquete.");
+            } catch (e) {
+              toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el paquete seleccionado para el presupuesto."));
             }
           })();
         }}

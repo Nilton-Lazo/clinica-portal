@@ -7,6 +7,8 @@ import type { PaqueteLookup } from "../../../../ficheros/types/paqueteServicios.
 import { listPaquetesByTarifa } from "../../../../ficheros/services/paqueteServicios.service";
 import { formatDecimalFixed } from "../../../../../shared/constants/decimalPrecision";
 import { getIgvPorcentaje } from "../../agenda/services/atencionCita.service";
+import { toastService } from "../../../../../shared/notifications";
+import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 
 type Variant = "drawer" | "fullscreen";
 
@@ -58,7 +60,11 @@ export default function PaquetePicker(props: Props) {
   const requestIdRef = React.useRef(0);
 
   React.useEffect(() => {
-    getIgvPorcentaje().then(setIgvPct).catch(() => {});
+    getIgvPorcentaje()
+      .then(setIgvPct)
+      .catch((e) => {
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular paquetes."));
+      });
   }, []);
 
   React.useEffect(() => {
@@ -72,9 +78,10 @@ export default function PaquetePicker(props: Props) {
         if (requestId !== requestIdRef.current) return;
         setItems(rows);
       })
-      .catch(() => {
+      .catch((e) => {
         if (requestId !== requestIdRef.current) return;
         setItems([]);
+        toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los paquetes activos de la tarifa seleccionada."));
       })
       .finally(() => {
         if (requestId === requestIdRef.current) setLoading(false);

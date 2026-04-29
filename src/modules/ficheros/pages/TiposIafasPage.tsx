@@ -110,7 +110,7 @@ export default function TiposIafasPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?`
-            : "Selecciona un registro."
+            : "Selecciona un tipo de IAFAS."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

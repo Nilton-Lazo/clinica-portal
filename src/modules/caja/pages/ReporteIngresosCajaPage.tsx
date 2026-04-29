@@ -4,7 +4,7 @@ import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import { SelectField } from "../../admision/historia-clinica/wizard/ui/formFields";
 import type { SelectOption } from "../../../shared/ui/SelectMenu";
 import { toastService } from "../../../shared/notifications";
-import { toApiError } from "../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../shared/api/apiError";
 import {
   fetchReporteIngresosBootstrap,
   fetchReporteIngresosMovimientos,
@@ -26,10 +26,8 @@ const sectionTitle = "text-sm font-semibold text-(--color-text-primary)";
 
 const sectionHint = "mt-0.5 text-xs leading-snug text-(--color-text-secondary)";
 
-/** Misma etiqueta base que en emisión de comprobantes (`lbl`). */
 const lbl = "text-sm text-(--color-text-primary)";
 
-/** Solo lectura, misma tipografía que inputs (`text-sm`) — sin monoespaciado. */
 const readoutInline =
   "inline-flex h-10 w-fit max-w-full min-w-[4.5rem] shrink-0 items-center rounded-md border border-(--border-color-default) bg-[#E8EAEE] px-3 text-sm text-(--color-text-primary)";
 
@@ -127,10 +125,10 @@ export default function ReporteIngresosCajaPage() {
           setAperturaId(null);
         }
       })
-      .catch(() => {
+      .catch((e) => {
         if (!c) {
           setBootErr(true);
-          toastService.showError("No se pudo cargar el reporte de ingresos.");
+          toastService.showError(getApiErrorMessage(e, "No se pudieron cargar aperturas, series y medios de pago del reporte de ingresos."));
         }
       })
       .finally(() => {
@@ -164,8 +162,7 @@ export default function ReporteIngresosCajaPage() {
       })
       .catch((e) => {
         if (!c) {
-          const err = toApiError(e);
-          toastService.showError(err.message.trim() || "No se pudieron cargar los movimientos.");
+          toastService.showError(getApiErrorMessage(e, "No se pudieron cargar los movimientos de la apertura seleccionada."));
           setMovs([]);
         }
       })
@@ -187,7 +184,7 @@ export default function ReporteIngresosCajaPage() {
     [boot, aperturaId]
   );
 
-  const mediosContado: ReporteIngresosMedio[] = boot?.medios_contado ?? [];
+  const mediosContado = React.useMemo<ReporteIngresosMedio[]>(() => boot?.medios_contado ?? [], [boot]);
 
   const totalEfectivoEstimado = React.useMemo(() => {
     let s = 0;

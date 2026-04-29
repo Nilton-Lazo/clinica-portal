@@ -98,7 +98,7 @@ export default function AreaJefaturaPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar área o jefatura"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un área o jefatura."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

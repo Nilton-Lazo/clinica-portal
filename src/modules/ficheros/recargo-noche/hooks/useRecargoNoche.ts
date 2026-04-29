@@ -1,5 +1,6 @@
 import * as React from "react";
 import { toastService } from "../../../../shared/notifications";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import {
   getTarifasOperativas,
   getCategoriasLookup,
@@ -72,7 +73,10 @@ export function useRecargoNoche() {
     setTarifasLoading(true);
     getTarifasOperativas()
       .then(setTarifas)
-      .catch(() => setTarifas([]))
+      .catch((e) => {
+        setTarifas([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudieron cargar los tarifarios operativos."));
+      })
       .finally(() => setTarifasLoading(false));
   }, []);
 
@@ -94,9 +98,10 @@ export function useRecargoNoche() {
         setReglas(r);
         setCategorias(c);
       })
-      .catch(() => {
+      .catch((e) => {
         setReglas([]);
         setCategorias([]);
+        toastService.showError(getApiErrorMessage(e, "No se pudieron cargar las reglas de recargo nocturno."));
       })
       .finally(() => setLoading(false));
   }, [tarifaId, statusFilter]);
@@ -156,7 +161,19 @@ export function useRecargoNoche() {
   }, [mode, selected, formCategoriaId, formPorcentaje, formHoraDesde, formHoraHasta, formEstado]);
 
   const onSave = React.useCallback(async () => {
-    if (!tarifaId || !isValid()) return;
+    if (!tarifaId) {
+      setNotice({ type: "error", text: "Selecciona un tarifario para configurar el recargo nocturno." });
+      toastService.showError("Selecciona un tarifario para configurar el recargo nocturno.");
+      return;
+    }
+    if (!isValid()) {
+      const msg = mode === "new"
+        ? "Selecciona una categoría e ingresa un porcentaje entre 0 y 100."
+        : "Ingresa un porcentaje entre 0 y 100.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setSaving(true);
     setNotice(null);
     try {
@@ -193,9 +210,13 @@ export function useRecargoNoche() {
         toastService.showSuccess("Regla actualizada.");
         dispatchRecargoChanged(tarifaId);
       }
-    } catch {
-      setNotice({ type: "error", text: mode === "new" ? "No se pudo crear." : "No se pudo actualizar." });
-      toastService.showError(mode === "new" ? "No se pudo crear." : "No se pudo actualizar.");
+    } catch (e) {
+      const msg = getApiErrorMessage(
+        e,
+        mode === "new" ? "No se pudo crear la regla de recargo nocturno." : "No se pudo actualizar la regla de recargo nocturno."
+      );
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }
@@ -214,11 +235,21 @@ export function useRecargoNoche() {
   }, [selected, resetToNew]);
 
   const requestDeactivate = React.useCallback(() => {
-    if (selected?.estado === "ACTIVO") setConfirmDeactivateOpen(true);
+    if (!selected) {
+      setNotice({ type: "error", text: "Selecciona una regla de recargo nocturno para desactivar." });
+      toastService.showError("Selecciona una regla de recargo nocturno para desactivar.");
+      return;
+    }
+    if (selected.estado === "ACTIVO") setConfirmDeactivateOpen(true);
   }, [selected]);
 
   const onDeactivateConfirmed = React.useCallback(async () => {
-    if (!tarifaId || !selected) return;
+    if (!tarifaId || !selected) {
+      setConfirmDeactivateOpen(false);
+      setNotice({ type: "error", text: "Selecciona una regla de recargo nocturno para desactivar." });
+      toastService.showError("Selecciona una regla de recargo nocturno para desactivar.");
+      return;
+    }
     setConfirmDeactivateOpen(false);
     setSaving(true);
     setNotice(null);
@@ -235,9 +266,10 @@ export function useRecargoNoche() {
       setNotice({ type: "success", text: "Regla desactivada." });
       toastService.showSuccess("Regla desactivada.");
       dispatchRecargoChanged(tarifaId);
-    } catch {
-      setNotice({ type: "error", text: "No se pudo desactivar." });
-      toastService.showError("No se pudo desactivar.");
+    } catch (e) {
+      const msg = getApiErrorMessage(e, "No se pudo desactivar la regla de recargo nocturno.");
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
     } finally {
       setSaving(false);
     }

@@ -98,7 +98,7 @@ export default function FormaPagoCajaPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar forma de pago"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona una forma de pago."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

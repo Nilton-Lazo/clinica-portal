@@ -58,12 +58,18 @@ export type AtencionCitaData = {
     soat_numero_poliza: string | null;
     soat_numero_placa: string | null;
   } | null;
+  cuenta?: {
+    id: number;
+    nro_cuenta: string;
+    estado: string | null;
+    bloqueada: boolean;
+  } | null;
+  bloqueada_facturacion?: boolean;
   servicios: AtencionServicioItem[];
 };
 
 export type EstadoFacturacionServicio = "PENDIENTE" | "FACTURADO";
 
-/** Líneas de presupuesto (cotización): ciclo distinto a facturación en atención. */
 export type EstadoLineaPresupuesto = "VIGENTE" | "UTILIZADO" | "VENCIDO" | "ANULADO";
 
 export type EstadoServicioLineaUi = EstadoFacturacionServicio | EstadoLineaPresupuesto;

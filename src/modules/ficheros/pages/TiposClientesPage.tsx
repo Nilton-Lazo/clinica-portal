@@ -117,7 +117,7 @@ export default function TiposClientesPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?`
-            : "Selecciona un registro."
+            : "Selecciona un tipo de cliente."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

@@ -1,9 +1,10 @@
-import { ShieldCheck, Clock, CircleDot, CheckCircle2, CalendarX, Ban } from "lucide-react";
+import { Clock, CircleDot, CheckCircle2, CalendarX, Ban } from "lucide-react";
 import type { EstadoFacturacionServicio, EstadoLineaPresupuesto } from "../types/atencionCita.types";
+import { presupuestoEstadoFromStored } from "../utils/estadoFacturacion.utils";
 
 const labelFacturacion: Record<EstadoFacturacionServicio, string> = {
   PENDIENTE: "Pendiente",
-  FACTURADO: "Facturado",
+  FACTURADO: "Cancelado",
 };
 
 const labelPresupuesto: Record<EstadoLineaPresupuesto, string> = {
@@ -12,12 +13,6 @@ const labelPresupuesto: Record<EstadoLineaPresupuesto, string> = {
   VENCIDO: "Vencido",
   ANULADO: "Anulado",
 };
-
-export function presupuestoEstadoFromStored(raw: string | null | undefined): EstadoLineaPresupuesto {
-  if (raw === "VIGENTE" || raw === "UTILIZADO" || raw === "VENCIDO" || raw === "ANULADO") return raw;
-  if (raw === "FACTURADO") return "UTILIZADO";
-  return "VIGENTE";
-}
 
 type BadgeMode = "facturacion" | "presupuesto";
 
@@ -32,7 +27,7 @@ export function EstadoFacturacionBadge({
 }) {
   const isSm = size === "sm";
   const base = isSm
-    ? "inline-flex items-center justify-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+    ? "inline-flex items-center justify-center gap-1 rounded-full border px-2 py-0.5 text-xs leading-none font-medium align-middle"
     : "inline-flex items-center justify-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold";
 
   if (mode === "presupuesto") {
@@ -65,7 +60,7 @@ export function EstadoFacturacionBadge({
     const Icon = cfg.Icon;
     return (
       <span className={cfg.cls}>
-        <Icon className={isSm ? "h-3 w-3" : "h-4 w-4"} aria-hidden="true" />
+        <Icon className={isSm ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden="true" />
         {cfg.label}
       </span>
     );
@@ -75,11 +70,11 @@ export function EstadoFacturacionBadge({
   const isFacturado = value === "FACTURADO";
   const cfg = isFacturado
     ? {
-        cls: `${base} border-[var(--color-success)] text-[var(--color-success)]`,
-        Icon: ShieldCheck,
+        cls: `${base} border-(--color-text-secondary) text-(--color-text-secondary)`,
+        Icon: Ban,
       }
     : {
-        cls: `${base} border-[var(--color-text-secondary)] text-[var(--color-text-secondary)]`,
+        cls: `${base} border-amber-600/70 bg-amber-50 text-amber-800`,
         Icon: Clock,
       };
 
@@ -87,7 +82,7 @@ export function EstadoFacturacionBadge({
 
   return (
     <span className={cfg.cls}>
-      <Icon className={isSm ? "h-3 w-3" : "h-4 w-4"} aria-hidden="true" />
+      <Icon className={isSm ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden="true" />
       {labelFacturacion[value as EstadoFacturacionServicio]}
     </span>
   );

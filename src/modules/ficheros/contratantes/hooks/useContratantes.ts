@@ -9,7 +9,7 @@ import {
 } from "../../services/contratantes.service";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -19,12 +19,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function toNullIfBlank(s: string): string | null {
@@ -192,7 +186,7 @@ export function useContratantes() {
         const res = await listContratantes(query);
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de contratantes.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
       } finally {
@@ -223,14 +217,14 @@ export function useContratantes() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Datos inválidos." });
-      toastService.showError("Datos inválidos.");
+      setNotice({ type: "error", text: "Completa la razón social y los datos del contratante correctamente." });
+      toastService.showError("Completa la razón social y los datos del contratante correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toastService.showError("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona un contratante para editar." });
+      toastService.showError("Selecciona un contratante para editar.");
       return;
     }
 
@@ -267,7 +261,7 @@ export function useContratantes() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar el contratante.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -277,8 +271,8 @@ export function useContratantes() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un contratante para desactivar." });
+      toastService.showError("Selecciona un contratante para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -288,8 +282,8 @@ export function useContratantes() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un contratante para desactivar." });
+      toastService.showError("Selecciona un contratante para desactivar.");
       return;
     }
 
@@ -303,7 +297,7 @@ export function useContratantes() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar el contratante.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

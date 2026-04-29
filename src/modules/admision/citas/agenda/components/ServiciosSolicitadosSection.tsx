@@ -6,9 +6,12 @@ import type { TarifaServicioBusqueda } from "../services/atencionCita.service";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton, DangerButton } from "../../../../../shared/ui/buttons";
 import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
-import { EstadoFacturacionBadge, presupuestoEstadoFromStored } from "./EstadoFacturacionBadge";
+import { EstadoFacturacionBadge } from "./EstadoFacturacionBadge";
+import { presupuestoEstadoFromStored } from "../utils/estadoFacturacion.utils";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
 import { getIgvPorcentaje } from "../services/atencionCita.service";
+import { toastService } from "../../../../../shared/notifications";
+import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import { PRECISION_DECIMAL, formatDecimalFixed } from "../../../../../shared/constants/decimalPrecision";
 import type {
   AtencionDraft,
@@ -222,7 +225,9 @@ export function ServiciosSolicitadosSection({
         const key =
           nav.type === "cita" ? `${DRAFT_STORAGE_KEY_PREFIX}${nav.citaId}` : nav.draftStorageKey;
         window.sessionStorage.setItem(key, JSON.stringify(draft));
-      } catch {}
+      } catch {
+        toastService.showError("No se pudo conservar el borrador antes de buscar servicios.");
+      }
     }
     const state = {
       tarifaId,
@@ -282,6 +287,7 @@ export function ServiciosSolicitadosSection({
       if (onServiciosSelected) openServicioPicker();
       else doNavigateBuscar();
     } catch {
+      toastService.showError("No se pudieron actualizar los datos antes de buscar servicios.");
     } finally {
       actualizandoRef.current = false;
       setActualizando(false);
@@ -289,7 +295,11 @@ export function ServiciosSolicitadosSection({
   }, [onActualizarDatos, onServiciosSelected, openServicioPicker, doNavigateBuscar]);
 
   React.useEffect(() => {
-    getIgvPorcentaje().then(setIgvPct).catch(() => {});
+    getIgvPorcentaje()
+      .then(setIgvPct)
+      .catch((e) => {
+        toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular los servicios."));
+      });
   }, []);
 
   const medicoOptionsForLinea = React.useMemo(() => {
@@ -676,7 +686,7 @@ export function ServiciosSolicitadosSection({
       total += presupuestoPaquetePacientePaga(presupuestoPaquete, copVarDefault, igvPct, tarifaEsPrecioDirecto);
     }
     return Math.round(total * FACTOR_REDONDO) / FACTOR_REDONDO;
-  }, [lineas, igvPct, tarifaEsPrecioDirecto, navPermitePaquete, presupuestoPaquete, copVarDefault]);
+  }, [lineas, igvPct, tarifaEsPrecioDirecto, navPermitePaquete, presupuestoPaquete, copVarDefault, esPresupuesto]);
 
   React.useEffect(() => {
     onMontoAPagarChange?.(montoAPagarComputed);
@@ -711,7 +721,7 @@ export function ServiciosSolicitadosSection({
         : [
             { value: "", label: "Todos" },
             { value: "PENDIENTE", label: "Pendiente" },
-            { value: "FACTURADO", label: "Facturado" },
+            { value: "FACTURADO", label: "Cancelado" },
           ],
     [esPresupuesto]
   );
@@ -1191,7 +1201,7 @@ export function ServiciosSolicitadosSection({
                                 {esPresupuesto ? (
                                   <EstadoFacturacionBadge estado={item.estado_facturacion} mode="presupuesto" />
                                 ) : (
-                                  <EstadoFacturacionBadge estado={item.estado_facturacion} mode="facturacion" />
+                                  <EstadoFacturacionBadge estado={item.estado_facturacion} size="sm" mode="facturacion" />
                                 )}
                               </div>
                             </div>

@@ -12,7 +12,7 @@ import {
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -22,12 +22,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function toNullIfBlank(s: string): string | null {
@@ -340,7 +334,7 @@ export function useIafas() {
         const res = await listIafas(query);
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de IAFAS.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
       } finally {
@@ -371,14 +365,14 @@ export function useIafas() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Datos inválidos." });
-      toastService.showError("Datos inválidos.");
+      setNotice({ type: "error", text: "Completa los datos obligatorios de la IAFAS correctamente." });
+      toastService.showError("Completa los datos obligatorios de la IAFAS correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toastService.showError("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona una IAFAS para editar." });
+      toastService.showError("Selecciona una IAFAS para editar.");
       return;
     }
 
@@ -424,7 +418,7 @@ export function useIafas() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar la IAFAS.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -453,8 +447,8 @@ export function useIafas() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona una IAFAS para desactivar." });
+      toastService.showError("Selecciona una IAFAS para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -464,8 +458,8 @@ export function useIafas() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona una IAFAS para desactivar." });
+      toastService.showError("Selecciona una IAFAS para desactivar.");
       return;
     }
 
@@ -479,7 +473,7 @@ export function useIafas() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar la IAFAS.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

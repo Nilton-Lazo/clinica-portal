@@ -10,7 +10,7 @@ import {
 } from "../../services/paquetes.service";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import { PRECISION_DECIMAL, roundToPrecision } from "../../../../shared/constants/decimalPrecision";
 
 export type Mode = "new" | "edit";
@@ -21,12 +21,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function toNullIfBlank(s: string): string | null {
@@ -59,7 +53,6 @@ function formatPrecioForInput(n: number): string {
   return String(roundToPrecision(n, PRECISION_DECIMAL));
 }
 
-/** Vacío → null; "0" → 0 */
 function normalizeDiasPayload(s: string): number | null {
   const t = s.trim();
   if (t === "") return null;
@@ -270,7 +263,7 @@ export function usePaquetes() {
         const res = await listPaquetes(query);
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de paquetes.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
       } finally {
@@ -303,15 +296,15 @@ export function usePaquetes() {
     if (!isValid) {
       const msg = !isDateIsoRequired(vigenciaActual)
         ? "Indica una vigencia actual válida (fecha)."
-        : "Datos inválidos.";
+        : "Completa los datos del paquete correctamente.";
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toastService.showError("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona un paquete para editar." });
+      toastService.showError("Selecciona un paquete para editar.");
       return;
     }
 
@@ -357,7 +350,7 @@ export function usePaquetes() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar el paquete.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -382,8 +375,8 @@ export function usePaquetes() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un paquete para desactivar." });
+      toastService.showError("Selecciona un paquete para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -393,8 +386,8 @@ export function usePaquetes() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un paquete para desactivar." });
+      toastService.showError("Selecciona un paquete para desactivar.");
       return;
     }
 
@@ -408,7 +401,7 @@ export function usePaquetes() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar el paquete.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

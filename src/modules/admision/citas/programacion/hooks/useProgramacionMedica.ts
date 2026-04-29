@@ -206,7 +206,7 @@ export function useProgramacionMedica() {
 
       setData(res);
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo cargar el listado. Intenta de nuevo."));
+      toast.error(toUserFriendlyMessage(e, "No se pudo cargar la programación médica."));
     } finally {
       setLoading(false);
     }
@@ -237,7 +237,7 @@ export function useProgramacionMedica() {
       })
       .catch((err) => {
         if (!alive) return;
-        toast.error(toUserFriendlyMessage(err, "No se pudieron cargar los catálogos. Intenta de nuevo."));
+        toast.error(toUserFriendlyMessage(err, "No se pudieron cargar médicos, especialidades, consultorios y turnos."));
       });
     return () => {
       alive = false;
@@ -328,7 +328,7 @@ export function useProgramacionMedica() {
       } catch (e) {
         if (!alive) return;
         setCupos(0);
-        toast.error(toUserFriendlyMessage(e, "No se pudo obtener los cupos. Intenta de nuevo."));
+        toast.error(toUserFriendlyMessage(e, "No se pudieron obtener los cupos del médico y turno seleccionados."));
       }
     })();
     return () => {
@@ -531,7 +531,10 @@ export function useProgramacionMedica() {
   }, [saving, mode, medicoId, especialidadId, consultorioId, turnoId, modalidad, selectedDates, rangeStart, rangeEnd, selectedDate, tipo, estado]);
 
   const onSave = React.useCallback(async () => {
-    if (!isValid) return;
+    if (!isValid) {
+      toast.error("Selecciona fecha, médico, especialidad, consultorio, turno y cupos válidos.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -585,7 +588,7 @@ export function useProgramacionMedica() {
         loadForEdit(upd);
       }
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo guardar. Intenta de nuevo."));
+      toast.error(toUserFriendlyMessage(e, "No se pudo guardar la programación médica."));
     } finally {
       setSaving(false);
     }
@@ -612,9 +615,13 @@ export function useProgramacionMedica() {
   ]);
 
   const requestDeactivate = React.useCallback(() => {
+    if (!selected) {
+      toast.error("Selecciona una programación médica para desactivar.");
+      return;
+    }
     if (!canDeactivate) return;
     setConfirmDeactivateOpen(true);
-  }, [canDeactivate]);
+  }, [canDeactivate, selected, toast]);
 
   const onDeactivateConfirmed = React.useCallback(async () => {
     if (!selected) return;
@@ -626,7 +633,7 @@ export function useProgramacionMedica() {
       await refresh();
       loadForEdit(upd);
     } catch (e) {
-      toast.error(toUserFriendlyMessage(e, "No se pudo desactivar. Intenta de nuevo."));
+      toast.error(toUserFriendlyMessage(e, "No se pudo desactivar la programación médica."));
     } finally {
       setSaving(false);
       setConfirmDeactivateOpen(false);

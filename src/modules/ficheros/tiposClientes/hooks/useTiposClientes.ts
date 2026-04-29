@@ -22,7 +22,7 @@ import {
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -32,12 +32,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useTiposClientes() {
@@ -242,7 +236,7 @@ export function useTiposClientes() {
         const res = await listTiposClientes(query);
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de tipos de clientes.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
       } finally {
@@ -273,14 +267,14 @@ export function useTiposClientes() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Datos inválidos." });
-      toastService.showError("Datos inválidos.");
+      setNotice({ type: "error", text: "Selecciona una tarifa y un contratante para formar el tipo de cliente." });
+      toastService.showError("Selecciona una tarifa y un contratante para formar el tipo de cliente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toastService.showError("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona un tipo de cliente para editar." });
+      toastService.showError("Selecciona un tipo de cliente para editar.");
       return;
     }
 
@@ -315,7 +309,7 @@ export function useTiposClientes() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar el tipo de cliente.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -325,8 +319,8 @@ export function useTiposClientes() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un tipo de cliente para desactivar." });
+      toastService.showError("Selecciona un tipo de cliente para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -336,8 +330,8 @@ export function useTiposClientes() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un tipo de cliente para desactivar." });
+      toastService.showError("Selecciona un tipo de cliente para desactivar.");
       return;
     }
 
@@ -351,7 +345,7 @@ export function useTiposClientes() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar el tipo de cliente.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

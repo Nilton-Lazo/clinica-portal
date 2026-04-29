@@ -11,7 +11,7 @@ import {
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../shared/feedback";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -21,12 +21,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useEspecialidades() {
@@ -75,7 +69,7 @@ export function useEspecialidades() {
         if (!alive) return;
         setCodigo(res.codigo);
       } catch {
-        // si falla preview, no se bloquea aquí; igual backend genera al crear
+        setCodigo("");
       }
     })();
 
@@ -179,7 +173,7 @@ export function useEspecialidades() {
         });
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de especialidades.");
         setNotice({ type: "error", text: msg });
         toast.error(msg);
       } finally {
@@ -214,14 +208,14 @@ export function useEspecialidades() {
     const d = descripcion.trim();
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Completa la Descripción correctamente." });
-      toast.error("Completa la Descripción correctamente.");
+      setNotice({ type: "error", text: "Completa la descripción de la especialidad correctamente." });
+      toast.error("Completa la descripción de la especialidad correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toast.error("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona una especialidad para editar." });
+      toast.error("Selecciona una especialidad para editar.");
       return;
     }
 
@@ -261,7 +255,7 @@ export function useEspecialidades() {
 
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar la especialidad.");
       setNotice({ type: "error", text: msg });
       toast.error(msg);
     } finally {
@@ -271,8 +265,8 @@ export function useEspecialidades() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toast.error("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona una especialidad para desactivar." });
+      toast.error("Selecciona una especialidad para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -282,8 +276,8 @@ export function useEspecialidades() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toast.error("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona una especialidad para desactivar." });
+      toast.error("Selecciona una especialidad para desactivar.");
       return;
     }
 
@@ -299,7 +293,7 @@ export function useEspecialidades() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar la especialidad.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toast.error(msg);

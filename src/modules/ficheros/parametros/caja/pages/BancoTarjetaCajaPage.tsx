@@ -112,7 +112,7 @@ export default function BancoTarjetaCajaPage() {
         open={vm.confirmDeactivateOpen}
         title="Desactivar banco o tarjeta"
         description={
-          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."
+          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un banco o tarjeta."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

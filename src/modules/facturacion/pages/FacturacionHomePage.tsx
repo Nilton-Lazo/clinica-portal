@@ -42,7 +42,7 @@ export default function FacturacionHomePage() {
   const go = React.useCallback(
     (to: string) => {
       clientContext.set({ path: to, screen: `Facturacion:${to}` });
-      void navigationService.track({ path: to, screen: `Facturacion:${to}` }).catch(() => {});
+      void navigationService.track({ path: to, screen: `Facturacion:${to}` }).catch(() => undefined);
       navigate(to);
     },
     [navigate]

@@ -32,8 +32,6 @@ export type EmisionComprobantesFormState = {
 
   origen: string;
 
-  /** ID de `caja_tipos_documento` (estable; la descripción puede cambiar en ficheros). */
-
   tipoDocumentoId: string;
 
   estadoEmision: string;
@@ -72,8 +70,9 @@ export type EmisionComprobantesFormState = {
 
   bancoTarjetaId: string;
 
-  /** Referencia u operación de pago (p. ej. para arqueo de caja). */
   numeroOperacion: string;
+
+  fechaVencimiento: string;
 
 };
 

@@ -148,7 +148,7 @@ export default function MedicosPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedFullName}"?`
-            : "Selecciona un registro."
+            : "Selecciona un médico."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

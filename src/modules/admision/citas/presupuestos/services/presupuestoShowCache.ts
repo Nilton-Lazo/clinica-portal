@@ -43,7 +43,7 @@ export function prefetchPresupuestoShow(id: number): void {
   void import("./presupuestoShow.service").then(({ fetchPresupuestoShow }) =>
     fetchPresupuestoShow(id)
       .then((d) => setCachedPresupuestoShow(id, d))
-      .catch(() => {})
+      .catch(() => undefined)
   );
 }
 

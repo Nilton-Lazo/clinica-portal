@@ -182,6 +182,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       setTiposClientes([]);
       setIafas([]);
       setContratantes([]);
+      toastService.showError("No se pudieron cargar los planes, IAFAS y contratantes disponibles.");
     } finally {
       setTiposClientesLoading(false);
     }
@@ -198,7 +199,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       const res = await listPacientePlanes(pacienteId);
       setRaw(res);
     } catch (e) {
-      toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar los planes. Intenta de nuevo."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los planes afiliados del paciente."));
       setRaw([]);
     } finally {
       setLoading(false);
@@ -327,12 +328,12 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
 
   const onSave = useCallback(async () => {
     if (!pacienteId) {
-      toastService.showError("Guarda el paciente para afiliar planes.");
+      toastService.showError("Guarda el paciente antes de afiliar un plan.");
       return;
     }
 
     if (!isValid) {
-      toastService.showError("Datos inválidos.");
+      toastService.showError("Selecciona un tipo de cliente y una fecha de afiliación válida.");
       return;
     }
 
@@ -369,7 +370,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       await reloadPlanes();
       loadForEdit(res.data);
     } catch (e) {
-      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar el plan. Intenta de nuevo."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar el plan afiliado del paciente."));
     } finally {
       setSaving(false);
     }
@@ -398,7 +399,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
   const onDeactivateConfirmed = useCallback(async () => {
     if (!pacienteId || !selected) {
       setConfirmDeactivateOpen(false);
-      toastService.showError("Selecciona un plan.");
+      toastService.showError("Selecciona un plan para desactivar.");
       return;
     }
 
@@ -412,7 +413,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
       loadForEdit(res.data);
     } catch (e) {
       setConfirmDeactivateOpen(false);
-      toastService.showError(toUserFriendlyMessage(e, "No se pudo desactivar el plan. Intenta de nuevo."));
+      toastService.showError(toUserFriendlyMessage(e, "No se pudo desactivar el plan afiliado del paciente."));
     } finally {
       setSaving(false);
     }

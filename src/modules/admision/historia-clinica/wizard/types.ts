@@ -263,7 +263,6 @@ function toDateOnly(v: unknown): string {
   return match ? match[1] : s;
 }
 
-/** Normaliza sexo: el API puede devolver "Masculino"/"Femenino" (display); el catálogo usa "MASCULINO"/"FEMENINO". */
 function normalizeSexoValue(v: unknown): string {
   if (v == null || v === "") return "";
   const s = String(v).trim();

@@ -125,7 +125,7 @@ export default function ClientesPage() {
         open={vm.confirmDeactivateOpen}
         title="Desactivar cliente"
         description={
-          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedNombre}"?` : "Selecciona un registro."
+          vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedNombre}"?` : "Selecciona un cliente."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

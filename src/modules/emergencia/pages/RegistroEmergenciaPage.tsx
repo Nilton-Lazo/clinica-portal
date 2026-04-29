@@ -59,6 +59,7 @@ export default function RegistroEmergenciaPage() {
   const navigate = useNavigate();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+  const selectedId = vm.selected?.id ?? null;
 
   const handleNew = React.useCallback(() => {
     navigate("/emergencia/registro/nuevo");
@@ -67,16 +68,18 @@ export default function RegistroEmergenciaPage() {
   const handleSelectRow = React.useCallback(
     (row: RegistroEmergencia | null) => {
       vm.selectRow(row);
-      if (row && !isLgUp) {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          });
-        });
-      }
     },
-    [vm, isLgUp]
+    [vm]
   );
+
+  React.useEffect(() => {
+    if (!selectedId || isLgUp) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [selectedId, isLgUp]);
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">

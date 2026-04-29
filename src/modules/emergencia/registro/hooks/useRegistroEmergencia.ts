@@ -10,7 +10,7 @@ import {
 } from "../../services/registroEmergencia.service";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../shared/feedback";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 50;
@@ -53,12 +53,6 @@ function clampPerPage(n: number): number {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useRegistroEmergencia() {
@@ -106,7 +100,7 @@ export function useRegistroEmergencia() {
         lastToastedErrorRef.current = null;
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar el registro de emergencias.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar el listado de registros de emergencia.");
         if (lastToastedErrorRef.current !== msg) {
           lastToastedErrorRef.current = msg;
           toast.error(msg);

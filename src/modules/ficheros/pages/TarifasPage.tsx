@@ -157,7 +157,7 @@ export default function TarifasPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar tarifario"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selectedDescripcion}"?` : "Selecciona una tarifa."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

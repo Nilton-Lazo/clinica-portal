@@ -18,7 +18,7 @@ import {
 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -28,12 +28,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 function toNullIfBlank(s: string): string | null {
@@ -104,7 +98,6 @@ export function useMedicos() {
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<Medico | null>(null);
 
-  // codigo solo visual: en new = preview, en edit = selected.codigo
   const [codigoPreview, setCodigoPreview] = useState("");
   const codigo = mode === "new" ? codigoPreview : (selected?.codigo ?? "");
 
@@ -470,7 +463,7 @@ export function useMedicos() {
         });
         setData(res);
       } catch (e) {
-        const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de médicos.");
         setNotice({ type: "error", text: msg });
         toastService.showError(msg);
       } finally {
@@ -503,14 +496,14 @@ export function useMedicos() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Datos inválidos." });
-      toastService.showError("Datos inválidos.");
+      setNotice({ type: "error", text: "Completa los datos obligatorios del médico correctamente." });
+      toastService.showError("Completa los datos obligatorios del médico correctamente.");
       return;
     }
 
     if (mode === "edit" && !selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para editar." });
-      toastService.showError("Selecciona un registro para editar.");
+      setNotice({ type: "error", text: "Selecciona un médico para editar." });
+      toastService.showError("Selecciona un médico para editar.");
       return;
     }
 
@@ -520,7 +513,6 @@ export function useMedicos() {
       return;
     }
 
-    // OJO: NO enviamos codigo
     const payloadBase = {
       cmp: toNullIfBlank(cmp),
       rne: toNullIfBlank(rne),
@@ -577,7 +569,7 @@ export function useMedicos() {
       
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo guardar.";
+      const msg = getApiErrorMessage(e, "No se pudo guardar el médico.");
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);
     } finally {
@@ -614,8 +606,8 @@ export function useMedicos() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) {
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un médico para desactivar." });
+      toastService.showError("Selecciona un médico para desactivar.");
       return;
     }
     if (selected.estado === "INACTIVO") return;
@@ -625,8 +617,8 @@ export function useMedicos() {
   const onDeactivateConfirmed = useCallback(async () => {
     if (!selected) {
       setConfirmDeactivateOpen(false);
-      setNotice({ type: "error", text: "Selecciona un registro para desactivar." });
-      toastService.showError("Selecciona un registro para desactivar.");
+      setNotice({ type: "error", text: "Selecciona un médico para desactivar." });
+      toastService.showError("Selecciona un médico para desactivar.");
       return;
     }
 
@@ -640,7 +632,7 @@ export function useMedicos() {
       await refresh();
       loadForEdit(res.data);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo desactivar.";
+      const msg = getApiErrorMessage(e, "No se pudo desactivar el médico.");
       setConfirmDeactivateOpen(false);
       setNotice({ type: "error", text: msg });
       toastService.showError(msg);

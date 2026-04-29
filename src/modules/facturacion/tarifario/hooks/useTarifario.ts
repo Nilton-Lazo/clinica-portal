@@ -15,17 +15,11 @@ import {
   listTarifasParaGestionTarifario,
 } from "../services/tarifario.service";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import type { ApiError } from "../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 let baseTreeCache: TarifaBaseTree | null = null;
 
 let tarifasCache: TarifaOperativa[] | null = null;
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
-}
 
 function normalizeCodigoQuery(raw: string): string {
   const compact = raw.replace(/\./g, "").trim();
@@ -57,7 +51,6 @@ export function useTarifario() {
   const [perPage, setPerPage] = useState(25);
   const [statusFilter, setStatusFilter] = useState<"ALL" | RecordStatus>("ALL");
 
-  /** Búsqueda unificada: código, descripción o nomenclador (un solo campo, backend con q). */
   const [q, setQ] = useState("");
   const qDebounced = useDebouncedValue(q, 300);
   const qNormalized = useMemo(() => normalizeCodigoQuery(qDebounced), [qDebounced]);
@@ -129,7 +122,7 @@ export function useTarifario() {
       })
       .catch((e) => {
         if (!alive) return;
-        const msg = isApiError(e) ? e.message : "No se pudo cargar las tarifas.";
+        const msg = getApiErrorMessage(e, "No se pudieron cargar las tarifas para gestión del tarifario.");
         setNotice({ type: "error", text: msg });
       })
       .finally(() => {
@@ -167,7 +160,7 @@ export function useTarifario() {
         }
       } catch (e) {
         if (requestId !== requestIdRef.current) return;
-        const msg = isApiError(e) ? e.message : "No se pudo cargar los servicios.";
+        const msg = getApiErrorMessage(e, "No se pudieron cargar los servicios de la tarifa seleccionada.");
         setNotice({ type: "error", text: msg });
       } finally {
         if (requestId === requestIdRef.current) setLoading(false);
@@ -201,7 +194,7 @@ export function useTarifario() {
       })
       .catch((e) => {
         if (!alive) return;
-        const msg = isApiError(e) ? e.message : "No se pudo cargar el árbol base.";
+        const msg = getApiErrorMessage(e, "No se pudo cargar el árbol del tarifario base.");
         setNotice({ type: "error", text: msg });
       })
       .finally(() => {
@@ -376,7 +369,7 @@ export function useTarifario() {
         await refresh({ page: 1, silent: true });
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo clonar el tarifario.";
+      const msg = getApiErrorMessage(e, "No se pudo clonar el tarifario base hacia la tarifa destino.");
       setNotice({ type: "error", text: msg });
     }
   }, [cloneTarifaId, clearSelection, refresh, tarifaId]);
@@ -423,7 +416,7 @@ export function useTarifario() {
         await refresh({ page: 1, silent: true });
       }
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo clonar el tarifario.";
+      const msg = getApiErrorMessage(e, "No se pudo clonar la selección del tarifario base hacia la tarifa destino.");
       setNotice({ type: "error", text: msg });
     }
   }, [

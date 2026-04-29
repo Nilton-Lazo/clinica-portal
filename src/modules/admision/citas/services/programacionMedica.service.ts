@@ -1,4 +1,3 @@
-import type { ApiError } from "../../../../shared/api/apiError";
 import type { PaginatedResponse } from "../../../../shared/types/pagination";
 import type { RecordStatus } from "../../../../shared/types/recordStatus";
 import { api } from "../../../../shared/api";
@@ -266,6 +265,3 @@ export function programacionMedicaService() {
   };
 }
 
-export function isApiError(e: unknown): e is ApiError {
-  return isObject(e) && typeof (e as Record<string, unknown>).kind === "string";
-}

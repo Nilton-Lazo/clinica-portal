@@ -34,7 +34,7 @@ export default function AgendaPacienteSelectPage() {
             draftMed = d.medicoId != null ? String(d.medicoId) : "";
             draftHora = d.hora ?? "";
           } catch {
-            // ignore
+            void 0;
           }
         }
       }

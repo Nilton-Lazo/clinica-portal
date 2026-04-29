@@ -109,7 +109,7 @@ export default function NumeracionComprobanteCajaPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar numeración de comprobante"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.serie} - ${vm.selected.numero_formateado}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.serie} - ${vm.selected.numero_formateado}"?` : "Selecciona una numeración de comprobante."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive

@@ -84,7 +84,7 @@ export function usePresupuestosLista() {
       } catch (e) {
         setNotice({
           type: "error",
-          text: toUserFriendlyMessage(e, "No se pudo cargar la lista de presupuestos."),
+          text: toUserFriendlyMessage(e, "No se pudo cargar la lista de presupuestos de admisión."),
         });
       } finally {
         setLoading(false);

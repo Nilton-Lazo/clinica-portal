@@ -115,7 +115,7 @@ export default function ConsultoriosPage() {
         description={
           vm.selected
             ? `¿Deseas desactivar "${vm.selected.abreviatura} - ${vm.selected.descripcion}"?`
-            : "Selecciona un registro."
+            : "Selecciona un consultorio."
         }
         confirmText="Desactivar"
         cancelText="Cancelar"

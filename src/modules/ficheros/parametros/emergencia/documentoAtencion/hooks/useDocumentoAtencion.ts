@@ -8,7 +8,7 @@ import {
 } from "../../services/documentoAtencion.service";
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
-import type { ApiError } from "../../../../../../shared/api/apiError";
+import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
@@ -17,12 +17,6 @@ function clampPerPage(n: number) {
   if (n <= 25) return 25;
   if (n <= 50) return 50;
   return 100;
-}
-
-function isApiError(e: unknown): e is ApiError {
-  if (!e || typeof e !== "object") return false;
-  const x = e as Record<string, unknown>;
-  return typeof x.kind === "string" && typeof x.message === "string";
 }
 
 export function useDocumentoAtencion() {
@@ -103,7 +97,7 @@ export function useDocumentoAtencion() {
       lastToastedErrorRef.current = null;
       setData(res);
     } catch (e) {
-      const msg = isApiError(e) ? e.message : "No se pudo cargar la lista.";
+      const msg = getApiErrorMessage(e, "No se pudo cargar la lista de documentos de atención.");
       if (lastToastedErrorRef.current !== msg) {
         lastToastedErrorRef.current = msg;
         toast.error(msg);
@@ -127,8 +121,8 @@ export function useDocumentoAtencion() {
     const c = codigo.trim();
     const d = descripcion.trim();
     if (!isValid) { toast.error("Completa código y descripción."); return; }
-    if (mode === "edit" && !selected) { toast.error("Selecciona un registro."); return; }
-    if (!isDirty) { toast.error("No hay cambios."); return; }
+    if (mode === "edit" && !selected) { toast.error("Selecciona un documento de atención para editar."); return; }
+    if (!isDirty) { toast.error("No hay cambios para guardar."); return; }
     if (saving) return;
     setSaving(true);
     try {
@@ -145,14 +139,14 @@ export function useDocumentoAtencion() {
         loadForEdit(res.data);
       }
     } catch (e) {
-      toast.error(isApiError(e) ? e.message : "No se pudo guardar.");
+      toast.error(getApiErrorMessage(e, "No se pudo guardar el documento de atención."));
     } finally {
       setSaving(false);
     }
   }, [codigo, descripcion, estado, isDirty, isValid, loadForEdit, mode, refresh, resetToNew, saving, selected, toast]);
 
   const requestDeactivate = useCallback(() => {
-    if (!selected) { toast.error("Selecciona un registro."); return; }
+    if (!selected) { toast.error("Selecciona un documento de atención para desactivar."); return; }
     if (selected.estado === "INACTIVO") return;
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
@@ -168,7 +162,7 @@ export function useDocumentoAtencion() {
       loadForEdit(res.data);
     } catch (e) {
       setConfirmDeactivateOpen(false);
-      toast.error(isApiError(e) ? e.message : "No se pudo desactivar.");
+      toast.error(getApiErrorMessage(e, "No se pudo desactivar el documento de atención."));
     } finally {
       setSaving(false);
     }

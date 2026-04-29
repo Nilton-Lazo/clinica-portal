@@ -4,7 +4,7 @@ import { Save, User, UserSearch, Wallet, type LucideIcon } from "lucide-react";
 import type { SelectOption } from "../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import { toastService } from "../../../shared/notifications";
-import { SelectField } from "../../admision/historia-clinica/wizard/ui/formFields";
+import { DateField, SelectField } from "../../admision/historia-clinica/wizard/ui/formFields";
 import type { ParamOption } from "../../ficheros/parametros/emergencia/types/paramOption.types";
 import type { MedioPagoCajaItem } from "../../ficheros/parametros/caja/services/medioPagoCaja.service";
 import type { BancoTarjetaCajaItem } from "../../ficheros/parametros/caja/services/bancoTarjetaCaja.service";
@@ -34,21 +34,16 @@ import ClientePicker from "../components/ClientePicker";
 import { getEmisionBootstrap, getEmisionBootstrapSync } from "../services/emisionBootstrapCache";
 import type { EmisionBootstrapBundle } from "../types/emisionBootstrap.types";
 import type { EmisionComprobantesCatalog, EmisionComprobantesFormState } from "../types/emisionComprobantes.types";
-import { toApiError } from "../../../shared/api/apiError";
+import { getApiErrorMessage, toApiError } from "../../../shared/api/apiError";
 import { getResumenApertura } from "../services/aperturaCaja.service";
 import { postEmisionComprobantesRegistrar } from "../services/emisionComprobantesRegistrar.service";
 
 const menuWide = "min-w-full max-w-[calc(100vw-2rem)]";
 
-const inp =
-  "h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
-
 const inpStretch =
-  "min-h-10 w-full flex-1 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
+  "h-10 w-full flex-1 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 
 const inpReadonlyStretch = `${inpStretch} bg-[#E8EAEE] text-(--color-text-primary) cursor-not-allowed`;
-
-const inpCorrelativo = `${inp} bg-amber-50`;
 
 const taGrow =
   "min-h-10 w-full min-w-0 max-w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-sm leading-snug text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) resize-none overflow-hidden whitespace-pre-wrap break-words";
@@ -76,14 +71,34 @@ const chkLbl = "text-[11px] font-medium leading-tight text-(--color-text-seconda
 const chk =
   "h-4 w-4 shrink-0 cursor-pointer rounded border border-(--border-color-default) accent-(--color-primary)";
 
-const pageWrap = "flex w-full min-h-0 flex-1 flex-col gap-4 lg:gap-2";
+const pageWrap = "flex w-full min-h-0 flex-1 flex-col gap-2";
 
 const panel = "rounded-md border border-(--color-border) bg-(--color-surface) p-4 shadow-sm";
 
 const mainSheet =
-  "flex flex-col gap-4 overflow-visible rounded-md border border-(--color-border) bg-(--color-surface) p-4 shadow-sm sm:p-4";
+  "flex flex-col gap-3 overflow-visible rounded-md border border-(--color-border) bg-(--color-surface) p-3 shadow-sm";
 
-const innerBlock = "rounded-md border border-(--color-border) bg-(--color-background) p-4";
+const innerBlock = "rounded-md border border-(--color-border) bg-(--color-background) p-3";
+const dynamicFieldCharPx = 8;
+
+function getDynamicFieldWidthPx(value: string, min: number, max: number, padding: number): number {
+  const text = value.trim();
+  const estimated = Math.max(1, text.length) * dynamicFieldCharPx + padding;
+  return Math.min(max, Math.max(min, estimated));
+}
+
+function getTipoComprobanteDescripcion(option: { label: string; codigo?: string }): string {
+  const label = option.label?.trim() ?? "";
+  if (!label) return "";
+  const codigo = option.codigo?.trim();
+  if (codigo) {
+    const escapedCodigo = codigo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const rx = new RegExp(`^${escapedCodigo}\\s*[-·.]\\s*`, "i");
+    return label.replace(rx, "").trim() || label;
+  }
+  const match = label.match(/^\s*[A-Za-z0-9]+\s*[-·.]\s*(.+)$/);
+  return match?.[1]?.trim() || label;
+}
 
 type AutoGrowTextareaProps = Omit<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -162,6 +177,7 @@ function emptyForm(): EmisionComprobantesFormState {
     medioPagoId: "",
     bancoTarjetaId: "",
     numeroOperacion: "",
+    fechaVencimiento: "",
   };
 }
 
@@ -222,6 +238,11 @@ function lineasDisplayFromServicios(items: AtencionServicioItem[]): AtencionServ
 
 function lineasSoloPendientes(lineas: AtencionServicioLineaDisplay[]): AtencionServicioLineaDisplay[] {
   return lineas.filter((l) => (l.estado_facturacion ?? "PENDIENTE") === "PENDIENTE");
+}
+
+function lineasParaCaja(lineas: AtencionServicioLineaDisplay[]): AtencionServicioLineaDisplay[] {
+  const pendientes = lineasSoloPendientes(lineas);
+  return pendientes.length > 0 ? pendientes : lineas;
 }
 
 function parseCuentaDetalleServicios(
@@ -303,6 +324,8 @@ export default function EmisionComprobantesPage() {
   const [cuentaPickerOpen, setCuentaPickerOpen] = React.useState(false);
   const [loadingCuentaDetalle, setLoadingCuentaDetalle] = React.useState(false);
   const [lineasCuenta, setLineasCuenta] = React.useState<AtencionServicioLineaDisplay[]>([]);
+  const [cuentaSinPendientes, setCuentaSinPendientes] = React.useState(false);
+  const [cuentaBloqueada, setCuentaBloqueada] = React.useState(false);
   const [tarifaEsPrecioDirectoCuenta, setTarifaEsPrecioDirectoCuenta] = React.useState(false);
   const [paqueteCuenta, setPaqueteCuenta] = React.useState<PresupuestoPaqueteSnapshot | null>(null);
   const [form, setForm] = React.useState<EmisionComprobantesFormState>(() => {
@@ -332,10 +355,10 @@ export default function EmisionComprobantesPage() {
           );
         }
       })
-      .catch(() => {
+      .catch((e) => {
         setCajaResumenError(true);
         setCajaNormalAbierta(false);
-        toastService.showError("No se pudo verificar el estado de la caja.");
+        toastService.showError(getApiErrorMessage(e, "No se pudo verificar si existe una caja normal aperturada."));
       });
   }, []);
 
@@ -359,10 +382,10 @@ export default function EmisionComprobantesPage() {
         setBundle(b);
         setBootErr(false);
       })
-      .catch(() => {
+      .catch((e) => {
         if (!cancelled) {
           setBootErr(true);
-          toastService.showError("No se pudo cargar el formulario de emisión.");
+          toastService.showError(getApiErrorMessage(e, "No se pudieron cargar los catálogos para emitir comprobantes."));
         }
       })
       .finally(() => {
@@ -398,6 +421,14 @@ export default function EmisionComprobantesPage() {
 
   const formaIdNum = Number(form.formaPagoId);
   const medioIdNum = Number(form.medioPagoId);
+  const formaSeleccionada = React.useMemo(
+    () => formas.find((f) => String(f.id) === form.formaPagoId) ?? null,
+    [formas, form.formaPagoId]
+  );
+  const esFormaCredito = React.useMemo(
+    () => (formaSeleccionada?.codigo ?? "").trim() === "002",
+    [formaSeleccionada]
+  );
 
   const mediosFiltrados = React.useMemo(
     () => mediosForForma(medios, formaIdNum),
@@ -429,6 +460,12 @@ export default function EmisionComprobantesPage() {
     setForm((prev) => ({ ...prev, bancoTarjetaId: first ? String(first.id) : "" }));
   }, [form.formaPagoId, form.medioPagoId, form.bancoTarjetaId, bancosFiltrados]);
 
+  React.useEffect(() => {
+    if (esFormaCredito) return;
+    if (!form.fechaVencimiento) return;
+    setForm((prev) => ({ ...prev, fechaVencimiento: "" }));
+  }, [esFormaCredito, form.fechaVencimiento]);
+
   const patch = React.useCallback((p: Partial<EmisionComprobantesFormState>) => {
     setForm((prev) => ({ ...prev, ...p }));
   }, []);
@@ -452,7 +489,11 @@ export default function EmisionComprobantesPage() {
     [catalog]
   );
   const tipoDocumentoOpts: SelectOption[] = React.useMemo(
-    () => (catalog?.tipos_documento ?? []).map((o) => ({ value: o.value, label: o.label })),
+    () =>
+      (catalog?.tipos_documento ?? []).map((o) => ({
+        value: o.value,
+        label: getTipoComprobanteDescripcion(o),
+      })),
     [catalog]
   );
 
@@ -482,9 +523,41 @@ export default function EmisionComprobantesPage() {
     () =>
       numeracionesPorTipo.map((n) => ({
         value: String(n.id),
-        label: `${n.serie} · ${n.tipo_documento_descripcion}`,
+        label: String(n.serie ?? "").trim(),
       })),
     [numeracionesPorTipo]
+  );
+  const origenSeleccionadoLabel = React.useMemo(
+    () => origenOpts.find((o) => o.value === form.origen)?.label ?? "",
+    [origenOpts, form.origen]
+  );
+  const tipoSeleccionadoLabel = React.useMemo(
+    () => tipoDocumentoOpts.find((o) => o.value === form.tipoDocumentoId)?.label ?? "",
+    [tipoDocumentoOpts, form.tipoDocumentoId]
+  );
+  const serieSeleccionadaLabel = React.useMemo(
+    () => serieOpts.find((o) => o.value === form.numeracionId)?.label ?? "",
+    [serieOpts, form.numeracionId]
+  );
+  const origenFieldWidth = React.useMemo(
+    () => getDynamicFieldWidthPx(origenSeleccionadoLabel || "Origen", 180, 320, 74),
+    [origenSeleccionadoLabel]
+  );
+  const tipoFieldWidth = React.useMemo(
+    () => getDynamicFieldWidthPx(tipoSeleccionadoLabel || "Tipo", 120, 320, 74),
+    [tipoSeleccionadoLabel]
+  );
+  const serieFieldWidth = React.useMemo(
+    () => getDynamicFieldWidthPx(serieSeleccionadaLabel || "Serie", 86, 180, 70),
+    [serieSeleccionadaLabel]
+  );
+  const nroFieldWidth = React.useMemo(
+    () => getDynamicFieldWidthPx(form.correlativo || "000000", 115, 200, 56),
+    [form.correlativo]
+  );
+  const cuentaFieldWidth = React.useMemo(
+    () => getDynamicFieldWidthPx(form.cuenta || "0000000000", 130, 240, 56),
+    [form.cuenta]
   );
 
   React.useEffect(() => {
@@ -523,23 +596,33 @@ export default function EmisionComprobantesPage() {
 
   const openCuentaPicker = React.useCallback(() => {
     if (!form.origen.trim()) {
-      toastService.showError("Selecciona primero el origen del comprobante.");
+      toastService.showError("Selecciona el origen del comprobante antes de buscar una cuenta.");
       return;
     }
     setCuentaPickerOpen(true);
   }, [form.origen]);
 
   const loadCuentaDetalleYAutocompletar = React.useCallback(
-    async (nroCuenta: string, row: CuentaCitaListItem | null) => {
+    async (
+      nroCuenta: string,
+      row: CuentaCitaListItem | null,
+      opts?: { suppressBlockedToast?: boolean }
+    ) => {
       patch({ cuenta: nroCuenta });
 
       try {
         setLoadingCuentaDetalle(true);
         const detalle = await fetchCuentaDetalle(nroCuenta);
+        const estadoCuenta = (detalle.cuenta.estado ?? "").toString().trim().toUpperCase();
+        const bloqueada = estadoCuenta === "CANCELADO";
+        setCuentaBloqueada(bloqueada);
+        if (bloqueada && !opts?.suppressBlockedToast) {
+          toastService.showWarning("La cuenta seleccionada ya está cancelada o facturada y no permite otra emisión.");
+        }
         const pacienteId = detalle.cuenta.paciente_id ?? row?.paciente_id ?? null;
         if (!pacienteId || !Number.isFinite(Number(pacienteId))) {
           patch({ cuenta: "" });
-          toastService.showWarning("La cuenta seleccionada no tiene paciente vinculado.");
+          toastService.showWarning("La cuenta seleccionada no tiene un paciente vinculado para emitir el comprobante.");
           return;
         }
 
@@ -584,7 +667,10 @@ export default function EmisionComprobantesPage() {
         const documento = paciente.numero_documento?.trim() || paciente.hc?.trim() || "";
         const direccion = paciente.direccion?.trim() || "";
         const parsed = parseCuentaDetalleServicios(detalle.detalle);
-        const lineas = lineasSoloPendientes(parsed.lineas);
+        const lineasPendientes = lineasSoloPendientes(parsed.lineas);
+        const sinPendientes = parsed.lineas.length > 0 && lineasPendientes.length === 0;
+        const lineas = lineasParaCaja(parsed.lineas);
+        setCuentaSinPendientes(sinPendientes);
 
         if (!form.editaIafasMedico) {
           iafasBeforeEditRef.current = iafa;
@@ -610,6 +696,8 @@ export default function EmisionComprobantesPage() {
         setTarifaEsPrecioDirectoCuenta(Boolean(planObjetivo?.tarifa_es_precio_directo));
       } catch (e) {
         patch({ cuenta: "" });
+        setCuentaBloqueada(false);
+        setCuentaSinPendientes(false);
         setLineasCuenta([]);
         setPaqueteCuenta(null);
         setTarifaEsPrecioDirectoCuenta(false);
@@ -618,7 +706,7 @@ export default function EmisionComprobantesPage() {
           toastService.showError("No existe una cuenta con ese número.");
         } else {
           toastService.showError(
-            err.message.trim() || "No se pudo cargar el detalle de la cuenta seleccionada."
+            getApiErrorMessage(e, "No se pudo cargar el detalle de la cuenta seleccionada.")
           );
         }
       } finally {
@@ -632,9 +720,11 @@ export default function EmisionComprobantesPage() {
     (row: CuentaCitaListItem) => {
       const normalized = normalizarNroCuenta10(row.nro_cuenta.trim());
       if (!normalized) {
-        toastService.showError("El número de cuenta no es válido.");
+        toastService.showError("El número de cuenta seleccionado no es válido.");
         return;
       }
+      setCuentaBloqueada(false);
+      setCuentaSinPendientes(false);
       void loadCuentaDetalleYAutocompletar(normalized, row);
     },
     [loadCuentaDetalleYAutocompletar]
@@ -643,6 +733,8 @@ export default function EmisionComprobantesPage() {
   const onCuentaChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const next = e.target.value.replace(/\D/g, "").slice(0, 10);
+      setCuentaBloqueada(false);
+      setCuentaSinPendientes(false);
       patch({ cuenta: next });
     },
     [patch]
@@ -654,12 +746,12 @@ export default function EmisionComprobantesPage() {
       e.preventDefault();
       if (loadingCuentaDetalle) return;
       if (!form.origen.trim()) {
-        toastService.showError("Selecciona primero el origen del comprobante.");
+        toastService.showError("Selecciona el origen del comprobante antes de cargar la cuenta.");
         return;
       }
       const normalized = normalizarNroCuenta10(form.cuenta);
       if (!normalized) {
-        toastService.showError("Ingresa un número de cuenta.");
+        toastService.showError("Ingresa un número de cuenta para cargar sus servicios pendientes.");
         return;
       }
       void loadCuentaDetalleYAutocompletar(normalized, null);
@@ -702,47 +794,84 @@ export default function EmisionComprobantesPage() {
 
   const puedeGuardarEmision = React.useMemo(() => {
     if (savingEmision || loadingCuentaDetalle) return false;
+    if (cuentaBloqueada) return false;
     const nro = normalizarNroCuenta10(form.cuenta);
     if (!nro) return false;
     if (!form.paciente.trim()) return false;
     if (!form.tipoDocumentoId || !form.numeracionId) return false;
+    if (lineasSoloPendientes(lineasCuenta).length === 0) return false;
+    if (esFormaCredito && !form.fechaVencimiento.trim()) return false;
     return true;
   }, [
     savingEmision,
     loadingCuentaDetalle,
+    cuentaBloqueada,
     form.cuenta,
     form.paciente,
     form.tipoDocumentoId,
     form.numeracionId,
+    form.fechaVencimiento,
+    lineasCuenta,
+    esFormaCredito,
   ]);
 
   const onGuardarEmision = React.useCallback(async () => {
     const nro = normalizarNroCuenta10(form.cuenta);
     if (!nro) {
-      toastService.showError("Ingresa un número de cuenta válido.");
+      toastService.showError("Ingresa un número de cuenta válido antes de guardar la emisión.");
       return;
     }
     if (!form.paciente.trim()) {
-      toastService.showError("Carga los datos de la cuenta antes de guardar.");
+      toastService.showError("Carga los datos de la cuenta antes de guardar el comprobante.");
       return;
     }
     if (!form.tipoDocumentoId || !form.numeracionId) {
-      toastService.showError("Completa tipo de comprobante y serie.");
+      toastService.showError("Selecciona el tipo de comprobante y la serie antes de guardar.");
+      return;
+    }
+    if (cuentaBloqueada) {
+      toastService.showError("La cuenta ya está cancelada o facturada y no admite una nueva emisión.");
+      return;
+    }
+    if (lineasSoloPendientes(lineasCuenta).length === 0) {
+      toastService.showError("La cuenta seleccionada no tiene servicios pendientes por facturar.");
+      return;
+    }
+    if (esFormaCredito && !form.fechaVencimiento.trim()) {
+      toastService.showError("Ingresa la fecha de vencimiento para emitir con forma de pago crédito.");
+      return;
+    }
+    const numeracionIdNum = Number(form.numeracionId);
+    if (!Number.isInteger(numeracionIdNum) || numeracionIdNum <= 0) {
+      toastService.showError("Selecciona una serie válida para generar el número de comprobante.");
       return;
     }
     setSavingEmision(true);
     try {
-      await postEmisionComprobantesRegistrar({
+      const saved = await postEmisionComprobantesRegistrar({
         nro_cuenta: nro,
+        numeracion_id: numeracionIdNum,
         servicio_linea_ids: lineasCuenta.flatMap((l) =>
           typeof l.id === "number" && Number.isFinite(l.id) ? [l.id] : []
         ),
         numero_operacion: form.numeroOperacion.trim() ? form.numeroOperacion.trim() : null,
+        fecha_vencimiento: esFormaCredito && form.fechaVencimiento.trim() ? form.fechaVencimiento.trim() : null,
         snapshot: buildEmisionSnapshot(),
       });
-      toastService.showSuccess("Emisión de comprobante guardada.");
-      patch({ numeroOperacion: "" });
-      await loadCuentaDetalleYAutocompletar(nro, null);
+      toastService.showSuccess("Comprobante emitido correctamente.");
+      const refreshed = await getEmisionBootstrap(true);
+      setBundle(refreshed);
+      const numeracionRefrescada = refreshed.numeraciones.find(
+        (n) => String(n.id) === String(form.numeracionId)
+      );
+      patch({
+        numeroOperacion: "",
+        correlativo:
+          numeracionRefrescada?.numero_formateado?.trim() ||
+          saved.numero_formateado?.trim() ||
+          form.correlativo,
+      });
+      await loadCuentaDetalleYAutocompletar(nro, null, { suppressBlockedToast: true });
     } catch (e) {
       const err = toApiError(e);
       if (err.kind === "validation") {
@@ -750,7 +879,7 @@ export default function EmisionComprobantesPage() {
         const msg = parts.find((x) => typeof x === "string" && x.trim());
         toastService.showError(msg ? String(msg) : err.message);
       } else {
-        toastService.showError(err.message.trim() || "No se pudo registrar la emisión.");
+        toastService.showError(getApiErrorMessage(e, "No se pudo registrar la emisión del comprobante."));
       }
     } finally {
       setSavingEmision(false);
@@ -760,8 +889,12 @@ export default function EmisionComprobantesPage() {
     form.paciente,
     form.tipoDocumentoId,
     form.numeracionId,
+    form.correlativo,
     form.numeroOperacion,
+    form.fechaVencimiento,
+    esFormaCredito,
     lineasCuenta,
+    cuentaBloqueada,
     buildEmisionSnapshot,
     loadCuentaDetalleYAutocompletar,
     patch,
@@ -786,7 +919,7 @@ export default function EmisionComprobantesPage() {
     return (
       <div className={pageWrap}>
         <div className={`${panel} p-6 text-sm text-(--color-text-primary)`}>
-          No se pudieron cargar los datos. Vuelve a intentar o revisa tu conexión.
+          No se pudieron cargar los catálogos para emitir comprobantes. Vuelve a intentar o revisa tu conexión.
         </div>
       </div>
     );
@@ -847,16 +980,13 @@ export default function EmisionComprobantesPage() {
           <span className="shrink-0 text-sm text-(--color-text-primary)">Actualizando catálogo…</span>
         </div>
       ) : null}
-      {loadingCuentaDetalle ? (
-        <div className="flex justify-end">
-          <span className="shrink-0 text-sm text-(--color-text-primary)">Cargando datos de cuenta…</span>
-        </div>
-      ) : null}
-
       <div className={mainSheet}>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-3">
-          <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:gap-3">
-            <div className="min-w-0">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:gap-2">
+          <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-end lg:gap-2">
+            <div
+              className="min-w-0 w-full max-w-full lg:w-(--field-width)"
+              style={{ ["--field-width" as string]: `${origenFieldWidth}px` }}
+            >
               <SelectField
                 label="Origen"
                 value={form.origen}
@@ -867,9 +997,12 @@ export default function EmisionComprobantesPage() {
                 menuClassName={menuWide}
               />
             </div>
-            <div className="min-w-0">
+            <div
+              className="min-w-0 w-full max-w-full lg:w-(--field-width)"
+              style={{ ["--field-width" as string]: `${tipoFieldWidth}px` }}
+            >
               <SelectField
-                label="Tipo de comprobante"
+                label="Tipo"
                 value={form.tipoDocumentoId}
                 onChange={(v) => {
                   const rows = numeraciones.filter(
@@ -889,7 +1022,10 @@ export default function EmisionComprobantesPage() {
                 menuClassName={menuWide}
               />
             </div>
-            <div className="min-w-0">
+            <div
+              className="min-w-0 w-full max-w-full lg:w-(--field-width)"
+              style={{ ["--field-width" as string]: `${serieFieldWidth}px` }}
+            >
               <SelectField
                 label="Serie"
                 value={form.numeracionId}
@@ -901,18 +1037,24 @@ export default function EmisionComprobantesPage() {
                 menuClassName={menuWide}
               />
             </div>
-            <div className="min-w-0">
-              <span className={lbl}>Número</span>
+            <div
+              className="min-w-0 w-full max-w-full lg:w-(--field-width)"
+              style={{ ["--field-width" as string]: `${nroFieldWidth}px` }}
+            >
+              <span className="text-sm text-(--color-text-primary)">Número</span>
               <input
                 value={form.correlativo}
                 onChange={(e) => patch({ correlativo: e.target.value })}
-                className={`mt-1 w-full ${inpCorrelativo}`}
+                className="mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-amber-50 px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                 aria-label="Número correlativo de la serie"
                 title="Correlativo sugerido según la numeración activa en ficheros"
               />
             </div>
-            <div className="min-w-0 sm:col-span-2 lg:col-span-1">
-              <span className={lbl}>Número de cuenta</span>
+            <div
+              className="min-w-0 sm:col-span-2 w-full max-w-full lg:w-(--field-width)"
+              style={{ ["--field-width" as string]: `${cuentaFieldWidth}px` }}
+            >
+              <span className="text-sm text-(--color-text-primary)">Cuenta</span>
               <input
                 value={form.cuenta}
                 onChange={onCuentaChange}
@@ -920,41 +1062,42 @@ export default function EmisionComprobantesPage() {
                 inputMode="numeric"
                 maxLength={10}
                 autoComplete="off"
-                className={`mt-1 w-full ${inp}`}
+                className="mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                 aria-label="Cuenta"
               />
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-end gap-2 lg:items-end">
+          <div className="flex shrink-0 flex-wrap items-end gap-1.5 lg:ml-auto lg:items-end">
             <PrimaryButton
               type="button"
-              className="h-10 w-auto shrink-0 whitespace-nowrap"
+              className="h-9 w-auto shrink-0 whitespace-nowrap px-3"
               onClick={openCuentaPicker}
             >
               Buscar cuenta
             </PrimaryButton>
-            <SecondaryButton
+            <PrimaryButton
               type="button"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center p-0"
+              className="inline-flex h-9 w-auto shrink-0 items-center gap-2 whitespace-nowrap px-3"
               onClick={() => void onGuardarEmision()}
               disabled={!puedeGuardarEmision}
               aria-label="Guardar emisión y marcar servicios como facturados"
               title="Guardar emisión"
             >
               <Save className="h-5 w-5 shrink-0" strokeWidth={1.75} aria-hidden />
-            </SecondaryButton>
+              Guardar emisión
+            </PrimaryButton>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 border-t border-(--color-border) pt-4 lg:grid-cols-12 lg:items-stretch lg:gap-4">
+        <div className="grid grid-cols-1 gap-3 border-t border-(--color-border) pt-3 lg:grid-cols-12 lg:items-stretch lg:gap-3">
           <div className="flex min-h-0 min-w-0 lg:col-span-8">
             <div className={`${innerBlock} flex h-full min-h-0 w-full flex-col`}>
-              <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-(--color-border) pb-4">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2 border-b border-(--color-border) pb-3">
                 <div className="flex min-w-0 items-center gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-(--color-primary)/10">
-                    <User className="h-5 w-5 text-(--color-primary)" aria-hidden />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-(--color-primary)/10">
+                    <User className="h-4 w-4 text-(--color-primary)" aria-hidden />
                   </div>
-                  <span className="text-sm text-(--color-text-primary)">Datos del paciente</span>
+                  <span className="text-xs font-semibold text-(--color-text-primary)">Datos del paciente</span>
                 </div>
                 <SecondaryButton
                   type="button"
@@ -967,8 +1110,8 @@ export default function EmisionComprobantesPage() {
               </div>
 
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-x-4 lg:gap-y-7">
-                <div className={`${fieldCell} lg:col-span-2`}>
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-x-3 lg:gap-y-4">
+                <div className={fieldCell}>
                   <span className={lbl}>Paciente</span>
                   <AutoGrowTextarea
                     value={form.paciente}
@@ -1118,7 +1261,7 @@ export default function EmisionComprobantesPage() {
                   />
                 </div>
                 </div>
-                <div className="mt-2 min-h-4 flex-1 lg:mt-3" aria-hidden />
+                <div className="mt-1 min-h-2 flex-1 lg:mt-2" aria-hidden />
               </div>
             </div>
           </div>
@@ -1126,60 +1269,72 @@ export default function EmisionComprobantesPage() {
           <div className="flex min-h-0 min-w-0 lg:col-span-4">
             <div className={`${innerBlock} flex h-full min-h-0 w-full flex-col`}>
               <BlockTitle icon={Wallet} title="Información de pago" />
-              <div className="flex flex-col gap-4">
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className={lbl}>Moneda</span>
-                  <div className={`${inp} flex items-center`}>Soles (PEN)</div>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-x-3 lg:gap-y-3">
+                <div className="min-w-0">
+                  <SelectField
+                    label="Forma de pago"
+                    value={form.formaPagoId}
+                    onChange={(v) => patch({ formaPagoId: v })}
+                    options={formaOpts.length ? formaOpts : [{ value: "", label: "—" }]}
+                    ariaLabel="Forma de pago"
+                    disabled={formaOpts.length === 0}
+                    buttonClassName="w-full"
+                    menuClassName={menuWide}
+                  />
                 </div>
-                <SelectField
-                  label="Forma de pago"
-                  value={form.formaPagoId}
-                  onChange={(v) => patch({ formaPagoId: v })}
-                  options={formaOpts.length ? formaOpts : [{ value: "", label: "—" }]}
-                  ariaLabel="Forma de pago"
-                  disabled={formaOpts.length === 0}
-                  buttonClassName="w-full"
-                  menuClassName={menuWide}
-                />
-                <SelectField
-                  label="Medio de pago"
-                  value={form.medioPagoId}
-                  onChange={(v) => patch({ medioPagoId: v })}
-                  options={medioOpts.length ? medioOpts : [{ value: "", label: "—" }]}
-                  ariaLabel="Medio de pago"
-                  disabled={!form.formaPagoId || medioOpts.length === 0}
-                  buttonClassName="w-full"
-                  menuClassName={menuWide}
-                />
-                <SelectField
-                  label="Banco o tarjeta"
-                  value={form.bancoTarjetaId}
-                  onChange={(v) => patch({ bancoTarjetaId: v })}
-                  options={bancoOpts.length ? bancoOpts : [{ value: "", label: "—" }]}
-                  ariaLabel="Banco o tarjeta"
-                  disabled={!form.formaPagoId || !form.medioPagoId || bancoOpts.length === 0}
-                  buttonClassName="w-full"
-                  menuClassName={menuWide}
-                  searchable
-                  searchPlaceholder="Buscar…"
-                />
-                <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className={lbl}>Número</span>
+                <div className="min-w-0">
+                  <SelectField
+                    label="Medio de pago"
+                    value={form.medioPagoId}
+                    onChange={(v) => patch({ medioPagoId: v })}
+                    options={medioOpts.length ? medioOpts : [{ value: "", label: "—" }]}
+                    ariaLabel="Medio de pago"
+                    disabled={!form.formaPagoId || medioOpts.length === 0}
+                    buttonClassName="w-full"
+                    menuClassName={menuWide}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <SelectField
+                    label="Banco o tarjeta"
+                    value={form.bancoTarjetaId}
+                    onChange={(v) => patch({ bancoTarjetaId: v })}
+                    options={bancoOpts.length ? bancoOpts : [{ value: "", label: "—" }]}
+                    ariaLabel="Banco o tarjeta"
+                    disabled={!form.formaPagoId || !form.medioPagoId || bancoOpts.length === 0}
+                    buttonClassName="w-full"
+                    menuClassName={menuWide}
+                    searchable
+                    searchPlaceholder="Buscar…"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-sm text-(--color-text-primary)">Número</span>
                   <input
                     value={form.numeroOperacion}
                     onChange={(e) => patch({ numeroOperacion: e.target.value })}
-                    className={`${inp}`}
+                    className="mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
                     maxLength={120}
                     autoComplete="off"
                     aria-label="Número de operación o referencia de pago"
                     title="Referencia de pago para arqueo de caja"
                   />
                 </div>
+                {esFormaCredito ? (
+                  <div className="min-w-0">
+                    <DateField
+                      label="Fecha de vencimiento"
+                      value={form.fechaVencimiento}
+                      onChange={(v) => patch({ fechaVencimiento: v })}
+                      ariaLabel="Fecha de vencimiento del crédito"
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
-        <div className="border-t border-(--color-border) pt-4">
+        <div className="border-t border-(--color-border) pt-3">
           <ServiciosSolicitadosSection
             medicoTratanteId={null}
             medicoTratanteLabel=""
@@ -1196,12 +1351,15 @@ export default function EmisionComprobantesPage() {
               returnPath: "",
               draftStorageKey: "caja:emision:readonly",
             }}
-            sectionDescription="Servicios de la cuenta seleccionada."
+            sectionDescription={
+              cuentaSinPendientes
+                ? "La cuenta no tiene servicios pendientes. Se muestran servicios facturados en modo lectura."
+                : "Servicios pendientes de la cuenta seleccionada."
+            }
             readOnly
             hideEditionControls
             hideMedicoUsuarioColumns
-            hideEstado
-            largerTypography
+            hideEstado={!cuentaSinPendientes}
             hideCopagoControls
             presupuestoPaquete={paqueteCuenta}
           />

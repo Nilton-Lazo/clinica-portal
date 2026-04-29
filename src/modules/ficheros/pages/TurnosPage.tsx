@@ -119,7 +119,7 @@ export default function TurnosPage() {
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
         title="Desactivar turno"
-        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un registro."}
+        description={vm.selected ? `¿Deseas desactivar "${vm.selected.codigo} - ${vm.selected.descripcion}"?` : "Selecciona un turno."}
         confirmText="Desactivar"
         cancelText="Cancelar"
         destructive
