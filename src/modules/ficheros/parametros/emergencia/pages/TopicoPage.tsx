@@ -6,6 +6,7 @@ import ParamOptionToolbar from "../components/ParamOptionToolbar";
 import ParamOptionTable from "../components/ParamOptionTable";
 import ParamOptionMobileList from "../components/ParamOptionMobileList";
 import ParamOptionFormCard from "../components/ParamOptionFormCard";
+import { useFicherosRealtimeRefresh } from "../../../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() =>
@@ -25,6 +26,8 @@ export default function TopicoPage() {
   const vm = useTopico();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["topico"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

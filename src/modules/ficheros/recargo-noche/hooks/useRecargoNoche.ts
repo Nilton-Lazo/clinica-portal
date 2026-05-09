@@ -45,6 +45,7 @@ export function useRecargoNoche() {
       channel.postMessage({ type: "changed", tarifaId: nextTarifaId });
       channel.close();
     } catch {
+      void 0;
     }
   }, []);
 
@@ -80,7 +81,7 @@ export function useRecargoNoche() {
       .finally(() => setTarifasLoading(false));
   }, []);
 
-  React.useEffect(() => {
+  const refresh = React.useCallback(async () => {
     if (!tarifaId) {
       setReglas([]);
       setCategorias([]);
@@ -90,21 +91,25 @@ export function useRecargoNoche() {
     }
     setLoading(true);
     const statusParam = statusFilter === "ALL" ? undefined : statusFilter;
-    Promise.all([
-      listRecargoNoche(tarifaId, { status: statusParam }),
-      getCategoriasLookup(tarifaId),
-    ])
-      .then(([r, c]) => {
-        setReglas(r);
-        setCategorias(c);
-      })
-      .catch((e) => {
-        setReglas([]);
-        setCategorias([]);
-        toastService.showError(getApiErrorMessage(e, "No se pudieron cargar las reglas de recargo nocturno."));
-      })
-      .finally(() => setLoading(false));
+    try {
+      const [r, c] = await Promise.all([
+        listRecargoNoche(tarifaId, { status: statusParam }),
+        getCategoriasLookup(tarifaId),
+      ]);
+      setReglas(r);
+      setCategorias(c);
+    } catch (e) {
+      setReglas([]);
+      setCategorias([]);
+      toastService.showError(getApiErrorMessage(e, "No se pudieron cargar las reglas de recargo nocturno."));
+    } finally {
+      setLoading(false);
+    }
   }, [tarifaId, statusFilter]);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const loadForEdit = React.useCallback((r: RecargoNocheRegla) => {
     setSelected(r);
@@ -290,6 +295,7 @@ export function useRecargoNoche() {
     loading,
     saving,
     notice,
+    refresh,
     setNotice,
     selected,
     mode,

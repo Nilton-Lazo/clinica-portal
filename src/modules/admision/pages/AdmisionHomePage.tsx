@@ -49,45 +49,64 @@ export default function AdmisionHomePage() {
     [navigate]
   );
 
-  const half = Math.ceil(ADMISION_HUB.length / 2);
-  const col1 = ADMISION_HUB.slice(0, half);
-  const col2 = ADMISION_HUB.slice(half);
+  type HubItem = (typeof ADMISION_HUB)[number];
+  const GRID_SLOTS = 8;
+  const slots = React.useMemo((): (HubItem | null)[] => {
+    const out: (HubItem | null)[] = Array.from({ length: GRID_SLOTS }, () => null);
+    ADMISION_HUB.forEach((item, j) => {
+      const row = Math.floor(j / 2);
+      if (row >= 4) return;
+      const col = j % 2;
+      out[row + (col === 1 ? 4 : 0)] = item;
+    });
+    return out;
+  }, []);
 
   return (
-    <div className="w-full h-full">
-      <div className="hidden lg:grid gap-4 lg:grid-cols-[1fr_1fr_minmax(320px,400px)] lg:grid-rows-1 h-full">
-        <div className="grid gap-3 auto-rows-fr">
-          {col1.map((item) => (
-            <AdmisionHubCard
-              key={item.id}
-              item={item}
-              active={item.id === selectedId}
-              onSelect={() => setSelectedId(item.id)}
-            />
-          ))}
+    <div className="w-full h-full min-h-0 flex flex-col">
+      <div className="hidden lg:grid gap-3 lg:grid-cols-[1fr_1fr_minmax(320px,400px)] lg:grid-rows-4 h-full min-h-0">
+        <div className="grid grid-cols-1 grid-rows-4 gap-3 min-h-0 lg:row-span-4">
+          {slots.slice(0, 4).map((item, i) =>
+            item ? (
+              <AdmisionHubCard
+                key={item.id}
+                item={item}
+                active={item.id === selectedId}
+                onSelect={() => setSelectedId(item.id)}
+              />
+            ) : (
+              <div key={`empty-l-${i}`} className="min-h-0" aria-hidden />
+            )
+          )}
         </div>
 
-        <div className="grid gap-3 auto-rows-fr">
-          {col2.map((item) => (
-            <AdmisionHubCard
-              key={item.id}
-              item={item}
-              active={item.id === selectedId}
-              onSelect={() => setSelectedId(item.id)}
-            />
-          ))}
+        <div className="grid grid-cols-1 grid-rows-4 gap-3 min-h-0 lg:row-span-4">
+          {slots.slice(4, 8).map((item, i) =>
+            item ? (
+              <AdmisionHubCard
+                key={item.id}
+                item={item}
+                active={item.id === selectedId}
+                onSelect={() => setSelectedId(item.id)}
+              />
+            ) : (
+              <div key={`empty-r-${i}`} className="min-h-0" aria-hidden />
+            )
+          )}
         </div>
 
-        <AdmisionActionsPanel
-          item={selected}
-          onEnter={() => go(selected.to)}
-          onAction={(to, label) => go(to, label)}
-        />
+        <div className="min-h-0 flex flex-col lg:row-span-4">
+          <AdmisionActionsPanel
+            item={selected}
+            onEnter={() => go(selected.to)}
+            onAction={(to, label) => go(to, label)}
+          />
+        </div>
       </div>
 
       <div
         className={[
-          "lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3",
+          "lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 min-h-0 content-start overflow-y-auto overflow-x-hidden app-scrollbar p-1",
           sheetOpen ? "pb-[calc(60vh+24px)]" : "pb-4",
         ].join(" ")}
       >

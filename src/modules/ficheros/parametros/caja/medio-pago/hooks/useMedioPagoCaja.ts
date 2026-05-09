@@ -69,7 +69,7 @@ export function useMedioPagoCaja() {
         const res = await getNextMedioPagoCajaCodigo();
         if (!alive) return;
         if (res.codigo) setCodigo(res.codigo);
-      } catch {}
+      } catch { void 0; }
     })();
     return () => {
       alive = false;
@@ -241,6 +241,7 @@ export function useMedioPagoCaja() {
     formasPago,
     loading,
     saving,
+    refresh,
     page,
     setPage,
     perPage,

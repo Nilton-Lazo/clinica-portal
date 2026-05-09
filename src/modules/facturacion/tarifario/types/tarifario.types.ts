@@ -95,6 +95,7 @@ export type TarifaServicioCrud = {
   nomenclador: string | null;
   descripcion: string;
   precio_sin_igv: string;
+  precio_con_igv: string;
   unidad: string;
   grupo_codigo: string | null;
   grupo_descripcion: string | null;
@@ -171,4 +172,13 @@ export type PropagacionResultado = {
     }>;
   };
   tiene_alertas: boolean;
+};
+
+export type TarifarioServiciosCrudListMeta = PaginationMeta & {
+  igv_porcentaje: number;
+};
+
+export type TarifarioServiciosCrudListResponse = {
+  data: TarifaServicioCrud[];
+  meta: TarifarioServiciosCrudListMeta;
 };

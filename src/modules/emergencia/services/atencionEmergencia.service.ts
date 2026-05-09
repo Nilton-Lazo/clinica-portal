@@ -1,5 +1,10 @@
 import { api } from "../../../shared/api";
-import type { AtencionServicioLinea } from "../../admision/citas/agenda/types/atencionCita.types";
+import type { PacienteDetail } from "../../admision/historia-clinica/types/historiaClinica.types";
+import type { RegistroEmergencia } from "../types/registroEmergencia.types";
+import type {
+  AtencionServicioLinea,
+  AtencionServicioLineaDisplay,
+} from "../../admision/citas/agenda/types/atencionCita.types";
 
 export type AtencionEmergenciaStorePayload = {
   acudio_a_su_cita?: boolean;
@@ -14,16 +19,21 @@ export type AtencionEmergenciaStorePayload = {
 export type DatosAtencionEmergenciaResponse = {
   registro: RegistroEmergencia;
   paciente: PacienteDetail;
+  cuenta?: {
+    id: number;
+    nro_cuenta: string;
+    estado: string | null;
+    bloqueada: boolean;
+  } | null;
+  bloqueada_facturacion?: boolean;
   servicios: AtencionServicioLineaDisplay[];
 };
 
 export async function getDatosAtencionEmergencia(registroId: number): Promise<DatosAtencionEmergenciaResponse> {
-  const res = await api.get<DatosAtencionEmergenciaResponse>(`/emergencia/atencion/${registroId}`);
-  return res.data ?? res;
+  return api.get<DatosAtencionEmergenciaResponse>(`/emergencia/atencion/${registroId}`);
 }
 
 export async function guardarAtencionEmergencia(registroId: number, payload: AtencionEmergenciaStorePayload): Promise<unknown> {
-  const res = await api.post(`/emergencia/atencion/${registroId}/atencion`, payload);
-  return res.data ?? res;
+  return api.post(`/emergencia/atencion/${registroId}/atencion`, payload);
 }
 

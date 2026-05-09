@@ -4,6 +4,8 @@ import { SelectMenu } from "../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import type { TreeCategoria } from "../types/paqueteServicios.types";
 import { usePaqueteServicios } from "../paquete-servicios/hooks/usePaqueteServicios";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
 
 const inputBase =
   "h-10 rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
@@ -169,6 +171,20 @@ const TreeNode = React.memo(function TreeNode({
 
 export default function PaqueteServiciosPage() {
   const vm = usePaqueteServicios();
+
+  useFicherosRealtimeRefresh(vm, [
+    "paquete_servicio",
+    "paquete",
+    "tarifa",
+  ]);
+
+  useRealtimeModuleRefresh({
+    module: "facturacion",
+    entities: ["tarifa_servicio", "tarifa_categoria", "tarifa_subcategoria", "tarifario_clonacion"],
+    onEvent: () => {
+      vm.refresh();
+    },
+  });
 
   const tarifaOptions = React.useMemo(
     () => [{ value: "", label: "Seleccione tarifa" }, ...vm.tarifas.map((t) => ({ value: String(t.id), label: `${t.codigo} - ${t.descripcion_tarifa}` }))],

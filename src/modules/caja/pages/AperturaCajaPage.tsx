@@ -27,6 +27,9 @@ import {
 import { listAreaJefatura } from "../../ficheros/parametros/caja/services/areaJefatura.service";
 import type { CajaAperturaTipo } from "../types/aperturaCaja.types";
 import type { AuthUser } from "../../login/types/auth.types";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
+
+const CAJA_APERTURA_ENTITIES = ["caja_apertura"];
 
 function displayNameUser(u: AuthUser): string {
   const full = [u.nombres, u.apellido_paterno, u.apellido_materno ?? ""].filter(Boolean).join(" ").trim();
@@ -103,6 +106,15 @@ export default function AperturaCajaPage() {
     void refreshCodigo();
   }, [refreshCodigo, tab]);
 
+  useRealtimeModuleRefresh({
+    module: "caja",
+    entities: CAJA_APERTURA_ENTITIES,
+    onEvent: () => {
+      void loadCatalogos();
+      void refreshCodigo();
+    },
+  });
+
   const recepcionaLabel = user ? `${displayNameUser(user)} (Tú)` : "—";
   const usuarioCaja = user?.username ?? "—";
   const cajaYaAperturadaParaTipo =
@@ -111,6 +123,7 @@ export default function AperturaCajaPage() {
     tab === "NORMAL"
       ? "Ya tienes una caja normal aperturada. Debes cerrarla antes de abrir otra."
       : "Ya tienes una caja chica aperturada. Debes cerrarla antes de abrir otra.";
+  const ultimoCierreMonto = tab === "NORMAL" ? resumen?.ultimo_cierre_normal_monto : resumen?.ultimo_cierre_chica_monto;
 
   const onSubmit = React.useCallback(
     async (e: React.FormEvent) => {
@@ -328,9 +341,9 @@ export default function AperturaCajaPage() {
             id="caja-obs"
             value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)}
-            rows={3}
+            rows={2}
             placeholder="Detalle cualquier discrepancia o nota relevante aquí..."
-            className="w-full resize-y rounded-md border border-(--color-border) bg-(--color-surface) px-3 py-2.5 text-sm text-(--color-text-primary) outline-none focus:border-(--color-primary)"
+            className="h-15 w-full resize-y rounded-md border border-(--color-border) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text-primary) outline-none focus:border-(--color-primary)"
           />
         </div>
 
@@ -353,9 +366,11 @@ export default function AperturaCajaPage() {
             <Clock className="h-5 w-5 text-sky-700" aria-hidden />
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-(--color-text-secondary)">Último cierre</div>
+              <div className="text-xs font-semibold text-(--color-text-secondary)">
+                Último cierre ({tab === "NORMAL" ? "Caja normal" : "Caja chica"})
+              </div>
             <div className="truncate text-sm font-bold tabular-nums text-(--color-text-primary)">
-              {formatPen(resumen?.ultimo_cierre_monto ?? null)}
+                {formatPen(ultimoCierreMonto ?? null)}
             </div>
           </div>
         </div>

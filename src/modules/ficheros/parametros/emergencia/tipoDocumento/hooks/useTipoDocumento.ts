@@ -50,7 +50,7 @@ export function useTipoDocumento() {
         const res = await getNextTipoDocumentoCodigo();
         if (!alive) return;
         if (res.codigo) setCodigo(res.codigo);
-      } catch {}
+      } catch { void 0; }
     })();
     return () => { alive = false; };
   }, [mode, codigo]);
@@ -186,6 +186,7 @@ export function useTipoDocumento() {
     data,
     loading,
     saving,
+    refresh,
     page,
     setPage,
     perPage: perPage,

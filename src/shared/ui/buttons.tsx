@@ -7,19 +7,21 @@ type Props = {
   type?: "button" | "submit";
   className?: string;
   title?: string;
+  "aria-label"?: string;
 };
 
 const base =
   "h-10 rounded-md px-4 text-sm font-medium transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]";
 
 export function PrimaryButton(props: Props) {
-  const { children, onClick, disabled, type = "button", className, title } = props;
+  const { children, onClick, disabled, type = "button", className, title, "aria-label": ariaLabel } = props;
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={ariaLabel}
       className={[
         base,
         disabled
@@ -34,13 +36,14 @@ export function PrimaryButton(props: Props) {
 }
 
 export function SecondaryButton(props: Props) {
-  const { children, onClick, disabled, type = "button", className, title } = props;
+  const { children, onClick, disabled, type = "button", className, title, "aria-label": ariaLabel } = props;
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={ariaLabel}
       className={[
         base,
         "bg-(--color-panel-context) text-(--color-base-primary)",

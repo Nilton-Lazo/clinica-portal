@@ -10,4 +10,8 @@ export type EmisionBootstrapBundle = {
   medios: MedioPagoCajaItem[];
   bancos: BancoTarjetaCajaItem[];
   numeraciones: NumeracionComprobanteCajaItem[];
+  reglas?: {
+    recibo_caja_tipo_documento_codigo?: string;
+    adelanto_garantia_servicio_codigo?: string;
+  };
 };

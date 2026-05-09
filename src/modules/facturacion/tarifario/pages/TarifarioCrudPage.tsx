@@ -11,15 +11,23 @@ import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
+import {
+  formatDecimalFixed,
+  parseDecimalInput,
+  roundToPrecision,
+} from "../../../../shared/constants/decimalPrecision";
 
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
+const TARIFARIO_ENTITIES = ["tarifa_categoria", "tarifa_subcategoria", "tarifa_servicio", "tarifario_clonacion"];
 import type {
   GrupoServicioLookup,
   Notice,
   PaginatedResponse,
   PropagacionResultado,
   RecordStatus,
+  TarifarioServiciosCrudListResponse,
   TarifaCategoria,
   TarifaCategoriaLookup,
   TarifaServicioCrud,
@@ -433,6 +441,7 @@ function useCategoriasCrud(tarifaId: number | null) {
     confirmDeactivateOpen,
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,
+    refresh,
   };
 }
 
@@ -804,13 +813,14 @@ function useSubcategoriasCrud(tarifaId: number | null) {
     confirmDeactivateOpen,
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,
+    refresh,
   };
 }
 
 function useServiciosCrud(tarifaId: number | null) {
-  const [data, setData] = React.useState<PaginatedResponse<TarifaServicioCrud>>({
+  const [data, setData] = React.useState<TarifarioServiciosCrudListResponse>({
     data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1, igv_porcentaje: 18 },
   });
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -838,7 +848,8 @@ function useServiciosCrud(tarifaId: number | null) {
   const [categoriaId, setCategoriaId] = React.useState<number | null>(null);
   const [subcategoriaId, setSubcategoriaId] = React.useState<number | null>(null);
   const [nomenclador, setNomenclador] = React.useState("");
-  const [precio, setPrecio] = React.useState("");
+  const [precioSinIgv, setPrecioSinIgv] = React.useState("");
+  const [precioConIgv, setPrecioConIgv] = React.useState("");
   const [unidad, setUnidad] = React.useState("");
   const [grupoCodigo, setGrupoCodigo] = React.useState<string | null>(null);
   const [deseaLiberarPrecio, setDeseaLiberarPrecio] = React.useState(false);
@@ -856,7 +867,8 @@ function useServiciosCrud(tarifaId: number | null) {
     categoriaId: number | null;
     subcategoriaId: number | null;
     nomenclador: string;
-    precio: string;
+    precioSinIgv: string;
+    precioConIgv: string;
     unidad: string;
     grupoCodigo: string | null;
     deseaLiberarPrecio: boolean;
@@ -887,6 +899,44 @@ function useServiciosCrud(tarifaId: number | null) {
     }
     return Array.from(byCode.values()).sort((a, b) => (a.descripcion || "").localeCompare(b.descripcion || ""));
   }, [grupos, data?.data]);
+
+  const igvPorcentajeLive = data.meta.igv_porcentaje ?? 18;
+  const igvRef = React.useRef(igvPorcentajeLive);
+  igvRef.current = igvPorcentajeLive;
+
+  const precioSinIgvRef = React.useRef("");
+  React.useEffect(() => {
+    precioSinIgvRef.current = precioSinIgv;
+  }, [precioSinIgv]);
+
+  React.useEffect(() => {
+    const n = parseDecimalInput(precioSinIgvRef.current);
+    if (n === null) return;
+    const con = roundToPrecision(n * (1 + igvPorcentajeLive / 100), 4);
+    setPrecioConIgv(formatDecimalFixed(con, 4));
+  }, [igvPorcentajeLive]);
+
+  const onPrecioConIgvChange = React.useCallback((v: string) => {
+    setPrecioConIgv(v);
+    const n = parseDecimalInput(v);
+    if (n === null) {
+      if (v.trim() === "") setPrecioSinIgv("");
+      return;
+    }
+    const sin = roundToPrecision(n / (1 + igvRef.current / 100), 4);
+    setPrecioSinIgv(formatDecimalFixed(sin, 4));
+  }, []);
+
+  const onPrecioSinIgvChange = React.useCallback((v: string) => {
+    setPrecioSinIgv(v);
+    const n = parseDecimalInput(v);
+    if (n === null) {
+      if (v.trim() === "") setPrecioConIgv("");
+      return;
+    }
+    const con = roundToPrecision(n * (1 + igvRef.current / 100), 4);
+    setPrecioConIgv(formatDecimalFixed(con, 4));
+  }, []);
 
   React.useEffect(() => {
     if (!tarifaId) return;
@@ -953,42 +1003,52 @@ function useServiciosCrud(tarifaId: number | null) {
 
   const isValid = React.useMemo(() => {
     const d = descripcion.trim();
-    const p = Number(precio);
+    const p = parseDecimalInput(precioSinIgv);
     const u = Number(unidad);
-    
+
     if (!categoriaId || !subcategoriaId) return false;
     if (!d) return false;
-    if (!Number.isFinite(p) || p < 0) return false;
+    if (p === null || p < 0) return false;
     if (!Number.isFinite(u) || u < 0) return false;
     if (mode === "new" && !codigo.trim()) return false;
     return true;
-  }, [descripcion, precio, unidad, categoriaId, subcategoriaId, codigo, mode]);
+  }, [descripcion, precioSinIgv, unidad, categoriaId, subcategoriaId, codigo, mode]);
 
   const isDirty = React.useMemo(() => {
     const o = originalRef.current;
     if (!o) return mode === "new" ? isValid : false;
-    
+
     const descripcionActual = descripcion.trim();
     const nomencladorActual = nomenclador.trim();
-    const precioActual = precio.trim();
+    const precioSinActual = precioSinIgv.trim();
     const unidadActual = unidad.trim();
-    
+
     const comparaciones = {
       descripcion: o.descripcion !== descripcionActual,
       estado: o.estado !== estado,
       categoriaId: o.categoriaId !== categoriaId,
       subcategoriaId: o.subcategoriaId !== subcategoriaId,
       nomenclador: o.nomenclador !== nomencladorActual,
-      precio: o.precio !== precioActual,
+      precioSinIgv: o.precioSinIgv !== precioSinActual,
       unidad: o.unidad !== unidadActual,
       grupoCodigo: o.grupoCodigo !== grupoCodigo,
       deseaLiberarPrecio: o.deseaLiberarPrecio !== deseaLiberarPrecio,
     };
-    
-    const resultado = Object.values(comparaciones).some(Boolean);
-    
-    return resultado;
-  }, [descripcion, estado, categoriaId, subcategoriaId, nomenclador, precio, unidad, grupoCodigo, deseaLiberarPrecio, mode, isValid]);
+
+    return Object.values(comparaciones).some(Boolean);
+  }, [
+    descripcion,
+    estado,
+    categoriaId,
+    subcategoriaId,
+    nomenclador,
+    precioSinIgv,
+    unidad,
+    grupoCodigo,
+    deseaLiberarPrecio,
+    mode,
+    isValid,
+  ]);
 
   const refresh = React.useCallback(
     async (next?: { page?: number; perPage?: number }) => {
@@ -1064,7 +1124,8 @@ function useServiciosCrud(tarifaId: number | null) {
     setCategoriaId(null);
     setSubcategoriaId(null);
     setNomenclador("");
-    setPrecio("");
+    setPrecioSinIgv("");
+    setPrecioConIgv("");
     setUnidad("");
     setGrupoCodigo(null);
     setDeseaLiberarPrecio(false);
@@ -1081,9 +1142,20 @@ function useServiciosCrud(tarifaId: number | null) {
     setCategoriaId(x.categoria_id);
     setSubcategoriaId(x.subcategoria_id);
     setNomenclador(x.nomenclador ?? "");
-    const precioNormalizado = x.precio_sin_igv.trim();
+    const precioSinNormalizado = x.precio_sin_igv.trim();
+    const precioConNormalizado = String(x.precio_con_igv ?? "").trim();
     const unidadNormalizada = x.unidad.trim();
-    setPrecio(precioNormalizado);
+    setPrecioSinIgv(precioSinNormalizado);
+    setPrecioConIgv(
+      precioConNormalizado ||
+        formatDecimalFixed(
+          roundToPrecision(
+            (parseDecimalInput(precioSinNormalizado) ?? 0) * (1 + igvPorcentajeLive / 100),
+            4
+          ),
+          4
+        )
+    );
     setUnidad(unidadNormalizada);
     setGrupoCodigo(x.grupo_codigo ?? null);
     setDeseaLiberarPrecio(x.desea_liberar_precio ?? false);
@@ -1094,13 +1166,22 @@ function useServiciosCrud(tarifaId: number | null) {
       categoriaId: x.categoria_id,
       subcategoriaId: x.subcategoria_id,
       nomenclador: x.nomenclador ?? "",
-      precio: precioNormalizado,
+      precioSinIgv: precioSinNormalizado,
+      precioConIgv:
+        precioConNormalizado ||
+        formatDecimalFixed(
+          roundToPrecision(
+            (parseDecimalInput(precioSinNormalizado) ?? 0) * (1 + igvPorcentajeLive / 100),
+            4
+          ),
+          4
+        ),
       unidad: unidadNormalizada,
       grupoCodigo: x.grupo_codigo ?? null,
       deseaLiberarPrecio: x.desea_liberar_precio ?? false,
     };
     setNotice(null);
-  }, []);
+  }, [igvPorcentajeLive]);
 
   const cancel = React.useCallback(() => {
     if (mode === "new") {
@@ -1118,7 +1199,8 @@ function useServiciosCrud(tarifaId: number | null) {
     setCategoriaId(o.categoriaId);
     setSubcategoriaId(o.subcategoriaId);
     setNomenclador(o.nomenclador);
-    setPrecio(o.precio);
+    setPrecioSinIgv(o.precioSinIgv);
+    setPrecioConIgv(o.precioConIgv);
     setUnidad(o.unidad);
     setGrupoCodigo(o.grupoCodigo);
     setDeseaLiberarPrecio(o.deseaLiberarPrecio);
@@ -1154,7 +1236,7 @@ function useServiciosCrud(tarifaId: number | null) {
           subcategoria_id: subcategoriaId!,
           descripcion: descripcion.trim(),
           nomenclador: nomenclador.trim() ? nomenclador.trim() : null,
-          precio_sin_igv: Number(precio),
+          precio_sin_igv: roundToPrecision(parseDecimalInput(precioSinIgv) ?? 0, 4),
           unidad: Number(unidad),
           grupo_codigo: grupoCodigo ?? undefined,
           desea_liberar_precio: deseaLiberarPrecio,
@@ -1172,7 +1254,7 @@ function useServiciosCrud(tarifaId: number | null) {
         const res = await updateServicio(tarifaId, selected.id, {
           descripcion: descripcion.trim(),
           nomenclador: nomenclador.trim() ? nomenclador.trim() : null,
-          precio_sin_igv: Number(precio),
+          precio_sin_igv: roundToPrecision(parseDecimalInput(precioSinIgv) ?? 0, 4),
           unidad: Number(unidad),
           grupo_codigo: grupoCodigo ?? undefined,
           desea_liberar_precio: deseaLiberarPrecio,
@@ -1208,7 +1290,7 @@ function useServiciosCrud(tarifaId: number | null) {
     subcategoriaId,
     descripcion,
     nomenclador,
-    precio,
+    precioSinIgv,
     unidad,
     grupoCodigo,
     deseaLiberarPrecio,
@@ -1311,8 +1393,10 @@ function useServiciosCrud(tarifaId: number | null) {
     setFilterGrupoCodigo,
     nomenclador,
     setNomenclador,
-    precio,
-    setPrecio,
+    precioSinIgv,
+    precioConIgv,
+    onPrecioSinIgvChange,
+    onPrecioConIgvChange,
     unidad,
     setUnidad,
     grupoCodigo,
@@ -1331,6 +1415,7 @@ function useServiciosCrud(tarifaId: number | null) {
     confirmDeactivateOpen,
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,
+    refresh,
   };
 }
 
@@ -1415,6 +1500,15 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
   const formRef = React.useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   useNoticeToToast(vm.notice);
+
+  useRealtimeModuleRefresh({
+    module: "facturacion",
+    entities: TARIFARIO_ENTITIES,
+    onEvent: (event) => {
+      if (event.scope !== String(tarifaId)) return;
+      void vm.refresh();
+    },
+  });
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();
@@ -1611,6 +1705,15 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
     vm.categorias.forEach((c) => map.set(c.id, c.codigo));
     return map;
   }, [vm.categorias]);
+
+  useRealtimeModuleRefresh({
+    module: "facturacion",
+    entities: TARIFARIO_ENTITIES,
+    onEvent: (event) => {
+      if (event.scope !== String(tarifaId)) return;
+      void vm.refresh();
+    },
+  });
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();
@@ -1876,6 +1979,23 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
   const formRef = React.useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   useNoticeToToast(vm.notice);
+
+  useRealtimeModuleRefresh({
+    module: "facturacion",
+    entities: TARIFARIO_ENTITIES,
+    onEvent: (event) => {
+      if (event.scope !== String(tarifaId)) return;
+      void vm.refresh();
+    },
+  });
+
+  useRealtimeModuleRefresh({
+    module: "ficheros",
+    entities: ["parametro_igv"],
+    onEvent: () => {
+      void vm.refresh();
+    },
+  });
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();
@@ -2152,7 +2272,28 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Precio con IGV</label>
+                  <input
+                    value={vm.precioConIgv}
+                    onChange={(e) => vm.onPrecioConIgvChange(e.target.value)}
+                    inputMode="decimal"
+                    className={`mt-1 h-10 w-full ${inputBase}`}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Precio sin IGV</label>
+                  <input
+                    value={vm.precioSinIgv}
+                    onChange={(e) => vm.onPrecioSinIgvChange(e.target.value)}
+                    inputMode="decimal"
+                    className={`mt-1 h-10 w-full ${inputBase}`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm text-(--color-text-primary)">Nomenclador</label>
                   <input
@@ -2161,24 +2302,15 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
                 </div>
-                  <div>
-                    <label className="text-sm text-(--color-text-primary)">Precio</label>
-                    <input
-                      value={vm.precio}
-                      onChange={(e) => vm.setPrecio(e.target.value)}
-                      inputMode="decimal"
-                      className={`mt-1 h-10 w-full ${inputBase}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-(--color-text-primary)">Unidad</label>
-                    <input
-                      value={vm.unidad}
-                      onChange={(e) => vm.setUnidad(e.target.value)}
-                      inputMode="decimal"
-                      className={`mt-1 h-10 w-full ${inputBase}`}
-                    />
-                  </div>
+                <div>
+                  <label className="text-sm text-(--color-text-primary)">Unidad</label>
+                  <input
+                    value={vm.unidad}
+                    onChange={(e) => vm.setUnidad(e.target.value)}
+                    inputMode="decimal"
+                    className={`mt-1 h-10 w-full ${inputBase}`}
+                  />
+                </div>
               </div>
 
               <div>

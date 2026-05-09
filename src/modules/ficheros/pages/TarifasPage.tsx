@@ -6,6 +6,7 @@ import TarifasToolbar from "../tarifas/components/TarifasToolbar";
 import TarifasTable from "../tarifas/components/TarifasTable";
 import TarifasMobileList from "../tarifas/components/TarifasMobileList";
 import TarifaFormCard from "../tarifas/components/TarifaFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function TarifasPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["tarifa"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

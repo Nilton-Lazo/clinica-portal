@@ -1,5 +1,13 @@
 import { api } from "../../../../shared/api";
 
+export type CuentaDetalleEmisionComprobante = {
+  numeracion_comprobante_id: number;
+  tipo_documento_id: number | null;
+  serie: string;
+  numero_emitido: number;
+  numero_formateado: string;
+};
+
 export type CuentaDetallePayload = {
   cuenta: {
     id: number;
@@ -12,6 +20,10 @@ export type CuentaDetallePayload = {
     estado?: string;
   };
   detalle: unknown;
+  emision_comprobante?: CuentaDetalleEmisionComprobante | null;
+  adelanto_resumen?: {
+    total_adelanto: string;
+  } | null;
 };
 
 function isObject(v: unknown): v is Record<string, unknown> {

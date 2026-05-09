@@ -267,6 +267,7 @@ export function useNumeracionComprobanteCaja() {
     tiposDocumento,
     loading,
     saving,
+    refresh,
     page,
     setPage,
     perPage,

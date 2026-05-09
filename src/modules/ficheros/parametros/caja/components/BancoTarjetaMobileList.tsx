@@ -24,13 +24,13 @@ export default function BancoTarjetaMobileList(props: {
         getRowId={(x) => x.id}
         onSelect={onSelect}
         renderMain={(x) => (
-          <div className="text-sm font-semibold text-(--color-text-primary)">
-            <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
-          </div>
-        )}
-        renderSub={(x) => (
-          <div className="text-xs text-(--color-text-secondary) wrap-anywhere">
-            {(x.resumen_secundario ?? "").trim() || "—"}
+          <div>
+            <div className="text-sm font-semibold text-(--color-text-primary)">
+              <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
+            </div>
+            <div className="text-xs text-(--color-text-secondary) wrap-anywhere">
+              {(x.resumen_secundario ?? "").trim() || "—"}
+            </div>
           </div>
         )}
         renderRight={(x) => <StatusBadge status={x.estado} />}

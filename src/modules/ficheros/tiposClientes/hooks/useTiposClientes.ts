@@ -366,6 +366,7 @@ export function useTiposClientes() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

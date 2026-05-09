@@ -6,6 +6,7 @@ import ClientesToolbar from "../clientes/components/ClientesToolbar";
 import ClientesTable from "../clientes/components/ClientesTable";
 import ClientesMobileList from "../clientes/components/ClientesMobileList";
 import ClienteFormCard from "../clientes/components/ClienteFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function ClientesPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["cliente"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

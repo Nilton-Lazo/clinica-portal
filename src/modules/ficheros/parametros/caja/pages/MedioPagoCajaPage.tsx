@@ -6,6 +6,7 @@ import { useMedioPagoCaja } from "../medio-pago/hooks/useMedioPagoCaja";
 import MedioPagoTable from "../components/MedioPagoTable";
 import MedioPagoMobileList from "../components/MedioPagoMobileList";
 import MedioPagoFormCard from "../components/MedioPagoFormCard";
+import { useFicherosRealtimeRefresh } from "../../../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() =>
@@ -25,6 +26,8 @@ export default function MedioPagoCajaPage() {
   const vm = useMedioPagoCaja();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["caja_medio_pago"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

@@ -852,6 +852,7 @@ export function useTarifas() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

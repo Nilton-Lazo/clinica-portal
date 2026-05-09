@@ -12,7 +12,7 @@ function normalizeStorage() {
       sessionStorage.setItem(KEY, fromLocal);
     }
     localStorage.removeItem(KEY);
-  } catch {}
+  } catch { void 0; }
 }
 
 function safeGet(): string | null {
@@ -28,14 +28,14 @@ function safeSet(value: string) {
   try {
     sessionStorage.setItem(KEY, value);
     localStorage.removeItem(KEY);
-  } catch {}
+  } catch { void 0; }
 }
 
 function safeRemove() {
   try {
     sessionStorage.removeItem(KEY);
     localStorage.removeItem(KEY);
-  } catch {}
+  } catch { void 0; }
 }
 
 export const tokenStore = {

@@ -4,7 +4,7 @@ import { presupuestoEstadoFromStored } from "../utils/estadoFacturacion.utils";
 
 const labelFacturacion: Record<EstadoFacturacionServicio, string> = {
   PENDIENTE: "Pendiente",
-  FACTURADO: "Cancelado",
+  FACTURADO: "Facturado",
 };
 
 const labelPresupuesto: Record<EstadoLineaPresupuesto, string> = {
@@ -70,8 +70,8 @@ export function EstadoFacturacionBadge({
   const isFacturado = value === "FACTURADO";
   const cfg = isFacturado
     ? {
-        cls: `${base} border-(--color-text-secondary) text-(--color-text-secondary)`,
-        Icon: Ban,
+        cls: `${base} border-[var(--color-success)] text-[var(--color-success)]`,
+        Icon: CheckCircle2,
       }
     : {
         cls: `${base} border-amber-600/70 bg-amber-50 text-amber-800`,

@@ -341,5 +341,6 @@ export function useEspecialidades() {
     confirmDeactivateOpen,
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,
+    refresh,
   };
 }

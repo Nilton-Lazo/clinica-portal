@@ -22,6 +22,7 @@ import { getRegistroEmergencia } from "../services/registroEmergencia.service";
 import { guardarAtencionEmergencia, getDatosAtencionEmergencia } from "../services/atencionEmergencia.service";
 import { getTarifasOperativas } from "../../ficheros/services/recargoNoche.service";
 import { listServiciosDefaultEmergenciaByTarifa } from "../../ficheros/parametros/emergencia/services/serviciosDefaultEmergencia.service";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
 
 function extractCodigoPrefix(value: string | null | undefined): string {
   const raw = (value ?? "").trim();
@@ -170,6 +171,8 @@ export default function AtencionEmergenciaPage() {
 
   const [montoAPagar, setMontoAPagar] = React.useState(0);
   const [savingState, setSavingState] = React.useState<"actualizar" | "guardar" | null>(null);
+  const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
+  const [bloqueadaFacturacion, setBloqueadaFacturacion] = React.useState(false);
   const saving = savingState !== null;
 
   const serviciosSectionRef = React.useRef<HTMLDivElement | null>(null);
@@ -356,7 +359,16 @@ export default function AtencionEmergenciaPage() {
     return `Los siguientes cambios están pendientes por guardar: ${partes.join(", ")}. ¿Desea actualizar los datos antes de buscar servicios?`;
   }, [pacientePlanId, lastSavedPlanId, condicion, lastSavedCondicion, titularNombre, lastSavedTitular]);
 
-  const canGuardarAtencion = !hasPendingDataChanges && lineas.length > 0;
+  const canGuardarAtencion = !bloqueadaFacturacion && !hasPendingDataChanges && lineas.length > 0;
+
+  useRealtimeModuleRefresh({
+    module: "emergencia",
+    entities: ["registro_emergencia", "atencion_emergencia"],
+    onEvent: (event) => {
+      if (event.id != null && Number(event.id) !== registroId) return;
+      setRealtimeReloadKey((key) => key + 1);
+    },
+  });
 
   React.useEffect(() => {
     if (!Number.isFinite(registroId)) {
@@ -380,6 +392,7 @@ export default function AtencionEmergenciaPage() {
           if (cancelled) return;
           reg = atencionData.registro;
           setRegistro(reg);
+          setBloqueadaFacturacion(Boolean(atencionData.bloqueada_facturacion || atencionData.cuenta?.bloqueada));
           
           if (atencionData.paciente) {
             pFull = atencionData.paciente;
@@ -393,9 +406,14 @@ export default function AtencionEmergenciaPage() {
           }
           
         } catch {
+          setBloqueadaFacturacion(false);
           if (!reg) reg = await getRegistroEmergencia(registroId);
           if (cancelled) return;
           setRegistro(reg);
+        }
+
+        if (!reg) {
+          throw new Error("No se pudo cargar el registro de emergencia.");
         }
 
         if (!pFull) {
@@ -471,7 +489,7 @@ export default function AtencionEmergenciaPage() {
     return () => {
       cancelled = true;
     };
-  }, [registroId, navState.registro]);
+  }, [registroId, navState.registro, realtimeReloadKey]);
 
   React.useEffect(() => {
     if (!paciente) return;
@@ -593,6 +611,10 @@ export default function AtencionEmergenciaPage() {
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!paciente) return;
+    if (bloqueadaFacturacion) {
+      toastService.showError("La cuenta está cancelada y facturada. No se permiten modificaciones.");
+      return;
+    }
     if (!hasPendingDataChanges) return;
 
     const planChanged = pacientePlanId !== lastSavedPlanId;
@@ -628,10 +650,14 @@ export default function AtencionEmergenciaPage() {
     } finally {
       setSavingState(null);
     }
-  }, [paciente, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, condicion, lastSavedCondicion, titularNombre, lastSavedTitular]);
+  }, [paciente, bloqueadaFacturacion, hasPendingDataChanges, pacientePlanId, lastSavedPlanId, condicion, lastSavedCondicion, titularNombre, lastSavedTitular]);
 
   const onGuardar = React.useCallback(async () => {
     if (!Number.isFinite(registroId)) return;
+    if (bloqueadaFacturacion) {
+      toastService.showError("La cuenta está cancelada y facturada. No se permiten modificaciones.");
+      return;
+    }
     if (!lineas.length) {
       toastService.showError("Agrega al menos un servicio final antes de guardar la atención de emergencia.");
       return;
@@ -675,10 +701,11 @@ export default function AtencionEmergenciaPage() {
     } finally {
       setSavingState(null);
     }
-  }, [registroId, horaAsistenciaDisplay, lineas, pacientePlanId, condicion, titularNombre, montoAPagar, navigate]);
+  }, [registroId, bloqueadaFacturacion, horaAsistenciaDisplay, lineas, pacientePlanId, condicion, titularNombre, montoAPagar, navigate]);
 
   const onServiciosSelected = React.useCallback(
     (servicios: TarifaServicioBusqueda[]) => {
+      if (bloqueadaFacturacion) return;
       if (!servicios.length || !tarifaId) return;
 
       const existingIds = new Set(lineas.map((l) => l.tarifa_servicio_id));
@@ -735,10 +762,11 @@ export default function AtencionEmergenciaPage() {
           toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el porcentaje de IGV para calcular los servicios de emergencia."));
         });
     },
-    [tarifaId, lineas, medicoTratanteId, medicosOptions, registro?.medico_emergencia, medicoCodigoFallback, copVarDefault, user]
+    [bloqueadaFacturacion, tarifaId, lineas, medicoTratanteId, medicosOptions, registro?.medico_emergencia, medicoCodigoFallback, copVarDefault, user]
   );
 
   React.useEffect(() => {
+    if (bloqueadaFacturacion) return;
     if (!pacientePlanId || !tarifaId) return;
     if (!medicoTratanteId || medicoTratanteId <= 0) return;
     if (lineas.length > 0) return;
@@ -812,17 +840,18 @@ export default function AtencionEmergenciaPage() {
     return () => {
       cancelled = true;
     };
-  }, [pacientePlanId, tarifaId, medicoTratanteId, lineas.length, onServiciosSelected]);
+  }, [bloqueadaFacturacion, pacientePlanId, tarifaId, medicoTratanteId, lineas.length, onServiciosSelected]);
 
   const onRegresar = React.useCallback(() => {
     navigate("/emergencia/registro", { state: { returnFromAtencion: true, registroId } });
   }, [navigate, registroId]);
 
   const onCancelar = React.useCallback(() => {
+    if (bloqueadaFacturacion) return;
     setPacientePlanId(lastSavedPlanId);
     setCondicion(lastSavedCondicion);
     setTitularNombre(lastSavedTitular);
-  }, [lastSavedPlanId, lastSavedCondicion, lastSavedTitular]);
+  }, [bloqueadaFacturacion, lastSavedPlanId, lastSavedCondicion, lastSavedTitular]);
 
   if (loading) {
     return (
@@ -865,12 +894,12 @@ export default function AtencionEmergenciaPage() {
           </SecondaryButton>
           <SecondaryButton
             onClick={onCancelar}
-            disabled={saving || !hasPendingDataChanges}
+            disabled={bloqueadaFacturacion || saving || !hasPendingDataChanges}
             title="Descartar cambios en tipo de cliente, condición y titular (restaurar últimos guardados)"
           >
             Cancelar
           </SecondaryButton>
-          <SecondaryButton onClick={onActualizarDatos} disabled={saving || !hasPendingDataChanges} title="Guardar solo los datos del paciente (condición y titular)">
+          <SecondaryButton onClick={onActualizarDatos} disabled={bloqueadaFacturacion || saving || !hasPendingDataChanges} title="Guardar solo los datos del paciente (condición y titular)">
             {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
           </SecondaryButton>
           <PrimaryButton onClick={onGuardar} disabled={saving || !canGuardarAtencion} title="Guardar la atención completa (asistencia, servicios y montos)">
@@ -878,6 +907,12 @@ export default function AtencionEmergenciaPage() {
           </PrimaryButton>
         </div>
       </div>
+
+      {bloqueadaFacturacion ? (
+        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          La cuenta está cancelada y facturada. La atención queda solo para consulta.
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4">
         <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-4 lg:p-3">
@@ -901,6 +936,7 @@ export default function AtencionEmergenciaPage() {
                   ariaLabel="Tipo de cliente"
                   buttonClassName="w-full h-10 rounded lg:h-8 lg:rounded"
                   menuClassName="min-w-full"
+                  disabled={bloqueadaFacturacion}
                 />
               </div>
             </div>
@@ -930,6 +966,7 @@ export default function AtencionEmergenciaPage() {
                   ariaLabel="Condición"
                   buttonClassName="w-full h-10 rounded lg:h-8 lg:rounded"
                   menuClassName="min-w-full"
+                  disabled={bloqueadaFacturacion}
                 />
               </div>
             </div>
@@ -938,7 +975,8 @@ export default function AtencionEmergenciaPage() {
               <input
                 value={titularNombre}
                 onChange={(e) => setTitularNombre(e.target.value)}
-                readOnly={(condicion ?? "").trim().toUpperCase() === "TITULAR"}
+                readOnly={bloqueadaFacturacion || (condicion ?? "").trim().toUpperCase() === "TITULAR"}
+                disabled={bloqueadaFacturacion}
                 className="mt-1 h-10 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) disabled:opacity-70 disabled:cursor-not-allowed lg:mt-0.5 lg:h-8"
               />
             </div>
@@ -995,6 +1033,8 @@ export default function AtencionEmergenciaPage() {
           copVarDefault={copVarDefault}
           onCopVarDefaultChange={setCopVarDefault}
           onServiciosSelected={onServiciosSelected}
+          readOnly={bloqueadaFacturacion}
+          hideEditionControls={bloqueadaFacturacion}
         />
       </div>
     </div>

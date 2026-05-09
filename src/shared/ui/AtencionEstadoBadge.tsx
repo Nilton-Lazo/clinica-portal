@@ -1,4 +1,4 @@
-import { ClipboardList, ShieldCheck, Clock, Ban } from "lucide-react";
+import { ClipboardList, ShieldCheck, Clock, Ban, Lock, Unlock } from "lucide-react";
 
 function formatFallbackLabel(raw: string): string {
   const x = raw.replace(/_/g, " ").trim().toLowerCase();
@@ -55,6 +55,22 @@ export function AtencionEstadoBadge({ value }: { value?: string | null }) {
       <span className={`${base} border-(--color-text-secondary) text-(--color-text-secondary)`}>
         <Ban className="h-4 w-4 shrink-0" aria-hidden="true" />
         Cancelado
+      </span>
+    );
+  }
+  if (v === "APERTURADA") {
+    return (
+      <span className={`${base} border-(--color-success) text-(--color-success)`}>
+        <Unlock className="h-4 w-4 shrink-0" aria-hidden="true" />
+        Aperturada
+      </span>
+    );
+  }
+  if (v === "CERRADA") {
+    return (
+      <span className={`${base} border-(--color-text-secondary) text-(--color-text-secondary)`}>
+        <Lock className="h-4 w-4 shrink-0" aria-hidden="true" />
+        Cerrada
       </span>
     );
   }

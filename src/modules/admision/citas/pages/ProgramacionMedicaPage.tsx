@@ -6,6 +6,9 @@ import ProgramacionMedicaListBar from "../programacion/components/ProgramacionMe
 import ProgramacionMedicaTable from "../programacion/components/ProgramacionMedicaTable";
 import ProgramacionMedicaMobileList from "../programacion/components/ProgramacionMedicaMobileList";
 import { useProgramacionMedica } from "../programacion/hooks/useProgramacionMedica";
+import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
+
+const ADMISION_PROGRAMACION_ENTITIES = ["programacion_medica"];
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -29,6 +32,14 @@ export default function ProgramacionMedicaPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ADMISION_PROGRAMACION_ENTITIES,
+    onEvent: () => {
+      void vm.refresh();
+    },
+  });
   
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

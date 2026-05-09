@@ -6,6 +6,7 @@ import TiposClientesToolbar from "../tiposClientes/components/TiposClientesToolb
 import TiposClientesTable from "../tiposClientes/components/TiposClientesTable";
 import TiposClientesMobileList from "../tiposClientes/components/TiposClientesMobileList";
 import TipoClienteFormCard from "../tiposClientes/components/TipoClienteFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function TiposClientesPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["tipo_cliente"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

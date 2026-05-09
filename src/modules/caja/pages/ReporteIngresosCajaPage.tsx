@@ -2,9 +2,10 @@ import * as React from "react";
 import { FolderInput, SlidersHorizontal } from "lucide-react";
 import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import { SelectField } from "../../admision/historia-clinica/wizard/ui/formFields";
-import type { SelectOption } from "../../../shared/ui/SelectMenu";
+import { SelectMenu, type SelectOption } from "../../../shared/ui/SelectMenu";
 import { toastService } from "../../../shared/notifications";
 import { getApiErrorMessage } from "../../../shared/api/apiError";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
 import {
   fetchReporteIngresosBootstrap,
   fetchReporteIngresosMovimientos,
@@ -13,6 +14,20 @@ import {
   type ReporteIngresosMedio,
   type ReporteIngresosMovimiento,
 } from "../services/reporteIngresosCaja.service";
+import { ReporteIngresoMediosResumen } from "../components/ReporteIngresoMediosResumen";
+import { ReporteIngresosAperturasMobileList } from "../components/ReporteIngresosAperturasMobileList";
+import { ReporteIngresosMovimientosTable } from "../components/ReporteIngresosMovimientosTable";
+import { ReporteIngresosMovimientosMobileList } from "../components/ReporteIngresosMovimientosMobileList";
+import { ReporteFraccionarPagoModal } from "../components/ReporteFraccionarPagoModal";
+import { PaginationFooter } from "../../../shared/crud/PaginationFooter";
+import type { PaginationMeta } from "../../../shared/types/pagination";
+import { AtencionEstadoBadge } from "../../../shared/ui/AtencionEstadoBadge";
+import { CajaAperturaTipoBadge } from "../components/CajaAperturaTipoBadge";
+import { ReporteSolesAmount } from "../components/ReporteSolesAmount";
+import { codigoAperturaIdColumna } from "../utils/codigoAperturaIdColumna";
+import { closeAperturaCaja } from "../services/aperturaCaja.service";
+import type { CajaAperturaTipo } from "../types/aperturaCaja.types";
+import { ConfirmDialog } from "../../ficheros/components/ConfirmDialog";
 
 const pageWrap = "flex w-full min-h-0 flex-1 flex-col gap-4 lg:gap-2";
 
@@ -21,10 +36,10 @@ const mainSheet =
 
 const sectionCard =
   "rounded-md border border-(--color-border) bg-(--color-background) p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]";
+const sectionCardFlush =
+  "rounded-md bg-transparent p-0 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] overflow-hidden";
 
 const sectionTitle = "text-sm font-semibold text-(--color-text-primary)";
-
-const sectionHint = "mt-0.5 text-xs leading-snug text-(--color-text-secondary)";
 
 const lbl = "text-sm text-(--color-text-primary)";
 
@@ -33,64 +48,121 @@ const readoutInline =
 
 const menuWide = "min-w-full max-w-[calc(100vw-2rem)]";
 
-const th =
-  "sticky top-0 z-[1] border-b border-(--color-border) bg-(--color-background) px-3 py-2.5 text-left text-xs font-semibold capitalize tracking-normal text-(--color-text-secondary)";
+const tableShellAperturas =
+  "relative flex w-full min-w-0 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)";
 
-const td = "border-b border-(--color-border)/80 px-3 py-2.5 text-sm text-(--color-text-primary) align-middle";
+const tableScrollAperturas = "w-full overflow-x-auto app-scrollbar app-scrollbar-no-gutter";
 
-const tableShell = "min-w-0 overflow-x-auto rounded-md border border-(--color-border) bg-(--color-surface)";
+const thAperturaTight =
+  "px-1 py-2 text-center align-middle text-sm font-semibold tracking-normal bg-(--color-primary) text-(--color-text-inverse)";
 
-function Badge({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: "success" | "neutral" | "warning" | "info";
-}) {
-  const cls =
-    tone === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-      : tone === "warning"
-        ? "border-amber-200 bg-amber-50 text-amber-950"
-        : tone === "info"
-          ? "border-sky-200 bg-sky-50 text-sky-950"
-          : "border-(--color-border) bg-(--color-surface) text-(--color-text-secondary)";
+const thAperturaEstado =
+  "px-1 py-2 pr-2 text-center align-middle text-sm font-semibold tracking-normal bg-(--color-primary) text-(--color-text-inverse)";
+
+const thAperturaTipo =
+  "pl-2 pr-1 py-2 text-center align-middle text-sm font-semibold tracking-normal bg-(--color-primary) text-(--color-text-inverse)";
+
+const tdAperturaTight = "px-1 py-2 text-center align-middle text-sm text-(--color-text-primary)";
+
+const tdAperturaEstado = "px-1 py-2 pr-2 text-center align-middle text-sm text-(--color-text-primary)";
+
+const tdAperturaTipo = "pl-2 pr-1 py-2 text-center align-middle text-sm text-(--color-text-primary)";
+
+function AperturaColumnTitle({ label }: { label: string }) {
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+  const stack = "inline-flex min-h-11 w-full flex-col items-center justify-center gap-0 text-center leading-[1.15]";
+
+  if (parts.length === 0) {
+    return (
+      <span className="inline-flex min-h-11 w-full items-center justify-center">
+        <span>—</span>
+      </span>
+    );
+  }
+
+  if (parts.length === 1) {
+    return (
+      <span className="inline-flex min-h-11 w-full items-center justify-center">
+        <span className="whitespace-nowrap">{parts[0]}</span>
+      </span>
+    );
+  }
+
+  if (parts.length === 2) {
+    return (
+      <span className="inline-flex min-h-11 w-full items-center justify-center">
+        <span className="whitespace-nowrap">{parts.join(" ")}</span>
+      </span>
+    );
+  }
+
+  const mid = Math.ceil(parts.length / 2);
+  const line1 = parts.slice(0, mid).join(" ");
+  const line2 = parts.slice(mid).join(" ");
+
   return (
-    <span
-      className={`inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-xs font-semibold leading-tight ${cls}`}
-    >
-      {children}
+    <span className={stack}>
+      <span className="block max-w-44 px-0.5 whitespace-normal">{line1}</span>
+      <span className="block max-w-44 px-0.5 whitespace-normal">{line2}</span>
     </span>
   );
 }
+const CAJA_REPORTE_ENTITIES = ["caja_apertura", "emision_comprobante"];
+const FICHEROS_CAJA_ENTITIES = [
+  "caja_medio_pago",
+  "caja_forma_pago",
+  "caja_banco_tarjeta",
+  "caja_numeracion_comprobante",
+  "caja_tipo_documento",
+];
+const ADMISION_REPORTE_ENTITIES = ["cuenta", "cita_atencion", "prefacturacion_hospitalaria", "paciente"];
+const EMERGENCIA_REPORTE_ENTITIES = ["registro_emergencia", "atencion_emergencia"];
 
-function badgeApertura(estado: string): React.ReactNode {
-  const u = estado.toUpperCase();
-  if (u === "APERTURADA") return <Badge tone="success">{estado}</Badge>;
-  if (u === "CERRADA") return <Badge tone="neutral">{estado}</Badge>;
-  return <Badge tone="neutral">{estado}</Badge>;
+const MOV_PER_PAGE_OPTS: SelectOption[] = [
+  { value: "10", label: "10" },
+  { value: "25", label: "25" },
+  { value: "50", label: "50" },
+  { value: "100", label: "100" },
+];
+
+const defaultMovMeta: PaginationMeta = {
+  current_page: 1,
+  per_page: 25,
+  total: 0,
+  last_page: 1,
+};
+
+function parseMonto(raw: string): number {
+  const n = parseFloat(String(raw).replace(",", ".").trim());
+  return Number.isFinite(n) ? n : 0;
 }
 
-function badgeTipoCaja(tipo: string): React.ReactNode {
-  const u = tipo.toUpperCase();
-  if (u === "NORMAL") return <Badge tone="info">{tipo}</Badge>;
-  if (u === "CHICA") return <Badge tone="warning">{tipo}</Badge>;
-  return <Badge tone="neutral">{tipo}</Badge>;
+function parseAjuste(raw: string): number {
+  const normalized = String(raw).replace(/\s+/g, "").replace(",", ".").trim();
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function badgeEstadoMovimiento(estado: string): React.ReactNode {
-  const u = estado.toUpperCase();
-  if (u.includes("PEND")) return <Badge tone="warning">{estado}</Badge>;
-  if (u.includes("ANUL") || u.includes("CANCEL")) return <Badge tone="neutral">{estado}</Badge>;
-  if (u.includes("FACT") || u.includes("EMIT") || u.includes("REGIST")) return <Badge tone="success">{estado}</Badge>;
-  return <Badge tone="neutral">{estado || "—"}</Badge>;
+function formatMonto2(value: number): string {
+  return value.toFixed(2);
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function formatAjuste(value: number): string {
+  if (Math.abs(value) < 1e-9) return "0.00";
+  const sign = value > 0 ? "+" : "-";
+  const abs = Math.abs(value).toFixed(3).replace(/\.?0+$/, "");
+  return `${sign} ${abs}`;
+}
+
+function KpiSoles({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
+  const amountClass = muted ? "text-(--color-text-secondary)" : "text-(--color-text-primary)";
   return (
     <div className="rounded-md border border-(--color-border) bg-(--color-surface) px-4 py-3 shadow-sm">
       <div className="text-xs font-semibold uppercase tracking-wide text-(--color-text-secondary)">{label}</div>
-      <div className="mt-1 text-lg font-semibold tracking-tight text-(--color-text-primary)">{value}</div>
+      <div className={`mt-1 flex items-baseline justify-start gap-2 text-base font-semibold tracking-tight tabular-nums ${amountClass}`}>
+        <span className="text-(--color-text-secondary)">S/.</span>
+        <span>{value}</span>
+      </div>
     </div>
   );
 }
@@ -102,28 +174,120 @@ export default function ReporteIngresosCajaPage() {
   const [numeracionId, setNumeracionId] = React.useState("");
   const [aperturaId, setAperturaId] = React.useState<string | null>(null);
   const [movs, setMovs] = React.useState<ReporteIngresosMovimiento[]>([]);
+  const [movPage, setMovPage] = React.useState(1);
+  const [movPerPage, setMovPerPage] = React.useState(25);
+  const [movMeta, setMovMeta] = React.useState<PaginationMeta>(defaultMovMeta);
   const [totalesMedio, setTotalesMedio] = React.useState<Record<string, string>>({});
   const [totalesDoc, setTotalesDoc] = React.useState({ facturas: "0.00", boletas: "0.00", recibo_caja: "0.00" });
-  const [totalGeneral, setTotalGeneral] = React.useState("0.00");
+  const [ajusteCalculado, setAjusteCalculado] = React.useState("0.00");
+  const [totalArqueadoCalculado, setTotalArqueadoCalculado] = React.useState("0.00");
+  const [editarTotalArqueado, setEditarTotalArqueado] = React.useState(false);
+  const [totalArqueadoEditado, setTotalArqueadoEditado] = React.useState("0.00");
+  const [cerrandoCaja, setCerrandoCaja] = React.useState(false);
+  const [confirmCierreOpen, setConfirmCierreOpen] = React.useState(false);
   const [movLoading, setMovLoading] = React.useState(false);
-  const [aplicarAjusteManual, setAplicarAjusteManual] = React.useState(false);
+  const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
+  const [aperturasPage, setAperturasPage] = React.useState<number | undefined>(undefined);
+  const [aperturasBusy, setAperturasBusy] = React.useState(false);
+  const [codigoAperturaReadout, setCodigoAperturaReadout] = React.useState<string | null>(null);
+  const [movSelectedId, setMovSelectedId] = React.useState<string | null>(null);
+  const [fraccionarModalOpen, setFraccionarModalOpen] = React.useState(false);
+  const movimientosSectionRef = React.useRef<HTMLElement | null>(null);
+
+  const movSelectedRow = React.useMemo(
+    () => (movSelectedId ? movs.find((r) => r.id === movSelectedId) ?? null : null),
+    [movs, movSelectedId]
+  );
+
+  React.useEffect(() => {
+    setMovSelectedId(null);
+  }, [aperturaId, numeracionId, movPage, movPerPage]);
+
+  React.useEffect(() => {
+    if (!movSelectedId || fraccionarModalOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      const node = movimientosSectionRef.current;
+      if (!node) return;
+      if (!node.contains(e.target as Node)) {
+        setMovSelectedId(null);
+      }
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [movSelectedId, fraccionarModalOpen]);
+
+  React.useEffect(() => {
+    setMovSelectedId((prev) => {
+      if (prev == null) return prev;
+      return movs.some((r) => r.id === prev) ? prev : null;
+    });
+  }, [movs]);
+
+  React.useEffect(() => {
+    if (fraccionarModalOpen && !movSelectedRow) setFraccionarModalOpen(false);
+  }, [fraccionarModalOpen, movSelectedRow]);
+
+  const onSelectMovimiento = React.useCallback((row: ReporteIngresosMovimiento) => {
+    setMovSelectedId((prev) => (prev === row.id ? null : row.id));
+  }, []);
+
+  useRealtimeModuleRefresh({
+    module: "caja",
+    entities: CAJA_REPORTE_ENTITIES,
+    onEvent: () => setRealtimeReloadKey((key) => key + 1),
+  });
+
+  useRealtimeModuleRefresh({
+    module: "ficheros",
+    entities: FICHEROS_CAJA_ENTITIES,
+    onEvent: () => setRealtimeReloadKey((key) => key + 1),
+  });
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ADMISION_REPORTE_ENTITIES,
+    onEvent: () => setRealtimeReloadKey((key) => key + 1),
+  });
+
+  useRealtimeModuleRefresh({
+    module: "emergencia",
+    entities: EMERGENCIA_REPORTE_ENTITIES,
+    onEvent: () => setRealtimeReloadKey((key) => key + 1),
+  });
 
   React.useEffect(() => {
     let c = false;
-    setBootLoading(true);
+    const initialBootstrap = aperturasPage === undefined;
+    if (initialBootstrap) {
+      setBootLoading(true);
+    } else {
+      setAperturasBusy(true);
+    }
     setBootErr(false);
-    fetchReporteIngresosBootstrap()
+    fetchReporteIngresosBootstrap(aperturasPage !== undefined ? { aperturasPage } : {})
       .then((b) => {
         if (c) return;
         setBoot(b);
-        const pref = b.apertura_preferida_id;
-        if (pref && b.aperturas.some((a) => a.id === pref)) {
-          setAperturaId(pref);
-        } else if (b.aperturas[0]) {
-          setAperturaId(b.aperturas[0].id);
-        } else {
-          setAperturaId(null);
+        if (aperturasPage === undefined && b.aperturas_meta) {
+          setAperturasPage(b.aperturas_meta.current_page);
         }
+        const pref = b.apertura_preferida_id;
+        const rows = b.aperturas;
+        setAperturaId((current) => {
+          if (current && rows.some((a) => a.id === current)) {
+            return current;
+          }
+          if (current) {
+            return current;
+          }
+          if (pref && rows.some((a) => a.id === pref)) {
+            return pref;
+          }
+          if (rows[0]) {
+            return rows[0].id;
+          }
+          return null;
+        });
       })
       .catch((e) => {
         if (!c) {
@@ -132,19 +296,41 @@ export default function ReporteIngresosCajaPage() {
         }
       })
       .finally(() => {
-        if (!c) setBootLoading(false);
+        if (!c) {
+          setBootLoading(false);
+          setAperturasBusy(false);
+        }
       });
     return () => {
       c = true;
     };
-  }, []);
+  }, [realtimeReloadKey, aperturasPage]);
+
+  React.useEffect(() => {
+    if (!aperturaId) {
+      setCodigoAperturaReadout(null);
+      return;
+    }
+    const row = boot?.aperturas.find((a) => a.id === aperturaId);
+    if (row) {
+      setCodigoAperturaReadout(row.codigo);
+    }
+  }, [boot, aperturaId]);
+
+  React.useEffect(() => {
+    setMovPage(1);
+  }, [aperturaId, numeracionId, movPerPage]);
+
+  React.useEffect(() => {
+    setMovs([]);
+  }, [aperturaId, numeracionId]);
 
   React.useEffect(() => {
     if (!aperturaId) {
       setMovs([]);
+      setMovMeta(defaultMovMeta);
       setTotalesMedio({});
       setTotalesDoc({ facturas: "0.00", boletas: "0.00", recibo_caja: "0.00" });
-      setTotalGeneral("0.00");
       return;
     }
     let c = false;
@@ -152,18 +338,21 @@ export default function ReporteIngresosCajaPage() {
     fetchReporteIngresosMovimientos({
       cajaAperturaId: Number(aperturaId),
       numeracionId: numeracionId.trim() || undefined,
+      page: movPage,
+      perPage: movPerPage,
     })
       .then((d) => {
         if (c) return;
         setMovs(d.movimientos);
+        setMovMeta(d.meta);
         setTotalesMedio(d.totales_por_medio);
         setTotalesDoc(d.totales_documento);
-        setTotalGeneral(d.total_general);
       })
       .catch((e) => {
         if (!c) {
           toastService.showError(getApiErrorMessage(e, "No se pudieron cargar los movimientos de la apertura seleccionada."));
           setMovs([]);
+          setMovMeta(defaultMovMeta);
         }
       })
       .finally(() => {
@@ -172,19 +361,75 @@ export default function ReporteIngresosCajaPage() {
     return () => {
       c = true;
     };
-  }, [aperturaId, numeracionId]);
+  }, [aperturaId, numeracionId, movPage, movPerPage, realtimeReloadKey]);
 
   const serieOpts: SelectOption[] = React.useMemo(() => {
     const rows = boot?.series ?? [];
     return [{ value: "", label: "Todas las series" }, ...rows.map((s) => ({ value: String(s.id), label: s.label }))];
   }, [boot]);
 
+  const mediosContado = React.useMemo<ReporteIngresosMedio[]>(() => boot?.medios_contado ?? [], [boot]);
+  const mediosAdicionales = React.useMemo<ReporteIngresosMedio[]>(() => boot?.medios_adicionales ?? [], [boot]);
   const aperturaSeleccionada = React.useMemo(
-    () => (boot?.aperturas ?? []).find((a) => a.id === aperturaId) ?? null,
+    () => (boot?.aperturas ?? []).find((x) => x.id === aperturaId) ?? null,
     [boot, aperturaId]
   );
 
-  const mediosContado = React.useMemo<ReporteIngresosMedio[]>(() => boot?.medios_contado ?? [], [boot]);
+  const resolveCierreOperacion = React.useCallback(():
+    | { error: string }
+    | { tipo: CajaAperturaTipo; montoCierre: number; ajusteCierre: number } => {
+    if (!aperturaSeleccionada) {
+      return { error: "Selecciona una apertura para cerrar la caja." };
+    }
+    if (aperturaSeleccionada.estado !== "APERTURADA") {
+      return { error: "Solo puedes cerrar una caja que esté aperturada." };
+    }
+    const tipo = String(aperturaSeleccionada.tipo).toUpperCase();
+    if (tipo !== "NORMAL" && tipo !== "CHICA") {
+      return { error: "El tipo de caja seleccionado no es válido para cerrar." };
+    }
+    const montoBase = editarTotalArqueado ? totalArqueadoEditado : totalArqueadoCalculado;
+    const montoCierre = parseMonto(montoBase);
+    if (montoCierre < 0) {
+      return { error: "El monto de cierre no puede ser menor a 0." };
+    }
+    const ajusteCierre = parseAjuste(ajusteCalculado);
+    return { tipo: tipo as CajaAperturaTipo, montoCierre, ajusteCierre };
+  }, [ajusteCalculado, aperturaSeleccionada, editarTotalArqueado, totalArqueadoEditado, totalArqueadoCalculado]);
+
+  const cierreDialogDescription = React.useMemo(() => {
+    const r = resolveCierreOperacion();
+    if ("error" in r) {
+      return "Revisa la apertura seleccionada y el monto arqueado antes de confirmar.";
+    }
+    const display = formatMonto2(r.montoCierre);
+    return `¿Deseas cerrar esta caja? Se guardará S/. ${display} como monto de cierre.`;
+  }, [resolveCierreOperacion]);
+
+  const onCierreCajaConfirmed = React.useCallback(async () => {
+    const r = resolveCierreOperacion();
+    if ("error" in r) {
+      toastService.showError(r.error);
+      setConfirmCierreOpen(false);
+      return;
+    }
+    setConfirmCierreOpen(false);
+    setCerrandoCaja(true);
+    try {
+      await closeAperturaCaja({
+        tipo: r.tipo,
+        monto_cierre: Number(r.montoCierre.toFixed(3)),
+        ajuste_cierre: Number(r.ajusteCierre.toFixed(3)),
+      });
+      toastService.showSuccess("Caja cerrada correctamente.");
+      setEditarTotalArqueado(false);
+      setRealtimeReloadKey((key) => key + 1);
+    } catch (e) {
+      toastService.showError(getApiErrorMessage(e, "No se pudo cerrar la caja con el monto arqueado indicado."));
+    } finally {
+      setCerrandoCaja(false);
+    }
+  }, [resolveCierreOperacion]);
 
   const totalEfectivoEstimado = React.useMemo(() => {
     let s = 0;
@@ -192,8 +437,31 @@ export default function ReporteIngresosCajaPage() {
       if (!/efect/i.test(m.descripcion) && !/efect/i.test(m.codigo)) continue;
       s += Number(String(totalesMedio[String(m.id)] ?? "0").replace(",", ".")) || 0;
     }
-    return s.toFixed(2);
-  }, [mediosContado, totalesMedio]);
+    if (aperturaSeleccionada?.monto_apertura) {
+      s += parseMonto(aperturaSeleccionada.monto_apertura);
+    }
+    return formatMonto2(s);
+  }, [mediosContado, totalesMedio, aperturaSeleccionada]);
+
+  React.useEffect(() => {
+    if (aperturaSeleccionada?.estado === "CERRADA" && aperturaSeleccionada.monto_cierre !== "—") {
+      setTotalArqueadoCalculado(aperturaSeleccionada.monto_cierre);
+      if (aperturaSeleccionada.ajuste_cierre !== null) {
+        setAjusteCalculado(formatAjuste(parseAjuste(aperturaSeleccionada.ajuste_cierre)));
+      } else {
+        setAjusteCalculado("0.00");
+      }
+      return;
+    }
+    setAjusteCalculado("0.00");
+    setTotalArqueadoCalculado(totalEfectivoEstimado);
+  }, [aperturaSeleccionada, totalEfectivoEstimado]);
+
+  React.useEffect(() => {
+    if (!editarTotalArqueado) {
+      setTotalArqueadoEditado(totalArqueadoCalculado);
+    }
+  }, [editarTotalArqueado, totalArqueadoCalculado]);
 
   if (bootLoading) {
     return (
@@ -221,271 +489,419 @@ export default function ReporteIngresosCajaPage() {
   return (
     <div className={pageWrap}>
       <div className={mainSheet}>
-        <div className="flex flex-wrap items-end justify-start gap-x-10 gap-y-4 border-b border-(--color-border) pb-5">
-          <div className="flex w-fit min-w-0 max-w-full flex-col items-start">
-            <SelectField
-              label="Serie"
-              value={numeracionId}
-              onChange={(v) => setNumeracionId(v)}
-              options={serieOpts}
-              ariaLabel="Filtrar por numeración activa"
-              buttonClassName="h-10 w-max min-w-[10rem] max-w-[min(100vw-2rem,36rem)]"
-              menuClassName={menuWide}
-              searchable
-              searchPlaceholder="Buscar serie…"
-            />
-            <p className={`${sectionHint} max-w-sm`}>Solo numeraciones en estado activo (ficheros).</p>
-          </div>
-          <div className="flex w-fit min-w-0 max-w-full flex-col items-start">
-            <label className={lbl} htmlFor="reporte-ingresos-readout-apertura">
-              Código de apertura
-            </label>
-            <div className="mt-1">
-              <div
-                id="reporte-ingresos-readout-apertura"
-                className={readoutInline}
-                aria-label="Código de apertura seleccionada"
-              >
-                {aperturaSeleccionada?.codigo ?? "—"}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-stretch">
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-end justify-start gap-x-4 gap-y-4 pb-2">
+              <div className="flex w-fit min-w-0 max-w-full flex-col items-start">
+                <SelectField
+                  label="Serie"
+                  value={numeracionId}
+                  onChange={(v) => setNumeracionId(v)}
+                  options={serieOpts}
+                  ariaLabel="Filtrar por numeración activa"
+                  buttonClassName="h-10 w-max min-w-[10rem] max-w-[min(100vw-2rem,36rem)]"
+                  menuClassName={menuWide}
+                  searchable
+                  searchPlaceholder="Buscar serie…"
+                />
+              </div>
+              <div className="flex w-fit min-w-0 max-w-full flex-col items-start">
+                <label className={lbl} htmlFor="reporte-ingresos-readout-apertura">
+                  Cod. apertura
+                </label>
+                <div className="mt-1">
+                  <div
+                    id="reporte-ingresos-readout-apertura"
+                    className={readoutInline}
+                    aria-label="Código de apertura seleccionada"
+                  >
+                    {codigoAperturaReadout ?? "—"}
+                  </div>
+                </div>
               </div>
             </div>
-            <p className={`${sectionHint} max-w-sm`}>Fila seleccionada en la tabla de aperturas.</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <section className={sectionCard}>
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <section className={`${sectionCardFlush} h-full`}>
+            <div className="px-0 pt-0 pb-2">
               <h2 className={sectionTitle}>Aperturas y cierres</h2>
-              <span className="text-xs text-(--color-text-secondary)">{boot.aperturas.length} registros</span>
             </div>
-            <div className={tableShell}>
-              <table className="w-full min-w-[560px] border-collapse text-left">
-                <thead>
-                  <tr>
-                    <th className={th}>Código</th>
-                    <th className={th}>Usuario</th>
-                    <th className={th}>Fecha</th>
-                    <th className={`${th} text-right`}>Monto apertura</th>
-                    <th className={`${th} text-right`}>Monto cierre</th>
-                    <th className={th}>Estado</th>
-                    <th className={th}>Tipo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {boot.aperturas.length === 0 ? (
-                    <tr>
-                      <td className={`${td} text-(--color-text-secondary)`} colSpan={7}>
-                        No hay aperturas registradas para tu usuario.
-                      </td>
-                    </tr>
-                  ) : (
-                    boot.aperturas.map((r: ReporteIngresosApertura, idx: number) => (
-                      <tr
-                        key={r.id}
-                        onClick={() => setAperturaId(r.id)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setAperturaId(r.id);
-                          }
-                        }}
-                        className={[
-                          "cursor-pointer transition-colors",
-                          idx % 2 === 1 ? "bg-(--color-background)/40" : "",
-                          aperturaId === r.id
-                            ? "bg-(--color-primary)/10 ring-1 ring-(--color-primary)/25 ring-inset"
-                            : "hover:bg-(--color-primary)/5",
-                        ].join(" ")}
-                      >
-                        <td className={td}>{r.codigo}</td>
-                        <td className={`${td} max-w-[140px] truncate`} title={r.usuario}>
-                          {r.usuario}
-                        </td>
-                        <td className={`${td} whitespace-nowrap text-(--color-text-secondary)`}>{r.fecha}</td>
-                        <td className={`${td} text-right`}>{r.monto_apertura}</td>
-                        <td className={`${td} text-right text-(--color-text-secondary)`}>{r.monto_cierre}</td>
-                        <td className={td}>{badgeApertura(r.estado)}</td>
-                        <td className={td}>{badgeTipoCaja(r.tipo)}</td>
+            <div className="px-0 pb-0">
+            <div className="hidden lg:block">
+              <div className={tableShellAperturas}>
+                {aperturasBusy ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-(--color-surface)/75 backdrop-blur-[1px]"
+                    aria-hidden
+                  >
+                    <div className="h-7 w-7 animate-spin rounded-full border-2 border-(--color-primary) border-t-transparent" />
+                  </div>
+                ) : null}
+                <div className={tableScrollAperturas}>
+                  <table className="w-full min-w-full table-fixed border-collapse text-sm">
+                    <colgroup>
+                      <col style={{ width: "6%" }} />
+                      <col style={{ width: "14%" }} />
+                      <col style={{ width: "12%" }} />
+                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "18%" }} />
+                      <col style={{ width: "16%" }} />
+                      <col style={{ width: "16%" }} />
+                    </colgroup>
+                    <thead className="sticky top-0 z-1 bg-(--color-primary) text-(--color-text-inverse)">
+                      <tr>
+                        <th className={thAperturaTight}>
+                          <AperturaColumnTitle label="ID" />
+                        </th>
+                        <th className={thAperturaTight}>
+                          <AperturaColumnTitle label="Usuario" />
+                        </th>
+                        <th className={thAperturaTight}>
+                          <AperturaColumnTitle label="Fecha" />
+                        </th>
+                        <th className={thAperturaTight}>
+                          <AperturaColumnTitle label="Monto de apertura" />
+                        </th>
+                        <th className={thAperturaTight}>
+                          <AperturaColumnTitle label="Monto de cierre" />
+                        </th>
+                        <th className={thAperturaEstado}>
+                          <AperturaColumnTitle label="Estado" />
+                        </th>
+                        <th className={thAperturaTipo}>
+                          <AperturaColumnTitle label="Tipo" />
+                        </th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {boot.aperturas.length === 0 ? (
+                        <tr className="border-t border-(--border-color-default) bg-(--color-surface)">
+                          <td className={`${tdAperturaTight} text-(--color-text-secondary)`} colSpan={7}>
+                            No hay aperturas registradas para tu usuario.
+                          </td>
+                        </tr>
+                      ) : (
+                        boot.aperturas.map((r: ReporteIngresosApertura) => (
+                          <tr
+                            key={r.id}
+                            onClick={() => setAperturaId(r.id)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setAperturaId(r.id);
+                              }
+                            }}
+                            className={[
+                              "cursor-pointer border-t border-(--border-color-default) transition-colors",
+                              aperturaId === r.id ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
+                              "hover:bg-(--color-surface-hover)",
+                            ].join(" ")}
+                          >
+                            <td className={`${tdAperturaTight} whitespace-nowrap tabular-nums`}>
+                              {codigoAperturaIdColumna(r.codigo)}
+                            </td>
+                            <td className={`${tdAperturaTight} min-w-0`} title={r.usuario}>
+                              <span className="block w-full truncate text-center">{r.usuario}</span>
+                            </td>
+                            <td className={`${tdAperturaTight} whitespace-nowrap text-(--color-text-secondary)`}>{r.fecha}</td>
+                            <td className={tdAperturaTight}>
+                              <div className="flex justify-center">
+                                <ReporteSolesAmount value={r.monto_apertura} />
+                              </div>
+                            </td>
+                            <td className={tdAperturaTight}>
+                              <div className="flex justify-center">
+                                <ReporteSolesAmount value={r.monto_cierre} muted />
+                              </div>
+                            </td>
+                            <td className={tdAperturaEstado}>
+                              <div className="flex justify-center">
+                                <AtencionEstadoBadge value={r.estado} />
+                              </div>
+                            </td>
+                            <td className={tdAperturaTipo}>
+                              <div className="flex justify-center">
+                                <CajaAperturaTipoBadge value={r.tipo} />
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </section>
+            <div className="lg:hidden">
+              <ReporteIngresosAperturasMobileList
+                rows={boot.aperturas}
+                loading={aperturasBusy && boot.aperturas.length === 0}
+                selectedId={aperturaId}
+                onSelect={(row) => setAperturaId(row.id)}
+              />
+            </div>
+            {boot.aperturas_meta.total > 0 ? (
+              <>
+                <div className="hidden lg:block">
+                  <PaginationFooter
+                    meta={boot.aperturas_meta}
+                    variant="desktop"
+                    onPrev={() =>
+                      setAperturasPage((prev) => {
+                        const cur = prev ?? boot.aperturas_meta.current_page;
+                        return Math.max(1, cur - 1);
+                      })
+                    }
+                    onNext={() =>
+                      setAperturasPage((prev) => {
+                        const cur = prev ?? boot.aperturas_meta.current_page;
+                        return Math.min(boot.aperturas_meta.last_page, cur + 1);
+                      })
+                    }
+                    onFirst={() => setAperturasPage(1)}
+                    onLast={() => setAperturasPage(boot.aperturas_meta.last_page)}
+                  />
+                </div>
+                <div className="lg:hidden">
+                  <PaginationFooter
+                    meta={boot.aperturas_meta}
+                    variant="mobile"
+                    onPrev={() =>
+                      setAperturasPage((prev) => {
+                        const cur = prev ?? boot.aperturas_meta.current_page;
+                        return Math.max(1, cur - 1);
+                      })
+                    }
+                    onNext={() =>
+                      setAperturasPage((prev) => {
+                        const cur = prev ?? boot.aperturas_meta.current_page;
+                        return Math.min(boot.aperturas_meta.last_page, cur + 1);
+                      })
+                    }
+                    onFirst={() => setAperturasPage(1)}
+                    onLast={() => setAperturasPage(boot.aperturas_meta.last_page)}
+                  />
+                </div>
+              </>
+            ) : null}
+            </div>
+            </section>
+          </div>
 
-          <section className={sectionCard}>
-            <h2 className={sectionTitle}>Resumen por medio de pago</h2>
-            <p className={`${sectionHint} mb-3`}>Forma de pago contado · solo medios activos vinculados en ficheros.</p>
+          <section className={`${sectionCard} h-full`}>
+            <h2 className={`${sectionTitle} mb-3`}>Resumen por medio de pago</h2>
             {mediosContado.length === 0 ? (
               <p className="text-sm text-(--color-text-secondary)">
                 No hay medios de pago activos para contado, o no existe la forma «contado» en ficheros.
               </p>
             ) : (
-              <div className={tableShell}>
-                <table className="w-full border-collapse text-left text-sm">
-                  <thead>
-                    <tr>
-                      <th className={th}>Medio de pago</th>
-                      <th className={`${th} w-[128px] text-right`}>Monto (PEN)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mediosContado.map((m, idx) => (
-                      <tr key={m.id} className={idx % 2 === 1 ? "bg-(--color-background)/40" : ""}>
-                        <td className={td}>
-                          <span className="text-xs text-(--color-text-secondary)">{m.codigo}</span>
-                          <span className="mx-1.5 text-(--color-text-secondary)">·</span>
-                          <span>{m.descripcion}</span>
-                        </td>
-                        <td className={`${td} text-right text-sm font-semibold text-(--color-text-primary)`}>
-                          {totalesMedio[String(m.id)] ?? "0.00"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ReporteIngresoMediosResumen
+                medios={mediosContado}
+                mediosAdicionales={mediosAdicionales}
+                totalesPorMedio={totalesMedio}
+              />
             )}
           </section>
         </div>
+      </div>
 
-        <section className={sectionCard}>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className={sectionTitle}>Movimientos de caja</h2>
-              <p className={sectionHint}>Emisiones registradas para la apertura seleccionada.</p>
-            </div>
-            {movLoading ? (
-              <span className="text-xs font-medium text-(--color-text-secondary)">Sincronizando…</span>
+      <section
+        ref={movimientosSectionRef}
+        className="flex flex-col gap-3 rounded-md border border-(--border-color-default) bg-(--color-surface) p-4 shadow-sm sm:p-5"
+        aria-labelledby="reporte-movimientos-caja-heading"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="reporte-movimientos-caja-heading" className={sectionTitle}>
+              Movimientos de caja
+            </h2>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {movSelectedRow ? (
+              <SecondaryButton
+                type="button"
+                disabled={
+                  !aperturaId || !movSelectedRow.fraccionar_permitido || !movSelectedRow.fraccionar_context
+                }
+                onClick={() => setFraccionarModalOpen(true)}
+                className="h-10 shrink-0 whitespace-nowrap px-3 text-sm"
+                title={
+                  !aperturaId
+                    ? "Selecciona una apertura"
+                    : !movSelectedRow.fraccionar_permitido
+                      ? "Este comprobante ya tiene más de dos líneas de pago o no admite fraccionar"
+                      : !movSelectedRow.fraccionar_context
+                        ? "No hay datos para fraccionar este comprobante"
+                        : undefined
+                }
+              >
+                Detallar comprobante
+              </SecondaryButton>
             ) : null}
-          </div>
-          <div className={tableShell}>
-            <table className="w-full min-w-[1080px] border-collapse text-left">
-              <thead>
-                <tr>
-                  <th className={th}>Cuenta</th>
-                  <th className={`${th} min-w-[140px]`}>Paciente</th>
-                  <th className={`${th} min-w-[120px]`}>Médico / servicio</th>
-                  <th className={`${th} min-w-[100px]`}>Tipo comprob.</th>
-                  <th className={`${th} whitespace-nowrap`}>N.º comprob.</th>
-                  <th className={`${th} text-right`}>Total</th>
-                  <th className={`${th} whitespace-nowrap`}>N.º operación</th>
-                  <th className={th}>Estado</th>
-                  <th className={`${th} w-[88px]`}>Pago fracc.</th>
-                  <th className={`${th} min-w-[120px]`}>Medio pago</th>
-                  <th className={th}>Origen</th>
-                  <th className={`${th} text-right`}>Adelanto</th>
-                  <th className={th}>U. elimina</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!aperturaId ? (
-                  <tr>
-                    <td className={`${td} text-(--color-text-secondary)`} colSpan={13}>
-                      Selecciona una apertura en la tabla superior.
-                    </td>
-                  </tr>
-                ) : movs.length === 0 ? (
-                  <tr>
-                    <td className={`${td} text-(--color-text-secondary)`} colSpan={13}>
-                      Sin emisiones registradas para esta apertura.
-                    </td>
-                  </tr>
-                ) : (
-                  movs.map((r: ReporteIngresosMovimiento, idx: number) => (
-                    <tr key={r.id} className={idx % 2 === 1 ? "bg-(--color-background)/40" : ""}>
-                      <td className={td}>{r.cuenta}</td>
-                      <td className={`${td} max-w-[180px] truncate`} title={r.paciente}>
-                        {r.paciente}
-                      </td>
-                      <td className={`${td} max-w-[160px] truncate text-(--color-text-secondary)`} title={r.medico_servicio}>
-                        {r.medico_servicio}
-                      </td>
-                      <td className={`${td} text-(--color-text-secondary)`}>{r.tipo_comprobante}</td>
-                      <td className={`${td} whitespace-nowrap`}>{r.num_comprobante}</td>
-                      <td className={`${td} text-right text-sm font-semibold`}>{r.total}</td>
-                      <td className={`${td} max-w-[100px] truncate text-xs`} title={r.cuenta_pago}>
-                        {r.cuenta_pago || "—"}
-                      </td>
-                      <td className={td}>{badgeEstadoMovimiento(r.estado)}</td>
-                      <td className={`${td} text-(--color-text-secondary)`}>{r.pago_fracc}</td>
-                      <td className={`${td} max-w-[160px] truncate text-sm`} title={r.medio_pago}>
-                        {r.medio_pago}
-                      </td>
-                      <td className={`${td} text-xs text-(--color-text-secondary)`}>{r.tipo}</td>
-                      <td className={`${td} text-right text-(--color-text-secondary)`}>{r.adelanto}</td>
-                      <td className={`${td} text-(--color-text-secondary)`}>{r.usuario_elimina}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <div className="grid grid-cols-1 gap-4 border-t border-(--color-border) pt-5 lg:grid-cols-12 lg:items-stretch">
-          <div className="flex flex-col gap-4 lg:col-span-7">
-            <div className="inline-flex w-fit items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" aria-hidden />
-              Leyenda: comprobantes anulados (pendiente de detalle en listado)
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Kpi label="Total facturas (PEN)" value={totalesDoc.facturas} />
-              <Kpi label="Total boletas (PEN)" value={totalesDoc.boletas} />
-              <Kpi label="Total recibo caja (PEN)" value={totalesDoc.recibo_caja} />
-            </div>
-          </div>
-
-          <div className={`${sectionCard} lg:col-span-5`}>
-            <h2 className={sectionTitle}>Arqueo · efectivo</h2>
-            <p className={`${sectionHint} mb-4`}>Valores orientativos según medios y movimientos cargados.</p>
-            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-(--color-border) bg-(--color-surface) px-3 py-2.5">
-                <dt className="text-xs font-medium text-(--color-text-secondary)">Ingreso efectivo (estim.)</dt>
-                <dd className="mt-0.5 text-right text-base font-semibold text-(--color-text-primary)">
-                  {totalEfectivoEstimado}
-                </dd>
-              </div>
-              <div className="rounded-md border border-(--color-border) bg-(--color-surface) px-3 py-2.5">
-                <dt className="text-xs font-medium text-(--color-text-secondary)">Ajuste calculado ±</dt>
-                <dd className="mt-0.5 text-right text-base font-semibold text-(--color-text-secondary)">
-                  0.00
-                </dd>
-              </div>
-              <div className="rounded-md border border-(--color-border) bg-(--color-surface) px-3 py-2.5 sm:col-span-2">
-                <dt className="text-xs font-medium text-(--color-text-secondary)">Total movimientos (suma líneas, PEN)</dt>
-                <dd className="mt-0.5 text-right text-lg font-semibold text-(--color-text-primary)">
-                  {totalGeneral}
-                </dd>
-              </div>
-            </dl>
-            <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-sm text-(--color-text-primary)">
-              <input
-                type="checkbox"
-                checked={aplicarAjusteManual}
-                onChange={(e) => setAplicarAjusteManual(e.target.checked)}
-                className="h-4 w-4 shrink-0 rounded border border-(--border-color-default) accent-(--color-primary)"
+            <div className="w-28 shrink-0">
+              <SelectMenu
+                value={String(movPerPage)}
+                onChange={(v) => setMovPerPage(Number(v) || 25)}
+                options={MOV_PER_PAGE_OPTS}
+                ariaLabel="Registros por página"
+                buttonClassName="w-full"
+                menuClassName="min-w-full"
               />
-              Aplicar ajuste manual
-            </label>
+            </div>
+            {movLoading ? <span className="text-xs font-medium text-(--color-text-secondary)">Sincronizando…</span> : null}
+          </div>
+        </div>
+        <div className="hidden min-w-0 lg:block">
+          <ReporteIngresosMovimientosTable
+            rows={movs}
+            loading={movLoading && movs.length === 0}
+            sinApertura={!aperturaId}
+            selectedId={movSelectedId}
+            onSelectRow={onSelectMovimiento}
+          />
+        </div>
+        <div className="min-w-0 lg:hidden">
+          <ReporteIngresosMovimientosMobileList
+            rows={movs}
+            loading={movLoading && movs.length === 0}
+            sinApertura={!aperturaId}
+            selectedId={movSelectedId}
+            onSelectRow={onSelectMovimiento}
+          />
+        </div>
+        {aperturaId ? (
+          <>
+            <div className="hidden lg:block">
+              <PaginationFooter
+                meta={movMeta}
+                variant="desktop"
+                onPrev={() => setMovPage((p) => Math.max(1, p - 1))}
+                onNext={() => setMovPage((p) => Math.min(movMeta.last_page, p + 1))}
+                onFirst={() => setMovPage(1)}
+                onLast={() => setMovPage(movMeta.last_page)}
+              />
+            </div>
+            <div className="lg:hidden">
+              <PaginationFooter
+                meta={movMeta}
+                variant="mobile"
+                onPrev={() => setMovPage((p) => Math.max(1, p - 1))}
+                onNext={() => setMovPage((p) => Math.min(movMeta.last_page, p + 1))}
+                onFirst={() => setMovPage(1)}
+                onLast={() => setMovPage(movMeta.last_page)}
+              />
+            </div>
+          </>
+        ) : null}
+      </section>
+
+      <div className={mainSheet}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <KpiSoles label="Total facturas" value={totalesDoc.facturas} />
+          <KpiSoles label="Total boletas" value={totalesDoc.boletas} />
+          <KpiSoles label="Total recibo caja" value={totalesDoc.recibo_caja} />
+          <KpiSoles label="Total ingreso en efectivo" value={totalEfectivoEstimado} />
+          <KpiSoles label="Ajuste calculado ±" value={ajusteCalculado} muted />
+          <div className="rounded-md border border-(--color-border) bg-(--color-surface) px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold uppercase tracking-wide text-(--color-text-secondary)">Total efectivo arqueado</div>
+              <label className="inline-flex items-center">
+                <input
+                  type="checkbox"
+                  checked={editarTotalArqueado}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setEditarTotalArqueado(checked);
+                    if (!checked) {
+                      setTotalArqueadoEditado(totalArqueadoCalculado);
+                    }
+                  }}
+                  className="h-3.5 w-3.5 rounded border border-(--border-color-default) accent-(--color-primary)"
+                  aria-label="Habilitar edición de total efectivo arqueado"
+                />
+              </label>
+            </div>
+            {editarTotalArqueado ? (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-sm font-semibold tabular-nums text-(--color-text-secondary)">S/.</span>
+                <input
+                  value={totalArqueadoEditado}
+                  onChange={(e) => {
+                    const cleaned = e.target.value.replace(/[^\d.]/g, "");
+                    setTotalArqueadoEditado(cleaned);
+                  }}
+                  className="h-8 w-full rounded-md border border-(--border-color-default) bg-(--color-background) px-2 text-sm font-semibold tabular-nums text-(--color-text-primary) outline-none focus:ring-2 focus:ring-(--color-primary)/30"
+                  inputMode="decimal"
+                  aria-label="Editar total efectivo arqueado"
+                />
+              </div>
+            ) : (
+              <div className="mt-1 flex items-baseline justify-start gap-2 text-base font-semibold tracking-tight tabular-nums text-(--color-text-primary)">
+                <span className="text-(--color-text-secondary)">S/.</span>
+                <span>{totalArqueadoCalculado}</span>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-(--color-border) pt-4 sm:flex-row sm:justify-end">
-          <SecondaryButton type="button" className="inline-flex h-10 items-center justify-center gap-2 sm:min-w-[168px]">
+          <SecondaryButton
+            type="button"
+            onClick={() => {
+              const base = parseMonto(totalEfectivoEstimado);
+              const redondeado = Math.round(base * 10) / 10;
+              const ajuste = redondeado - base;
+              const redondeadoFmt = formatMonto2(redondeado);
+              setAjusteCalculado(formatAjuste(ajuste));
+              setTotalArqueadoCalculado(redondeadoFmt);
+              if (!editarTotalArqueado) {
+                setTotalArqueadoEditado(redondeadoFmt);
+              }
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 sm:min-w-[168px]"
+          >
             <SlidersHorizontal className="h-4 w-4 shrink-0" aria-hidden />
             Aplicar ajuste
           </SecondaryButton>
-          <PrimaryButton type="button" className="inline-flex h-10 items-center justify-center gap-2 sm:min-w-[168px]">
+          <PrimaryButton
+            type="button"
+            disabled={cerrandoCaja}
+            onClick={() => {
+              const r = resolveCierreOperacion();
+              if ("error" in r) {
+                toastService.showError(r.error);
+                return;
+              }
+              setConfirmCierreOpen(true);
+            }}
+            className="inline-flex h-10 items-center justify-center gap-2 sm:min-w-[168px]"
+          >
             <FolderInput className="h-4 w-4 shrink-0" aria-hidden />
-            Cierre de caja
+            {cerrandoCaja ? "Cerrando..." : "Cierre de caja"}
           </PrimaryButton>
         </div>
       </div>
+
+      <ReporteFraccionarPagoModal
+        open={fraccionarModalOpen}
+        movimiento={movSelectedRow}
+        onClose={() => setFraccionarModalOpen(false)}
+        onSaved={() => {
+          setRealtimeReloadKey((k) => k + 1);
+          setMovSelectedId(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmCierreOpen}
+        title="Cierre de caja"
+        description={cierreDialogDescription}
+        confirmText="Confirmar cierre"
+        cancelText="Cancelar"
+        onCancel={() => setConfirmCierreOpen(false)}
+        onConfirm={onCierreCajaConfirmed}
+      />
     </div>
   );
 }

@@ -8,13 +8,13 @@ import DateInput from "../../../../shared/ui/DateInput";
 import { PRECISION_DECIMAL } from "../../../../shared/constants/decimalPrecision";
 
 function filterPrecioDecimal(raw: string): string {
-  let t = raw.replace(",", ".").replace(/[^\d.]/g, "");
+  const t = raw.replace(",", ".").replace(/[^\d.]/g, "");
   if (t === "") return "";
   if (t === ".") return "0.";
   const firstDot = t.indexOf(".");
   if (firstDot === -1) return t;
   let intPart = t.slice(0, firstDot);
-  let frac = t.slice(firstDot + 1).replace(/\./g, "").slice(0, PRECISION_DECIMAL);
+  const frac = t.slice(firstDot + 1).replace(/\./g, "").slice(0, PRECISION_DECIMAL);
   if (intPart === "") intPart = "0";
   return frac.length > 0 ? `${intPart}.${frac}` : `${intPart}.`;
 }

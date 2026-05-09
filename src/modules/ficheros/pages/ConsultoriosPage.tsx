@@ -6,6 +6,7 @@ import ConsultoriosToolbar from "../consultorios/components/ConsultoriosToolbar"
 import ConsultoriosTable from "../consultorios/components/ConsultoriosTable";
 import ConsultoriosMobileList from "../consultorios/components/ConsultoriosMobileList";
 import ConsultorioFormCard from "../consultorios/components/ConsultorioFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function ConsultoriosPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["consultorio"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

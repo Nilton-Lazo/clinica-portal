@@ -6,6 +6,9 @@ import EspecialidadesToolbar from "../especialidades/components/EspecialidadesTo
 import EspecialidadesTable from "../especialidades/components/EspecialidadesTable";
 import EspecialidadesMobileList from "../especialidades/components/EspecialidadesMobileList";
 import EspecialidadFormCard from "../especialidades/components/EspecialidadFormCard";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
+
+const FICHEROS_ESPECIALIDADES_ENTITIES = ["especialidad"];
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +33,20 @@ export default function EspecialidadesPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useRealtimeModuleRefresh({
+    module: "ficheros",
+    entities: FICHEROS_ESPECIALIDADES_ENTITIES,
+    onEvent: (event) => {
+      if (event.action === "created") {
+        vm.setPage(1);
+        void vm.refresh({ page: 1 });
+        return;
+      }
+
+      void vm.refresh();
+    },
+  });
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

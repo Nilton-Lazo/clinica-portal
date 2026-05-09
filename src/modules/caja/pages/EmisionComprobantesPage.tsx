@@ -30,6 +30,7 @@ import type {
   AtencionServicioLineaDisplay,
   PresupuestoPaqueteSnapshot,
 } from "../../admision/citas/agenda/types/atencionCita.types";
+import { buscarServiciosTarifa, getIgvPorcentaje } from "../../admision/citas/agenda/services/atencionCita.service";
 import ClientePicker from "../components/ClientePicker";
 import { getEmisionBootstrap, getEmisionBootstrapSync } from "../services/emisionBootstrapCache";
 import type { EmisionBootstrapBundle } from "../types/emisionBootstrap.types";
@@ -37,6 +38,9 @@ import type { EmisionComprobantesCatalog, EmisionComprobantesFormState } from ".
 import { getApiErrorMessage, toApiError } from "../../../shared/api/apiError";
 import { getResumenApertura } from "../services/aperturaCaja.service";
 import { postEmisionComprobantesRegistrar } from "../services/emisionComprobantesRegistrar.service";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
+import type { RealtimeEntityChangedEvent } from "../../../shared/realtime/realtimeEvents";
+import { parseDecimalInput, roundToPrecision } from "../../../shared/constants/decimalPrecision";
 
 const menuWide = "min-w-full max-w-[calc(100vw-2rem)]";
 
@@ -74,6 +78,7 @@ const chk =
 const pageWrap = "flex w-full min-h-0 flex-1 flex-col gap-2";
 
 const panel = "rounded-md border border-(--color-border) bg-(--color-surface) p-4 shadow-sm";
+const CAJA_EMISION_ENTITIES = ["caja_apertura", "emision_comprobante"];
 
 const mainSheet =
   "flex flex-col gap-3 overflow-visible rounded-md border border-(--color-border) bg-(--color-surface) p-3 shadow-sm";
@@ -256,7 +261,52 @@ function parseCuentaDetalleServicios(
     const form = (detalle as { form?: unknown }).form;
     if (form && typeof form === "object") {
       const f = form as Record<string, unknown>;
-      const lineas = Array.isArray(f.lineas) ? (f.lineas as AtencionServicioLineaDisplay[]) : [];
+      const lineas = Array.isArray(f.lineas)
+        ? f.lineas.flatMap((ln) => {
+            if (!ln || typeof ln !== "object") return [];
+            const raw = ln as Record<string, unknown>;
+            const tarifaServicioId = Number(raw.tarifa_servicio_id);
+            if (!Number.isFinite(tarifaServicioId) || tarifaServicioId <= 0) {
+              return [];
+            }
+            const idNumRaw = Number(raw.id);
+            const idNum = Number.isFinite(idNumRaw) && idNumRaw > 0 ? idNumRaw : undefined;
+            const estadoRaw = String(raw.estado_facturacion ?? "PENDIENTE").trim().toUpperCase();
+            const estado =
+              estadoRaw === "FACTURADO" || estadoRaw === "PENDIENTE" ? estadoRaw : "PENDIENTE";
+            return [
+              {
+                id: idNum,
+                tarifa_servicio_id: tarifaServicioId,
+                servicio_codigo:
+                  typeof raw.servicio_codigo === "string" && raw.servicio_codigo.trim()
+                    ? raw.servicio_codigo.trim()
+                    : null,
+                servicio_descripcion:
+                  typeof raw.servicio_descripcion === "string" && raw.servicio_descripcion.trim()
+                    ? raw.servicio_descripcion.trim()
+                    : null,
+                categoria_codigo:
+                  typeof raw.categoria_codigo === "string" && raw.categoria_codigo.trim()
+                    ? raw.categoria_codigo.trim()
+                    : null,
+                desea_liberar_precio: Boolean(raw.desea_liberar_precio),
+                medico_id: Number.isFinite(Number(raw.medico_id)) ? Number(raw.medico_id) : 0,
+                medico_codigo: null,
+                user_username: null,
+                user_nombre: null,
+                cop_var: Number(raw.cop_var ?? 0),
+                cop_fijo: Number(raw.cop_fijo ?? 0),
+                descuento_pct: Number(raw.descuento_pct ?? 0),
+                aumento_pct: Number(raw.aumento_pct ?? 0),
+                cantidad: Number(raw.cantidad ?? 1),
+                precio_sin_igv: Number(raw.precio_sin_igv ?? 0),
+                precio_con_igv: Number(raw.precio_con_igv ?? 0),
+                estado_facturacion: estado,
+              } satisfies AtencionServicioLineaDisplay,
+            ];
+          })
+        : [];
       const paquete = Object.prototype.hasOwnProperty.call(f, "presupuestoPaquete")
         ? ((f.presupuestoPaquete as PresupuestoPaqueteSnapshot | null) ?? null)
         : null;
@@ -324,10 +374,16 @@ export default function EmisionComprobantesPage() {
   const [cuentaPickerOpen, setCuentaPickerOpen] = React.useState(false);
   const [loadingCuentaDetalle, setLoadingCuentaDetalle] = React.useState(false);
   const [lineasCuenta, setLineasCuenta] = React.useState<AtencionServicioLineaDisplay[]>([]);
+  const [tarifaCuentaId, setTarifaCuentaId] = React.useState<number | null>(null);
   const [cuentaSinPendientes, setCuentaSinPendientes] = React.useState(false);
   const [cuentaBloqueada, setCuentaBloqueada] = React.useState(false);
+  const [emisionRegistradaEnCuenta, setEmisionRegistradaEnCuenta] = React.useState(false);
   const [tarifaEsPrecioDirectoCuenta, setTarifaEsPrecioDirectoCuenta] = React.useState(false);
   const [paqueteCuenta, setPaqueteCuenta] = React.useState<PresupuestoPaqueteSnapshot | null>(null);
+  const [adelantoEnabled, setAdelantoEnabled] = React.useState(false);
+  const [adelantoMontoConIgv, setAdelantoMontoConIgv] = React.useState(0);
+  const [adelantoServicioDescripcion, setAdelantoServicioDescripcion] = React.useState<string | null>(null);
+  const [igvPct, setIgvPct] = React.useState(18);
   const [form, setForm] = React.useState<EmisionComprobantesFormState>(() => {
     const s = getEmisionBootstrapSync();
     return s
@@ -429,6 +485,23 @@ export default function EmisionComprobantesPage() {
     () => (formaSeleccionada?.codigo ?? "").trim() === "002",
     [formaSeleccionada]
   );
+  const codigoServicioAdelanto = React.useMemo(
+    () => (bundle?.reglas?.adelanto_garantia_servicio_codigo ?? "00.18.03").trim(),
+    [bundle?.reglas?.adelanto_garantia_servicio_codigo]
+  );
+  const codigoTipoReciboCaja = React.useMemo(
+    () => (bundle?.reglas?.recibo_caja_tipo_documento_codigo ?? "005").trim().toUpperCase(),
+    [bundle?.reglas?.recibo_caja_tipo_documento_codigo]
+  );
+  const tipoDocSeleccionado = React.useMemo(
+    () => catalog?.tipos_documento.find((x) => x.value === form.tipoDocumentoId) ?? null,
+    [catalog?.tipos_documento, form.tipoDocumentoId]
+  );
+  const esReciboCaja = ((tipoDocSeleccionado?.codigo ?? "").trim().toUpperCase() || "") === codigoTipoReciboCaja;
+  const permiteAdelantoGarantia = form.origen === "HOSPITALIZACION" && esReciboCaja;
+  React.useEffect(() => {
+    getIgvPorcentaje().then(setIgvPct).catch(() => setIgvPct(18));
+  }, []);
 
   const mediosFiltrados = React.useMemo(
     () => mediosForForma(medios, formaIdNum),
@@ -560,8 +633,11 @@ export default function EmisionComprobantesPage() {
     [form.cuenta]
   );
 
+  const tipoSerieNumeroSoloLectura = cuentaBloqueada && emisionRegistradaEnCuenta;
+
   React.useEffect(() => {
     if (!form.tipoDocumentoId) return;
+    if (tipoSerieNumeroSoloLectura) return;
     const ok = numeracionesPorTipo.some((n) => String(n.id) === form.numeracionId);
     if (ok) return;
     const first = numeracionesPorTipo[0];
@@ -569,7 +645,7 @@ export default function EmisionComprobantesPage() {
       numeracionId: first ? String(first.id) : "",
       correlativo: first?.numero_formateado?.trim() ? String(first.numero_formateado) : "",
     });
-  }, [form.tipoDocumentoId, form.numeracionId, numeracionesPorTipo, patch]);
+  }, [form.tipoDocumentoId, form.numeracionId, numeracionesPorTipo, patch, tipoSerieNumeroSoloLectura]);
 
   const onNumeracionChange = React.useCallback(
     (id: string) => {
@@ -613,15 +689,33 @@ export default function EmisionComprobantesPage() {
       try {
         setLoadingCuentaDetalle(true);
         const detalle = await fetchCuentaDetalle(nroCuenta);
+        setEmisionRegistradaEnCuenta(Boolean(detalle.emision_comprobante));
         const estadoCuenta = (detalle.cuenta.estado ?? "").toString().trim().toUpperCase();
         const bloqueada = estadoCuenta === "CANCELADO";
         setCuentaBloqueada(bloqueada);
         if (bloqueada && !opts?.suppressBlockedToast) {
           toastService.showWarning("La cuenta seleccionada ya está cancelada o facturada y no permite otra emisión.");
         }
-        const pacienteId = detalle.cuenta.paciente_id ?? row?.paciente_id ?? null;
+        const pacienteIdFromDetalle =
+          detalle.detalle &&
+          typeof detalle.detalle === "object" &&
+          (detalle.detalle as { paciente?: unknown }).paciente &&
+          typeof (detalle.detalle as { paciente?: unknown }).paciente === "object"
+            ? Number(
+                ((detalle.detalle as { paciente?: { id?: unknown } }).paciente as { id?: unknown }).id
+              )
+            : null;
+        const pacienteId =
+          detalle.cuenta.paciente_id ??
+          (Number.isFinite(pacienteIdFromDetalle) && (pacienteIdFromDetalle ?? 0) > 0
+            ? pacienteIdFromDetalle
+            : null) ??
+          row?.paciente_id ??
+          null;
         if (!pacienteId || !Number.isFinite(Number(pacienteId))) {
           patch({ cuenta: "" });
+          setCuentaBloqueada(false);
+          setEmisionRegistradaEnCuenta(false);
           toastService.showWarning("La cuenta seleccionada no tiene un paciente vinculado para emitir el comprobante.");
           return;
         }
@@ -682,6 +776,23 @@ export default function EmisionComprobantesPage() {
           titularBeforeCopiaRef.current = titular;
         }
 
+        const em = detalle.emision_comprobante;
+        const emisionPatch: Partial<Pick<EmisionComprobantesFormState, "tipoDocumentoId" | "numeracionId" | "correlativo">> =
+          {};
+        if (
+          em &&
+          typeof em.numeracion_comprobante_id === "number" &&
+          em.numeracion_comprobante_id > 0 &&
+          typeof em.numero_formateado === "string" &&
+          em.numero_formateado.trim() !== ""
+        ) {
+          emisionPatch.numeracionId = String(em.numeracion_comprobante_id);
+          emisionPatch.correlativo = em.numero_formateado.trim();
+          if (typeof em.tipo_documento_id === "number" && em.tipo_documento_id > 0) {
+            emisionPatch.tipoDocumentoId = String(em.tipo_documento_id);
+          }
+        }
+
         patch({
           paciente: nombreCompleto,
           titular,
@@ -690,17 +801,28 @@ export default function EmisionComprobantesPage() {
           documento,
           direccion,
           contratante,
+          ...emisionPatch,
         });
         setLineasCuenta(lineas);
+        setTarifaCuentaId(
+          detalle.cuenta.tarifa_id != null && Number.isFinite(Number(detalle.cuenta.tarifa_id))
+            ? Number(detalle.cuenta.tarifa_id)
+            : null
+        );
         setPaqueteCuenta(parsed.paquete);
         setTarifaEsPrecioDirectoCuenta(Boolean(planObjetivo?.tarifa_es_precio_directo));
       } catch (e) {
         patch({ cuenta: "" });
         setCuentaBloqueada(false);
+        setEmisionRegistradaEnCuenta(false);
         setCuentaSinPendientes(false);
         setLineasCuenta([]);
+        setTarifaCuentaId(null);
         setPaqueteCuenta(null);
         setTarifaEsPrecioDirectoCuenta(false);
+        setAdelantoEnabled(false);
+        setAdelantoMontoConIgv(0);
+        setAdelantoServicioDescripcion(null);
         const err = toApiError(e);
         if (err.kind === "server" && err.status === 404) {
           toastService.showError("No existe una cuenta con ese número.");
@@ -724,7 +846,11 @@ export default function EmisionComprobantesPage() {
         return;
       }
       setCuentaBloqueada(false);
+      setEmisionRegistradaEnCuenta(false);
       setCuentaSinPendientes(false);
+      setAdelantoEnabled(false);
+      setAdelantoMontoConIgv(0);
+      setAdelantoServicioDescripcion(null);
       void loadCuentaDetalleYAutocompletar(normalized, row);
     },
     [loadCuentaDetalleYAutocompletar]
@@ -734,8 +860,13 @@ export default function EmisionComprobantesPage() {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const next = e.target.value.replace(/\D/g, "").slice(0, 10);
       setCuentaBloqueada(false);
+      setEmisionRegistradaEnCuenta(false);
       setCuentaSinPendientes(false);
+      setAdelantoEnabled(false);
+      setAdelantoMontoConIgv(0);
+      setAdelantoServicioDescripcion(null);
       patch({ cuenta: next });
+      setTarifaCuentaId(null);
     },
     [patch]
   );
@@ -757,6 +888,95 @@ export default function EmisionComprobantesPage() {
       void loadCuentaDetalleYAutocompletar(normalized, null);
     },
     [form.origen, form.cuenta, loadCuentaDetalleYAutocompletar, loadingCuentaDetalle]
+  );
+
+  React.useEffect(() => {
+    if (permiteAdelantoGarantia) return;
+    setAdelantoEnabled(false);
+    setAdelantoMontoConIgv(0);
+    setAdelantoServicioDescripcion(null);
+  }, [permiteAdelantoGarantia]);
+
+  React.useEffect(() => {
+    if (!adelantoEnabled || !permiteAdelantoGarantia) return;
+    if (!tarifaCuentaId || tarifaCuentaId <= 0 || !codigoServicioAdelanto.trim()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await buscarServiciosTarifa(tarifaCuentaId, {
+          codigo: codigoServicioAdelanto,
+          per_page: 5,
+          status: "ACTIVO",
+        });
+        if (cancelled) return;
+        const found = result.data.find((x) => x.codigo.trim().toUpperCase() === codigoServicioAdelanto.trim().toUpperCase());
+        if (!found) {
+          setAdelantoEnabled(false);
+          setAdelantoServicioDescripcion(null);
+          toastService.showError("El servicio configurado para adelanto no existe en la tarifa de la cuenta seleccionada.");
+          return;
+        }
+        setAdelantoServicioDescripcion(found.descripcion.trim());
+      } catch (e) {
+        if (cancelled) return;
+        setAdelantoEnabled(false);
+        setAdelantoServicioDescripcion(null);
+        toastService.showError(getApiErrorMessage(e, "No se pudo validar el servicio configurado para adelanto."));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adelantoEnabled, permiteAdelantoGarantia, codigoServicioAdelanto, tarifaCuentaId]);
+
+  const lineasMostradas = React.useMemo(() => {
+    if (!permiteAdelantoGarantia || !adelantoEnabled || !codigoServicioAdelanto.trim()) {
+      return lineasCuenta;
+    }
+    const descripcion = adelantoServicioDescripcion?.trim() ?? "";
+    if (!descripcion) {
+      return [];
+    }
+    const montoConIgv = roundToPrecision(Math.max(0, adelantoMontoConIgv), 4);
+    const factorIgv = 1 + Math.max(0, igvPct) / 100;
+    const montoSinIgv = factorIgv > 0 ? roundToPrecision(montoConIgv / factorIgv, 4) : montoConIgv;
+    const adelantoLinea: AtencionServicioLineaDisplay = {
+      tarifa_servicio_id: -9001,
+      servicio_codigo: codigoServicioAdelanto,
+      servicio_descripcion: descripcion,
+      categoria_codigo: null,
+      desea_liberar_precio: false,
+      medico_id: 0,
+      medico_codigo: null,
+      user_username: null,
+      user_nombre: null,
+      cop_var: 0,
+      cop_fijo: 0,
+      descuento_pct: 0,
+      aumento_pct: 0,
+      cantidad: 1,
+      precio_sin_igv: montoSinIgv,
+      precio_con_igv: montoConIgv,
+      estado_facturacion: "PENDIENTE",
+    };
+    return [adelantoLinea];
+  }, [adelantoEnabled, permiteAdelantoGarantia, codigoServicioAdelanto, lineasCuenta, adelantoMontoConIgv, adelantoServicioDescripcion, igvPct]);
+
+  const onLineasMostradasChange = React.useCallback(
+    (next: AtencionServicioLineaDisplay[]) => {
+      if (!permiteAdelantoGarantia || !adelantoEnabled || !codigoServicioAdelanto.trim()) {
+        setLineasCuenta(next);
+        return;
+      }
+      let monto = adelantoMontoConIgv;
+      for (const linea of next) {
+        if ((linea.servicio_codigo ?? "").trim() === codigoServicioAdelanto) {
+          monto = roundToPrecision(Math.max(0, Number(linea.precio_con_igv ?? 0)), 4);
+        }
+      }
+      setAdelantoMontoConIgv(monto);
+    },
+    [adelantoEnabled, permiteAdelantoGarantia, codigoServicioAdelanto, adelantoMontoConIgv]
   );
 
   const buildEmisionSnapshot = React.useCallback((): Record<string, unknown> => {
@@ -782,40 +1002,62 @@ export default function EmisionComprobantesPage() {
         medio_pago: medioRow ? `${medioRow.codigo} · ${medioRow.descripcion}` : "",
         banco_tarjeta: bancoRow ? `${bancoRow.codigo} · ${bancoRow.descripcion}` : "",
       },
-      servicios_lineas: lineasCuenta.map((l) => ({
+      presupuesto_paquete: paqueteCuenta,
+      servicios_lineas: lineasMostradas.map((l) => ({
         id: l.id,
         tarifa_servicio_id: l.tarifa_servicio_id,
         estado_facturacion: l.estado_facturacion,
         cantidad: l.cantidad,
         precio_con_igv: l.precio_con_igv,
       })),
+      adelanto: {
+        enabled: adelantoEnabled && permiteAdelantoGarantia,
+        servicio_codigo: codigoServicioAdelanto,
+        monto_con_igv: roundToPrecision(Math.max(0, adelantoMontoConIgv), 4),
+        etiqueta: "GARANTIA",
+      },
     };
-  }, [catalog, form, numeraciones, formas, medios, bancos, lineasCuenta]);
+  }, [catalog, form, numeraciones, formas, medios, bancos, paqueteCuenta, lineasMostradas, adelantoEnabled, permiteAdelantoGarantia, codigoServicioAdelanto, adelantoMontoConIgv]);
 
   const puedeGuardarEmision = React.useMemo(() => {
     if (savingEmision || loadingCuentaDetalle) return false;
     if (cuentaBloqueada) return false;
+    if (!form.origen.trim()) return false;
     const nro = normalizarNroCuenta10(form.cuenta);
     if (!nro) return false;
     if (!form.paciente.trim()) return false;
     if (!form.tipoDocumentoId || !form.numeracionId) return false;
-    if (lineasSoloPendientes(lineasCuenta).length === 0) return false;
+    if (permiteAdelantoGarantia && !adelantoServicioDescripcion?.trim()) return false;
+    const tieneLineasPendientes = lineasSoloPendientes(lineasCuenta).length > 0;
+    const tienePaqueteHospital = paqueteCuenta !== null;
+    const tieneAdelanto = adelantoEnabled && permiteAdelantoGarantia && adelantoMontoConIgv > 0;
+    if (!tieneLineasPendientes && !tienePaqueteHospital && !tieneAdelanto) return false;
     if (esFormaCredito && !form.fechaVencimiento.trim()) return false;
     return true;
   }, [
     savingEmision,
     loadingCuentaDetalle,
     cuentaBloqueada,
+    form.origen,
     form.cuenta,
     form.paciente,
     form.tipoDocumentoId,
     form.numeracionId,
     form.fechaVencimiento,
     lineasCuenta,
+    paqueteCuenta,
+    adelantoEnabled,
+    permiteAdelantoGarantia,
+    adelantoMontoConIgv,
+    adelantoServicioDescripcion,
     esFormaCredito,
   ]);
 
   const onGuardarEmision = React.useCallback(async () => {
+    if (!form.origen.trim()) {
+      toastService.showError("Selecciona el origen del comprobante antes de guardar la emisión.");
+      return;
+    }
     const nro = normalizarNroCuenta10(form.cuenta);
     if (!nro) {
       toastService.showError("Ingresa un número de cuenta válido antes de guardar la emisión.");
@@ -829,12 +1071,36 @@ export default function EmisionComprobantesPage() {
       toastService.showError("Selecciona el tipo de comprobante y la serie antes de guardar.");
       return;
     }
+    if (permiteAdelantoGarantia && adelantoEnabled && !adelantoServicioDescripcion?.trim()) {
+      toastService.showError("No se pudo resolver el servicio del adelanto desde el tarifario de la cuenta.");
+      return;
+    }
+    const formaPagoIdNum = Number(form.formaPagoId);
+    if (!Number.isInteger(formaPagoIdNum) || formaPagoIdNum <= 0) {
+      toastService.showError("Selecciona una forma de pago válida antes de registrar la emisión.");
+      return;
+    }
+    const medioPagoIdNum = Number(form.medioPagoId);
+    if (!Number.isInteger(medioPagoIdNum) || medioPagoIdNum <= 0) {
+      toastService.showError("Selecciona un medio de pago válido antes de registrar la emisión.");
+      return;
+    }
+    const bancoTarjetaIdNumRaw = Number(form.bancoTarjetaId);
+    const bancoTarjetaIdNum =
+      Number.isInteger(bancoTarjetaIdNumRaw) && bancoTarjetaIdNumRaw > 0 ? bancoTarjetaIdNumRaw : null;
     if (cuentaBloqueada) {
       toastService.showError("La cuenta ya está cancelada o facturada y no admite una nueva emisión.");
       return;
     }
-    if (lineasSoloPendientes(lineasCuenta).length === 0) {
-      toastService.showError("La cuenta seleccionada no tiene servicios pendientes por facturar.");
+    const tieneLineasPendientes = lineasSoloPendientes(lineasCuenta).length > 0;
+    const tienePaqueteHospital = paqueteCuenta !== null;
+    const tieneAdelanto = adelantoEnabled && permiteAdelantoGarantia && adelantoMontoConIgv > 0;
+    if (!tieneLineasPendientes && !tienePaqueteHospital && !tieneAdelanto) {
+      toastService.showError("La cuenta seleccionada no tiene servicios ni paquete pendientes por facturar.");
+      return;
+    }
+    if (adelantoEnabled && permiteAdelantoGarantia && adelantoMontoConIgv <= 0) {
+      toastService.showError("Ingresa un monto de adelanto mayor a cero.");
       return;
     }
     if (esFormaCredito && !form.fechaVencimiento.trim()) {
@@ -849,28 +1115,49 @@ export default function EmisionComprobantesPage() {
     setSavingEmision(true);
     try {
       const saved = await postEmisionComprobantesRegistrar({
+        emision_origen: form.origen,
         nro_cuenta: nro,
         numeracion_id: numeracionIdNum,
-        servicio_linea_ids: lineasCuenta.flatMap((l) =>
-          typeof l.id === "number" && Number.isFinite(l.id) ? [l.id] : []
-        ),
+        forma_pago_id: formaPagoIdNum,
+        medio_pago_id: medioPagoIdNum,
+        banco_tarjeta_id: bancoTarjetaIdNum,
+        servicio_linea_ids: permiteAdelantoGarantia && adelantoEnabled
+          ? []
+          : lineasCuenta.flatMap((l) => {
+          if (typeof l.id !== "number" || !Number.isFinite(l.id) || l.id <= 0) return [];
+          const estado = (l.estado_facturacion ?? "PENDIENTE").toString().trim().toUpperCase();
+          return estado === "PENDIENTE" ? [l.id] : [];
+        }),
         numero_operacion: form.numeroOperacion.trim() ? form.numeroOperacion.trim() : null,
         fecha_vencimiento: esFormaCredito && form.fechaVencimiento.trim() ? form.fechaVencimiento.trim() : null,
         snapshot: buildEmisionSnapshot(),
+        adelanto: {
+          enabled: adelantoEnabled && permiteAdelantoGarantia,
+          servicio_codigo: codigoServicioAdelanto,
+          monto_con_igv:
+            adelantoEnabled && permiteAdelantoGarantia
+              ? roundToPrecision(Math.max(0, adelantoMontoConIgv), 4)
+              : 0,
+        },
       });
       toastService.showSuccess("Comprobante emitido correctamente.");
       const refreshed = await getEmisionBootstrap(true);
       setBundle(refreshed);
-      const numeracionRefrescada = refreshed.numeraciones.find(
-        (n) => String(n.id) === String(form.numeracionId)
-      );
       patch({
         numeroOperacion: "",
-        correlativo:
-          numeracionRefrescada?.numero_formateado?.trim() ||
-          saved.numero_formateado?.trim() ||
-          form.correlativo,
+        tipoDocumentoId:
+          saved.tipo_documento_id != null && saved.tipo_documento_id > 0
+            ? String(saved.tipo_documento_id)
+            : form.tipoDocumentoId,
+        numeracionId:
+          saved.numeracion_comprobante_id != null && saved.numeracion_comprobante_id > 0
+            ? String(saved.numeracion_comprobante_id)
+            : form.numeracionId,
+        correlativo: saved.numero_formateado?.trim() || form.correlativo,
       });
+      setAdelantoEnabled(false);
+      setAdelantoMontoConIgv(0);
+      setAdelantoServicioDescripcion(null);
       await loadCuentaDetalleYAutocompletar(nro, null, { suppressBlockedToast: true });
     } catch (e) {
       const err = toApiError(e);
@@ -885,20 +1172,80 @@ export default function EmisionComprobantesPage() {
       setSavingEmision(false);
     }
   }, [
+    form.origen,
     form.cuenta,
     form.paciente,
     form.tipoDocumentoId,
     form.numeracionId,
     form.correlativo,
+    form.formaPagoId,
+    form.medioPagoId,
+    form.bancoTarjetaId,
     form.numeroOperacion,
     form.fechaVencimiento,
     esFormaCredito,
     lineasCuenta,
+    paqueteCuenta,
     cuentaBloqueada,
+    adelantoEnabled,
+    adelantoMontoConIgv,
+    permiteAdelantoGarantia,
+    adelantoServicioDescripcion,
+    codigoServicioAdelanto,
     buildEmisionSnapshot,
     loadCuentaDetalleYAutocompletar,
     patch,
   ]);
+
+  const onRealtimeCajaEvent = React.useCallback(
+    async (event: RealtimeEntityChangedEvent) => {
+      loadCajaResumen();
+
+      if (event.entity !== "emision_comprobante") return;
+
+      try {
+        const refreshed = await getEmisionBootstrap(true);
+        setBundle(refreshed);
+
+        const eventCuenta = typeof event.scope === "string" ? normalizarNroCuenta10(event.scope) : null;
+        const currentCuenta = normalizarNroCuenta10(form.cuenta);
+        if (eventCuenta && currentCuenta && eventCuenta === currentCuenta) {
+          await loadCuentaDetalleYAutocompletar(eventCuenta, null, { suppressBlockedToast: true });
+        }
+      } catch (e) {
+        toastService.showError(getApiErrorMessage(e, "No se pudieron actualizar los datos de emisión en tiempo real."));
+      }
+    },
+    [form.cuenta, loadCajaResumen, loadCuentaDetalleYAutocompletar]
+  );
+
+  useRealtimeModuleRefresh({
+    module: "caja",
+    entities: CAJA_EMISION_ENTITIES,
+    onEvent: onRealtimeCajaEvent,
+  });
+
+  useRealtimeModuleRefresh({
+    module: "emergencia",
+    entities: ["registro_emergencia", "atencion_emergencia"],
+    onEvent: (event) => {
+      const eventCuenta = typeof event.scope === "string" ? normalizarNroCuenta10(event.scope) : null;
+      const currentCuenta = normalizarNroCuenta10(form.cuenta);
+      if (!eventCuenta || !currentCuenta || eventCuenta !== currentCuenta) return;
+      void loadCuentaDetalleYAutocompletar(eventCuenta, null);
+    },
+  });
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["cita_atencion", "prefacturacion_hospitalaria", "cuenta"],
+    onEvent: (event) => {
+      const eventCuenta = typeof event.scope === "string" ? normalizarNroCuenta10(event.scope) : null;
+      const currentCuenta = normalizarNroCuenta10(form.cuenta);
+      if (!eventCuenta || !currentCuenta || eventCuenta !== currentCuenta) return;
+      void loadCuentaDetalleYAutocompletar(eventCuenta, null);
+    },
+  });
 
   const showBlockingSpinner = awaitingNetwork && !bundle;
 
@@ -1017,7 +1364,7 @@ export default function EmisionComprobantesPage() {
                 }}
                 options={tipoDocumentoOpts.length ? tipoDocumentoOpts : [{ value: "", label: "—" }]}
                 ariaLabel="Tipo de comprobante"
-                disabled={tipoDocumentoOpts.length === 0}
+                disabled={tipoDocumentoOpts.length === 0 || tipoSerieNumeroSoloLectura}
                 buttonClassName="w-full"
                 menuClassName={menuWide}
               />
@@ -1032,7 +1379,7 @@ export default function EmisionComprobantesPage() {
                 onChange={(v) => onNumeracionChange(v)}
                 options={serieOpts.length ? serieOpts : [{ value: "", label: "—" }]}
                 ariaLabel="Serie de numeración"
-                disabled={serieOpts.length === 0}
+                disabled={serieOpts.length === 0 || tipoSerieNumeroSoloLectura}
                 buttonClassName="w-full"
                 menuClassName={menuWide}
               />
@@ -1045,9 +1392,17 @@ export default function EmisionComprobantesPage() {
               <input
                 value={form.correlativo}
                 onChange={(e) => patch({ correlativo: e.target.value })}
-                className="mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-amber-50 px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
+                readOnly={tipoSerieNumeroSoloLectura}
+                disabled={tipoSerieNumeroSoloLectura}
+                className={`mt-1 h-10 w-full rounded-md border border-(--border-color-default) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary) ${
+                  tipoSerieNumeroSoloLectura ? "cursor-default bg-(--color-background)" : "bg-amber-50"
+                }`}
                 aria-label="Número correlativo de la serie"
-                title="Correlativo sugerido según la numeración activa en ficheros"
+                title={
+                  tipoSerieNumeroSoloLectura
+                    ? "Esta cuenta ya tiene comprobante emitido; el número no se puede modificar."
+                    : "Correlativo sugerido según la numeración activa en ficheros"
+                }
               />
             </div>
             <div
@@ -1058,6 +1413,7 @@ export default function EmisionComprobantesPage() {
               <input
                 value={form.cuenta}
                 onChange={onCuentaChange}
+                onFocus={(e) => e.currentTarget.select()}
                 onKeyDown={onCuentaNumeroKeyDown}
                 inputMode="numeric"
                 maxLength={10}
@@ -1334,6 +1690,43 @@ export default function EmisionComprobantesPage() {
             </div>
           </div>
         </div>
+        {permiteAdelantoGarantia ? (
+          <div className="border-t border-(--color-border) pt-3">
+            <div className="flex flex-col gap-2 rounded-md border border-(--color-border) bg-(--color-background) p-3 sm:flex-row sm:items-center sm:justify-between">
+              <label className={`${chkChip} h-10`}>
+                <input
+                  type="checkbox"
+                  className={chk}
+                  checked={adelantoEnabled}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setAdelantoEnabled(next);
+                    if (!next) {
+                      setAdelantoMontoConIgv(0);
+                    }
+                  }}
+                />
+                <span className="text-sm text-(--color-text-primary)">Adelanto</span>
+              </label>
+              {adelantoEnabled ? (
+                <div className="flex min-w-0 flex-col gap-1 sm:w-[210px]">
+                  <span className="text-sm text-(--color-text-primary)">Monto garantía</span>
+                  <input
+                    value={adelantoMontoConIgv === 0 ? "" : String(adelantoMontoConIgv)}
+                    onChange={(e) => {
+                      const parsed = parseDecimalInput(e.target.value);
+                      setAdelantoMontoConIgv(parsed == null ? 0 : roundToPrecision(Math.max(0, parsed), 4));
+                    }}
+                    inputMode="decimal"
+                    className="mt-1 h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)"
+                    placeholder="0.00"
+                    aria-label="Monto de adelanto garantía"
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <div className="border-t border-(--color-border) pt-3">
           <ServiciosSolicitadosSection
             medicoTratanteId={null}
@@ -1341,8 +1734,8 @@ export default function EmisionComprobantesPage() {
             tarifaId={null}
             tarifaDescripcion={null}
             tarifaEsPrecioDirecto={tarifaEsPrecioDirectoCuenta}
-            lineas={lineasCuenta}
-            onLineasChange={setLineasCuenta}
+            lineas={lineasMostradas}
+            onLineasChange={onLineasMostradasChange}
             medicosOptions={[]}
             currentUsername=""
             nav={{
@@ -1352,9 +1745,11 @@ export default function EmisionComprobantesPage() {
               draftStorageKey: "caja:emision:readonly",
             }}
             sectionDescription={
-              cuentaSinPendientes
-                ? "La cuenta no tiene servicios pendientes. Se muestran servicios facturados en modo lectura."
-                : "Servicios pendientes de la cuenta seleccionada."
+              permiteAdelantoGarantia && adelantoEnabled
+                ? "Servicio de adelanto según el tarifario asociado a la cuenta seleccionada."
+                : cuentaSinPendientes
+                  ? "La cuenta no tiene servicios pendientes. Se muestran servicios facturados en modo lectura."
+                  : "Servicios pendientes de la cuenta seleccionada."
             }
             readOnly
             hideEditionControls

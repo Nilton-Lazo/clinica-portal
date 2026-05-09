@@ -17,8 +17,6 @@ import { autorizacionSitedsFromCuentaDetalle, fetchCuentaDetalle } from "../serv
 import { guardarPreFacturacionHospitalaria } from "../services/preFacturacionHospitalaria.service";
 import DateInput from "../../../../shared/ui/DateInput";
 import { AtencionEstadoBadge } from "../../../../shared/ui/AtencionEstadoBadge";
-import MedicoPicker from "../../../emergencia/registro/components/MedicoPicker";
-import type { Medico } from "../../../ficheros/types/medicos.types";
 import { useAuth } from "../../../../shared/auth/useAuth";
 import { api } from "../../../../shared/api";
 import { ServiciosSolicitadosSection } from "../../citas/agenda/components/ServiciosSolicitadosSection";
@@ -37,10 +35,17 @@ import CuentaBitacoraDrawer from "../components/CuentaBitacoraDrawer";
 import PaquetePicker from "../../citas/presupuestos/components/PaquetePicker";
 import { getPaqueteConServicios } from "../../../ficheros/services/paqueteServicios.service";
 import type { PaqueteLookup } from "../../../ficheros/types/paqueteServicios.types";
+import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
+import { PackageSearch, ScrollText } from "lucide-react";
 
 const PREF_RETURN_PATH = "/admision/historia-clinica/pre-facturacion-hospitalaria";
 const PREF_BUSCAR_PATH = "/admision/historia-clinica/pre-facturacion-hospitalaria/buscar-servicios";
 const PREF_DRAFT_KEY = "admision:preFacturacionHospitalariaServiciosDraft";
+
+const PREF_ICON_ONLY_BTN =
+  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-(--color-border) bg-(--color-surface) text-(--color-text-secondary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface)";
+const PREF_ICON_ONLY_BTN_DISABLED = "cursor-not-allowed opacity-50 hover:scale-100 active:scale-100";
+const PREF_ICON_ONLY_GLYPH = "h-[22px] w-[22px] shrink-0";
 
 function userNombreCompleto(user: {
   name?: string | null;
@@ -165,6 +170,21 @@ function catalogLabel(
   return opt?.label ?? labelizeEnum(v);
 }
 
+function splitMedicoLabel(label: string): { cmp: string; nombre: string } {
+  const raw = label.trim();
+  if (!raw) return { cmp: "", nombre: "" };
+  if (raw.includes(" · ")) {
+    const [cmp, ...rest] = raw.split(" · ");
+    return { cmp: cmp?.trim() ?? "", nombre: rest.join(" · ").trim() };
+  }
+  return { cmp: "", nombre: raw };
+}
+
+function money(v: number): string {
+  if (!Number.isFinite(v)) return "0.00";
+  return (Math.round(v * 100) / 100).toFixed(2);
+}
+
 function planEsPrivadoSeguro(plan: { label: string; iafaLabel: string } | undefined): boolean {
   if (!plan) return false;
   const t = `${plan.label} ${plan.iafaLabel}`.toUpperCase();
@@ -195,7 +215,6 @@ export default function PreFacturacionHospitalariaPage() {
   const isLgUp = useIsLgUp();
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [cuentaPickerOpen, setCuentaPickerOpen] = React.useState(false);
-  const [medicoPickerOpen, setMedicoPickerOpen] = React.useState(false);
   const [cuentaNro, setCuentaNro] = React.useState("");
   const [loadingPaciente, setLoadingPaciente] = React.useState(false);
   const [loadingCirugias, setLoadingCirugias] = React.useState(false);
@@ -217,6 +236,8 @@ export default function PreFacturacionHospitalariaPage() {
   const [medicoServiciosCmp, setMedicoServiciosCmp] = React.useState("");
   const [medicoServiciosNombre, setMedicoServiciosNombre] = React.useState("");
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
+  const [montoAPagarPaciente, setMontoAPagarPaciente] = React.useState(0);
+  const [totalAdelantoCuenta, setTotalAdelantoCuenta] = React.useState(0);
   const [medicosOptions, setMedicosOptions] = React.useState<SelectOption[]>([]);
   const [copVarDefault, setCopVarDefault] = React.useState(0);
   const [paquetePickerOpen, setPaquetePickerOpen] = React.useState(false);
@@ -264,11 +285,22 @@ export default function PreFacturacionHospitalariaPage() {
   );
 
   const medicoTratanteDisplay = React.useMemo(() => {
+    const opt = medicosOptions.find((o) => o.value === String(medicoTratanteId ?? ""));
+    if (opt?.label) return opt.label;
     if (medicoTratanteCmp && medicoTratanteNombre) {
       return `${medicoTratanteCmp} · ${medicoTratanteNombre}`;
     }
-    return medicoTratanteNombre || "";
-  }, [medicoTratanteCmp, medicoTratanteNombre]);
+    return medicoTratanteNombre || medicoTratanteCmp || "";
+  }, [medicosOptions, medicoTratanteId, medicoTratanteCmp, medicoTratanteNombre]);
+
+  const medicoTratanteOptions = React.useMemo(() => {
+    const base: SelectOption[] = [{ value: "", label: "Selecciona médico", disabled: true }, ...medicosOptions];
+    const currentId = String(medicoTratanteId ?? "").trim();
+    if (!currentId) return base;
+    if (base.some((o) => o.value === currentId)) return base;
+    const fallback = medicoTratanteDisplay || `Médico ${currentId}`;
+    return [...base, { value: currentId, label: fallback }];
+  }, [medicosOptions, medicoTratanteId, medicoTratanteDisplay]);
 
   const medicoServiciosDisplay = React.useMemo(() => {
     const opt = medicosOptions.find((o) => o.value === String(medicoServiciosId ?? ""));
@@ -288,8 +320,16 @@ export default function PreFacturacionHospitalariaPage() {
     return "";
   }, [cuentaNro, detalle]);
 
-  const pickersDisabled = loadingPaciente || lockedByServer;
+  const pickersDisabled = loadingPaciente;
   const formDisabled = !detalle || loadingPaciente || lockedByServer;
+  const saldoFavorPaciente = React.useMemo(
+    () => Math.max(0, Number(totalAdelantoCuenta) - Number(montoAPagarPaciente)),
+    [totalAdelantoCuenta, montoAPagarPaciente]
+  );
+  const saldoFavorClinica = React.useMemo(
+    () => Math.max(0, Number(montoAPagarPaciente) - Number(totalAdelantoCuenta)),
+    [totalAdelantoCuenta, montoAPagarPaciente]
+  );
 
   const pacientePlanIdParaGuardar = React.useMemo(() => {
     if (!detalle) return 0;
@@ -299,33 +339,43 @@ export default function PreFacturacionHospitalariaPage() {
 
   const canSaveRegistro = React.useMemo(() => {
     if (!detalle) return false;
+    if (lockedByServer) return false;
     if (pacientePlanIdParaGuardar <= 0) return false;
     if (medicoTratanteId == null || medicoTratanteId <= 0) return false;
     if (lineas.length < 1 && presupuestoPaquete == null) return false;
-    if (lockedByServer) {
-      return bloquearCuenta === "HABILITADO";
-    }
     return true;
   }, [
     detalle,
     lockedByServer,
-    bloquearCuenta,
     pacientePlanIdParaGuardar,
     medicoTratanteId,
     lineas.length,
     presupuestoPaquete,
   ]);
 
-  const onMedicoTratantePicked = React.useCallback((m: Medico) => {
-    const nombre =
-      m.nombre_completo?.trim() ||
-      [m.apellido_paterno, m.apellido_materno, m.nombres].filter(Boolean).join(" ").trim();
-    const cmp = m.cmp?.trim() ?? m.codigo?.trim() ?? "";
-    setMedicoTratanteId(m.id);
+  const applyMedicoTratante = React.useCallback((medicoId: number | null, syncServicios: boolean) => {
+    if (medicoId == null || medicoId <= 0) {
+      setMedicoTratanteId(null);
+      setMedicoTratanteCmp("");
+      setMedicoTratanteNombre("");
+      if (syncServicios) {
+        setMedicoServiciosId(null);
+        setMedicoServiciosCmp("");
+        setMedicoServiciosNombre("");
+      }
+      return;
+    }
+    const selected = medicosOptions.find((o) => o.value === String(medicoId));
+    const { cmp, nombre } = splitMedicoLabel(selected?.label ?? "");
+    setMedicoTratanteId(medicoId);
     setMedicoTratanteCmp(cmp);
-    setMedicoTratanteNombre(nombre);
-    setMedicoPickerOpen(false);
-  }, []);
+    setMedicoTratanteNombre(nombre || (selected?.label ?? ""));
+    if (syncServicios) {
+      setMedicoServiciosId(medicoId);
+      setMedicoServiciosCmp(cmp);
+      setMedicoServiciosNombre(nombre || (selected?.label ?? ""));
+    }
+  }, [medicosOptions]);
 
   const planSeleccionado = React.useMemo(() => {
     if (!detalle || !selectedPlanId) return undefined;
@@ -481,6 +531,8 @@ export default function PreFacturacionHospitalariaPage() {
       setLoadingPaciente(true);
       setLockedByServer(false);
       setLineas([]);
+      setMontoAPagarPaciente(0);
+      setTotalAdelantoCuenta(0);
       setPresupuestoPaquete(null);
       processedServiciosRef.current = null;
       setSelectedPlanId("");
@@ -503,6 +555,7 @@ export default function PreFacturacionHospitalariaPage() {
         setDetalle(d);
         setCuentaNro(nroCuenta ?? "");
         setCuentaEstado((estadoCuentaDesdeListado ?? "").trim());
+        applyMedicoTratante(d.medico_tratante_id, true);
         const matchPrefer =
           preferPacientePlanId != null && d.planes.some((p) => p.pacientePlanId === preferPacientePlanId);
         const first = matchPrefer ? d.planes.find((p) => p.pacientePlanId === preferPacientePlanId) : d.planes[0];
@@ -515,9 +568,11 @@ export default function PreFacturacionHospitalariaPage() {
         if (nc) {
           try {
             const cu = await fetchCuentaDetalle(nc);
+            const adelantoRaw = Number(cu.adelanto_resumen?.total_adelanto ?? 0);
+            setTotalAdelantoCuenta(Number.isFinite(adelantoRaw) ? adelantoRaw : 0);
             const estadoCuentaApi = (cu.cuenta.estado ?? "").trim();
             setCuentaEstado(estadoCuentaApi);
-            if (estadoCuentaApi === "CANCELADO_LISTO_PARA_FACTURAR") {
+            if (["CANCELADO", "CANCELADO_LISTO_PARA_FACTURAR"].includes(estadoCuentaApi)) {
               setLockedByServer(true);
             }
             const rawDet = cu.detalle;
@@ -538,14 +593,8 @@ export default function PreFacturacionHospitalariaPage() {
                   setBloquearCuenta(form.bloquearCuenta);
                 }
                 if (typeof form.autorizacionSiteds === "string") setAutorizacionSiteds(form.autorizacionSiteds);
-                if (typeof form.medicoTratanteId === "number") setMedicoTratanteId(form.medicoTratanteId);
-                else if (form.medicoTratanteId === null) setMedicoTratanteId(null);
-                if (typeof form.medicoTratanteCmp === "string") setMedicoTratanteCmp(form.medicoTratanteCmp);
-                if (typeof form.medicoTratanteNombre === "string") setMedicoTratanteNombre(form.medicoTratanteNombre);
-                if (typeof form.medicoServiciosId === "number") setMedicoServiciosId(form.medicoServiciosId);
-                else if (form.medicoServiciosId === null) setMedicoServiciosId(null);
-                if (typeof form.medicoServiciosCmp === "string") setMedicoServiciosCmp(form.medicoServiciosCmp);
-                if (typeof form.medicoServiciosNombre === "string") setMedicoServiciosNombre(form.medicoServiciosNombre);
+                if (typeof form.medicoTratanteId === "number") applyMedicoTratante(form.medicoTratanteId, true);
+                else if (form.medicoTratanteId === null) applyMedicoTratante(null, true);
                 if (typeof form.copVarDefault === "number" && Number.isFinite(form.copVarDefault)) {
                   setCopVarDefault(form.copVarDefault);
                 }
@@ -567,14 +616,15 @@ export default function PreFacturacionHospitalariaPage() {
                 setLineas(items.map(mapServicioCuentaToDisplay));
               }
               const medHint = medicoPredeterminadoDesdeDetalleCuenta(cu.detalle);
-              if (medHint) {
-                setMedicoServiciosId(medHint.id);
-                setMedicoServiciosCmp(medHint.cmp);
-                setMedicoServiciosNombre(medHint.nombre);
+              if (medHint && (!d.medico_tratante_id || d.medico_tratante_id <= 0)) {
+                applyMedicoTratante(medHint.id, true);
+                setMedicoTratanteCmp(medHint.cmp);
+                setMedicoTratanteNombre(medHint.nombre);
               }
             }
           } catch (e) {
             setAutorizacionSiteds("");
+            setTotalAdelantoCuenta(0);
             toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el detalle de la cuenta seleccionada."));
           }
         }
@@ -594,6 +644,8 @@ export default function PreFacturacionHospitalariaPage() {
         setMedicoServiciosNombre("");
         setBloquearCuenta("HABILITADO");
         setLineas([]);
+        setMontoAPagarPaciente(0);
+        setTotalAdelantoCuenta(0);
         setPresupuestoPaquete(null);
         processedServiciosRef.current = null;
         toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los datos del paciente para pre-facturación hospitalaria."));
@@ -601,12 +653,26 @@ export default function PreFacturacionHospitalariaPage() {
         setLoadingPaciente(false);
       }
     },
-    [],
+    [applyMedicoTratante],
   );
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["prefacturacion_hospitalaria", "cuenta", "paciente", "paciente_plan"],
+    onEvent: (event) => {
+      if (!detalle) return;
+      if (event.scope && cuentaNro.trim() && event.scope !== cuentaNro.trim()) return;
+      void loadPacienteDetalle(detalle.id, cuentaNro.trim() || null, pacientePlanIdParaGuardar || null, cuentaEstado || null);
+    },
+  });
 
   const handleGuardarRegistro = React.useCallback(async () => {
     if (!detalle) {
       toastService.showError("Selecciona un paciente o una cuenta antes de guardar la pre-facturación hospitalaria.");
+      return;
+    }
+    if (lockedByServer) {
+      toastService.showError("La cuenta está cerrada para edición. No se permiten modificaciones.");
       return;
     }
     if (!canSaveRegistro) {
@@ -654,6 +720,7 @@ export default function PreFacturacionHospitalariaPage() {
     }
   }, [
     detalle,
+    lockedByServer,
     canSaveRegistro,
     pacientePlanIdParaGuardar,
     selectedPlanId,
@@ -768,6 +835,28 @@ export default function PreFacturacionHospitalariaPage() {
         toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar la lista de médicos activos."));
       });
   }, []);
+
+  React.useEffect(() => {
+    if (medicoTratanteId == null || medicoTratanteId <= 0) return;
+    const selected = medicosOptions.find((o) => o.value === String(medicoTratanteId));
+    if (!selected) return;
+    const { cmp, nombre } = splitMedicoLabel(selected.label);
+    if (!medicoTratanteCmp || !medicoTratanteNombre) {
+      setMedicoTratanteCmp(cmp);
+      setMedicoTratanteNombre(nombre || selected.label);
+    }
+    if (medicoServiciosId == null || medicoServiciosId <= 0) {
+      setMedicoServiciosId(medicoTratanteId);
+      setMedicoServiciosCmp(cmp);
+      setMedicoServiciosNombre(nombre || selected.label);
+    }
+  }, [
+    medicosOptions,
+    medicoTratanteId,
+    medicoTratanteCmp,
+    medicoTratanteNombre,
+    medicoServiciosId,
+  ]);
 
   const getAtencionDraft = React.useCallback((): AtencionDraft => {
     return {
@@ -996,19 +1085,23 @@ export default function PreFacturacionHospitalariaPage() {
     medicoServiciosCmp,
   ]);
 
+  const paquetePickerLabel = presupuestoPaquete ? "Cambiar paquete" : "Buscar paquete";
+
   return (
     <div className="flex w-full min-w-0 flex-col gap-2">
       <div className="flex min-w-0 flex-col gap-2 rounded border border-(--border-color-default) bg-(--color-surface) p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <div className="min-w-0 flex-1">
-          {lockedByServer && bloquearCuenta === "BLOQUEADO" ? (
+          {lockedByServer ? (
             <span className="block text-left text-sm font-bold uppercase tracking-wide text-red-600 sm:text-base">
-              CANCELADO LISTO PARA FACTURAR
+              {cuentaEstado === "CANCELADO" ? "CUENTA CANCELADA Y FACTURADA" : "CANCELADO LISTO PARA FACTURAR"}
             </span>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <SecondaryButton
+          <button
             type="button"
+            title="Bitácora"
+            aria-label="Bitácora"
             disabled={loadingPaciente}
             onClick={() => {
               if (!detalle && !cuentaNro.trim()) {
@@ -1017,9 +1110,10 @@ export default function PreFacturacionHospitalariaPage() {
               }
               setBitacoraOpen(true);
             }}
+            className={[PREF_ICON_ONLY_BTN, loadingPaciente ? PREF_ICON_ONLY_BTN_DISABLED : ""].join(" ")}
           >
-            Bitácora
-          </SecondaryButton>
+            <ScrollText className={PREF_ICON_ONLY_GLYPH} aria-hidden />
+          </button>
           <PrimaryButton
             type="button"
             disabled={!canSaveRegistro || loadingPaciente || savingRegistro}
@@ -1175,13 +1269,10 @@ export default function PreFacturacionHospitalariaPage() {
 
         <div className="min-w-0">
           <div className="flex h-full min-h-0 w-full flex-col rounded border border-(--border-color-default) bg-(--color-surface) p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+            <div className="flex flex-col gap-2">
               <div className="min-w-0 pr-2">
                 <h2 className="text-sm font-semibold text-(--color-text-primary)">Médico y control de cuenta</h2>
               </div>
-              <PrimaryButton type="button" disabled={formDisabled} onClick={() => setMedicoPickerOpen(true)}>
-                Buscar médico
-              </PrimaryButton>
             </div>
 
             <div className="mt-3 grid grid-cols-1 gap-4 lg:mt-2 lg:gap-2">
@@ -1213,13 +1304,25 @@ export default function PreFacturacionHospitalariaPage() {
               </div>
               <div>
                 <label className="text-xs text-(--color-text-secondary)">Médico tratante</label>
-                <input
-                  value={medicoTratanteDisplay}
-                  readOnly
-                  disabled={formDisabled}
-                  className={inputReadOnly}
-                  aria-label="Médico tratante"
-                />
+                <div className="mt-1 lg:mt-0.5">
+                  <SelectMenu
+                    value={String(medicoTratanteId ?? "")}
+                    onChange={(v) => {
+                      const parsed = Number(v);
+                      if (!Number.isFinite(parsed) || parsed <= 0) {
+                        applyMedicoTratante(null, true);
+                        return;
+                      }
+                      applyMedicoTratante(parsed, true);
+                    }}
+                    options={medicoTratanteOptions}
+                    ariaLabel="Médico tratante"
+                    buttonClassName="h-10 w-full lg:h-8"
+                    menuClassName="min-w-full"
+                    searchPlaceholder="Buscar médico"
+                    disabled={formDisabled || medicosOptions.length === 0}
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs text-(--color-text-secondary)">Paciente afiliado como</label>
@@ -1258,14 +1361,19 @@ export default function PreFacturacionHospitalariaPage() {
                     Quitar
                   </SecondaryButton>
                 )}
-                <PrimaryButton
+                <button
                   type="button"
-                  className="whitespace-nowrap"
+                  title={paquetePickerLabel}
+                  aria-label={paquetePickerLabel}
                   disabled={formDisabled || tarifaId == null}
                   onClick={() => setPaquetePickerOpen(true)}
+                  className={[
+                    PREF_ICON_ONLY_BTN,
+                    formDisabled || tarifaId == null ? PREF_ICON_ONLY_BTN_DISABLED : "",
+                  ].join(" ")}
                 >
-                  {presupuestoPaquete ? "Cambiar paquete" : "Buscar paquete"}
-                </PrimaryButton>
+                  <PackageSearch className={PREF_ICON_ONLY_GLYPH} aria-hidden />
+                </button>
               </div>
             </div>
             <div className="mt-3 grid flex-1 grid-cols-1 content-start gap-4 lg:mt-2 lg:gap-2">
@@ -1294,6 +1402,26 @@ export default function PreFacturacionHospitalariaPage() {
       </div>
 
       <div ref={serviciosSectionRef} className="min-w-0">
+        {cuentaNro.trim() ? (
+          <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+            <div className="rounded-md border border-(--color-border) bg-(--color-surface) p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-secondary)">Total adelanto</p>
+              <p className="mt-1 text-lg font-semibold text-(--color-text-primary)">S/. {money(totalAdelantoCuenta)}</p>
+            </div>
+            <div className="rounded-md border border-(--color-border) bg-(--color-surface) p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-secondary)">Saldo favor paciente</p>
+              <p className={`mt-1 text-lg font-semibold ${saldoFavorPaciente > 0 ? "text-(--color-success)" : "text-(--color-text-primary)"}`}>
+                S/. {money(saldoFavorPaciente)}
+              </p>
+            </div>
+            <div className="rounded-md border border-(--color-border) bg-(--color-surface) p-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-(--color-text-secondary)">Saldo favor clínica</p>
+              <p className={`mt-1 text-lg font-semibold ${saldoFavorClinica > 0 ? "text-(--color-warning)" : "text-(--color-text-primary)"}`}>
+                S/. {money(saldoFavorClinica)}
+              </p>
+            </div>
+          </div>
+        ) : null}
         <ServiciosSolicitadosSection
           medicoTratanteId={medicoServiciosId}
           medicoTratanteLabel={medicoServiciosDisplay}
@@ -1315,6 +1443,7 @@ export default function PreFacturacionHospitalariaPage() {
           getAtencionDraft={getAtencionDraft}
           onDefaultMedicoChange={onDefaultMedicoChange}
           onServiciosSelected={onServiciosSelected}
+          onMontoAPagarChange={setMontoAPagarPaciente}
           sectionDescription={serviciosPrefactSectionDescription}
           presupuestoPaquete={presupuestoPaquete}
           readOnly={formDisabled}
@@ -1379,24 +1508,6 @@ export default function PreFacturacionHospitalariaPage() {
               toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar el paquete seleccionado para pre-facturación hospitalaria."));
             }
           })();
-        }}
-      />
-
-      <MedicoPicker
-        open={medicoPickerOpen}
-        variant={isLgUp ? "drawer" : "fullscreen"}
-        onClose={() => setMedicoPickerOpen(false)}
-        onPicked={onMedicoTratantePicked}
-        title="Seleccionar médico"
-        description="Busca y selecciona el médico (clic en la fila)."
-        showRegisterButton
-        onRegister={() => {
-          setMedicoPickerOpen(false);
-          navigate("/ficheros/medicos");
-        }}
-        onOpenMedicos={() => {
-          setMedicoPickerOpen(false);
-          navigate("/ficheros/medicos");
         }}
       />
 

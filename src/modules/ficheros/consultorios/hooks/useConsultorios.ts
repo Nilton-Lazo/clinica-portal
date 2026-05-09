@@ -353,6 +353,7 @@ export function useConsultorios() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

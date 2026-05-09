@@ -4,6 +4,10 @@ import type { CajaAperturaTipo } from "../types/aperturaCaja.types";
 export type CajaAperturaResumen = {
   ultimo_cierre_monto: string | null;
   ultimo_cierre_moneda: string;
+  ultimo_cierre_normal_monto: string | null;
+  ultimo_cierre_normal_moneda: string;
+  ultimo_cierre_chica_monto: string | null;
+  ultimo_cierre_chica_moneda: string;
   fondo_emergencia_monto: string | null;
   fondo_emergencia_moneda: string;
   operadores_activos_text: string;
@@ -40,6 +44,8 @@ export type CajaAperturaCreatePayload = {
 
 export type CajaAperturaClosePayload = {
   tipo: CajaAperturaTipo;
+  monto_cierre?: number;
+  ajuste_cierre?: number;
   observaciones_cierre?: string | null;
 };
 

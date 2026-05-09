@@ -6,6 +6,7 @@ import CirugiasToolbar from "../cirugias/components/CirugiasToolbar";
 import CirugiasTable from "../cirugias/components/CirugiasTable";
 import CirugiasMobileList from "../cirugias/components/CirugiasMobileList";
 import CirugiaFormCard from "../cirugias/components/CirugiaFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function CirugiasPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["cirugia"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

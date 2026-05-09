@@ -68,7 +68,7 @@ export function useCirugias() {
         const res = await getNextCirugiaCodigo();
         if (!alive) return;
         setCodigo(res.codigo);
-      } catch {}
+      } catch { void 0; }
     })();
 
     return () => {
@@ -307,6 +307,7 @@ export function useCirugias() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

@@ -169,6 +169,20 @@ export function useTarifario() {
     [tarifaId, page, perPage, qNormalized, statusFilter, selected]
   );
 
+  const refreshBaseTree = useCallback(async () => {
+    setBaseTreeLoading(true);
+    try {
+      const payload = await getTarifaBaseTree();
+      baseTreeCache = payload;
+      setBaseTree(payload);
+    } catch (e) {
+      const msg = getApiErrorMessage(e, "No se pudo actualizar el árbol del tarifario base.");
+      setNotice({ type: "error", text: msg });
+    } finally {
+      setBaseTreeLoading(false);
+    }
+  }, []);
+
   const prevFiltersRef = useRef<{ q: string; status: string; perPage: number } | null>(null);
   useEffect(() => {
     const prev = prevFiltersRef.current;
@@ -471,5 +485,7 @@ export function useTarifario() {
     onCloneAll,
     onCloneSelected,
     canCloneSelected,
+    refresh,
+    refreshBaseTree,
   };
 }

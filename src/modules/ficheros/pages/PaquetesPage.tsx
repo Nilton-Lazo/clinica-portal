@@ -6,6 +6,7 @@ import PaquetesToolbar from "../paquetes/components/PaquetesToolbar";
 import PaquetesTable from "../paquetes/components/PaquetesTable";
 import PaquetesMobileList from "../paquetes/components/PaquetesMobileList";
 import PaqueteFormCard from "../paquetes/components/PaqueteFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function PaquetesPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["paquete"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

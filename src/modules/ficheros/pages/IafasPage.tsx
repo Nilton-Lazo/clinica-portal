@@ -6,6 +6,7 @@ import IafasToolbar from "../iafas/components/IafasToolbar";
 import IafasTable from "../iafas/components/IafasTable";
 import IafasMobileList from "../iafas/components/IafasMobileList";
 import IafaFormCard from "../iafas/components/IafaFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function IafasPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["iafa"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

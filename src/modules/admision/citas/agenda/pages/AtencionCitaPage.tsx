@@ -18,6 +18,7 @@ import type {
 import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import { ServiciosSolicitadosSection } from "../components/ServiciosSolicitadosSection";
+import { useRealtimeModuleRefresh } from "../../../../../shared/realtime/useRealtimeModuleRefresh";
 
 const PARENTESCO_OPTIONS: SelectOption[] = [
   { value: "TITULAR", label: "Titular" },
@@ -104,6 +105,7 @@ export default function AtencionCitaPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [savingState, setSavingState] = React.useState<"actualizar" | "guardar" | null>(null);
+  const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
   const saving = savingState !== null;
 
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
@@ -137,6 +139,25 @@ export default function AtencionCitaPage() {
   const DRAFT_STORAGE_KEY_PREFIX = "admision:atencionCitaDraft:";
   const loadRunIdRef = React.useRef(0);
   const atencionDataCacheRef = React.useRef<Record<number, AtencionCitaData>>({});
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["agenda_cita", "cita_atencion", "cita_atencion_servicio", "cuenta"],
+    onEvent: (event) => {
+      const eventId = event.id != null ? Number(event.id) : null;
+      const currentAtencionId = data?.atencion?.id ?? null;
+      const currentCuenta = data?.atencion?.nro_cuenta ?? null;
+      const matchesAgenda = event.entity === "agenda_cita" && eventId === id;
+      const matchesAtencion = event.entity !== "agenda_cita" && (
+        (currentAtencionId != null && eventId === currentAtencionId) ||
+        (currentCuenta != null && event.scope === currentCuenta)
+      );
+
+      if (!matchesAgenda && !matchesAtencion) return;
+      delete atencionDataCacheRef.current[id];
+      setRealtimeReloadKey((key) => key + 1);
+    },
+  });
 
   const clearDraftForCita = React.useCallback((citaId: number) => {
     if (typeof window === "undefined") return;
@@ -226,7 +247,7 @@ export default function AtencionCitaPage() {
       .finally(() => {
         if (thisRunId === loadRunIdRef.current) setLoading(false);
       });
-  }, [id]);
+  }, [id, realtimeReloadKey]);
 
   const planOptions: SelectOption[] = React.useMemo(() => {
     if (!data?.planes?.length) return [{ value: "", label: "Seleccione el plan" }];

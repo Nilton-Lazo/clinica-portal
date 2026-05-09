@@ -6,6 +6,7 @@ import RecargoNocheToolbar from "../recargo-noche/components/RecargoNocheToolbar
 import RecargoNocheTable from "../recargo-noche/components/RecargoNocheTable";
 import RecargoNocheMobileList from "../recargo-noche/components/RecargoNocheMobileList";
 import RecargoNocheFormCard from "../recargo-noche/components/RecargoNocheFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -31,6 +32,8 @@ export default function RecargoNochePage() {
   const vm = useRecargoNoche();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["recargo_noche"]);
   const [page, setPage] = React.useState(1);
 
   React.useEffect(() => {

@@ -494,6 +494,7 @@ export function useIafas() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

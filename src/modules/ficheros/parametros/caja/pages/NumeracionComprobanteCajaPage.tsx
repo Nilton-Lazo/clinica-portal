@@ -6,6 +6,7 @@ import { useNumeracionComprobanteCaja } from "../numeracion-comprobante/hooks/us
 import NumeracionComprobanteTable from "../components/NumeracionComprobanteTable";
 import NumeracionComprobanteMobileList from "../components/NumeracionComprobanteMobileList";
 import NumeracionComprobanteFormCard from "../components/NumeracionComprobanteFormCard";
+import { useFicherosRealtimeRefresh } from "../../../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() =>
@@ -25,6 +26,8 @@ export default function NumeracionComprobanteCajaPage() {
   const vm = useNumeracionComprobanteCaja();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["caja_numeracion_comprobante"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

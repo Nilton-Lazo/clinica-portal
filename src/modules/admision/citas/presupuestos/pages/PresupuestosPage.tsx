@@ -6,10 +6,25 @@ import PresupuestosToolbar from "../components/PresupuestosToolbar";
 import PresupuestosTable from "../components/PresupuestosTable";
 import PresupuestosMobileList from "../components/PresupuestosMobileList";
 import { prefetchPresupuestoShow } from "../services/presupuestoShowCache";
+import { useRealtimeModuleRefresh } from "../../../../../shared/realtime/useRealtimeModuleRefresh";
 
 export default function PresupuestosPage() {
   const navigate = useNavigate();
   const vm = usePresupuestosLista();
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["presupuesto"],
+    onEvent: (event) => {
+      if (event.action === "created") {
+        vm.setPage(1);
+        void vm.refresh({ page: 1 });
+        return;
+      }
+
+      void vm.refresh();
+    },
+  });
 
   const noticeKeyRef = React.useRef<string | null>(null);
   React.useLayoutEffect(() => {

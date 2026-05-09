@@ -46,6 +46,7 @@ export function usePaqueteServicios() {
   const [loadingTree, setLoadingTree] = useState(false);
   const [loadingAssigned, setLoadingAssigned] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [expandedCategorias, setExpandedCategorias] = useState<Set<number>>(new Set());
   const [expandedSubcategorias, setExpandedSubcategorias] = useState<Set<number>>(new Set());
@@ -123,7 +124,7 @@ export function usePaqueteServicios() {
     return () => {
       alive = false;
     };
-  }, [tarifaId, paqueteId]);
+  }, [tarifaId, paqueteId, reloadKey]);
 
   useEffect(() => {
     if (!paqueteId) {
@@ -154,7 +155,11 @@ export function usePaqueteServicios() {
     return () => {
       alive = false;
     };
-  }, [paqueteId]);
+  }, [paqueteId, reloadKey]);
+
+  const refresh = useCallback(() => {
+    setReloadKey((key) => key + 1);
+  }, []);
 
   const treeMaps = useMemo(() => {
     const subsByCat = new Map<number, number[]>();
@@ -421,13 +426,14 @@ export function usePaqueteServicios() {
       const saved = new Set(rows.map((x) => x.id));
       setBaseAssigned(saved);
       setWorkingAssigned(new Set(saved));
+      refresh();
       toastService.showSuccess("Los servicios del paquete se actualizaron correctamente.");
     } catch (e) {
       toastService.showError(toUserMessage(e, "No se pudieron guardar los servicios del paquete. Intenta otra vez."));
     } finally {
       setSaving(false);
     }
-  }, [isDirty, paqueteId, workingAssigned]);
+  }, [isDirty, paqueteId, refresh, workingAssigned]);
 
   return {
     tarifas,
@@ -442,6 +448,7 @@ export function usePaqueteServicios() {
     loadingTree,
     loadingAssigned,
     saving,
+    refresh,
     expandedCategorias,
     expandedSubcategorias,
     filteredTree,

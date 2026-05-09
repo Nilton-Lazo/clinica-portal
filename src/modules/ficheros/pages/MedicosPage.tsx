@@ -6,6 +6,7 @@ import MedicosToolbar from "../medicos/components/MedicosToolbar";
 import MedicosTable from "../medicos/components/MedicosTable";
 import MedicosMobileList from "../medicos/components/MedicosMobileList";
 import MedicoFormCard from "../medicos/components/MedicoFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function MedicosPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["medico"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

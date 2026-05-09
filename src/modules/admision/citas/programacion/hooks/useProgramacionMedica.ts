@@ -757,6 +757,7 @@ export function useProgramacionMedica() {
 
     q,
     setQ,
+    refresh,
 
     mode,
     selected,

@@ -50,7 +50,7 @@ export function useTopico() {
         const res = await getNextTopicoCodigo();
         if (!alive) return;
         if (res.codigo) setCodigo(res.codigo);
-      } catch {}
+      } catch { void 0; }
     })();
     return () => { alive = false; };
   }, [mode, codigo]);
@@ -186,6 +186,7 @@ export function useTopico() {
     data,
     loading,
     saving,
+    refresh,
     page,
     setPage,
     perPage: perPage,

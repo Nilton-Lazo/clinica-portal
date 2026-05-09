@@ -172,6 +172,7 @@ export function useDocumentoAtencion() {
     data,
     loading,
     saving,
+    refresh,
     page,
     setPage,
     perPage: perPage,

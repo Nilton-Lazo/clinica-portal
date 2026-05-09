@@ -11,6 +11,13 @@ export function roundToPrecision(value: number, decimals: number = PRECISION_DEC
   return Math.round(value * f) / f;
 }
 
+export function parseDecimalInput(raw: string): number | null {
+  const t = raw.trim().replace(",", ".");
+  if (t === "" || t === "." || t === "-") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function formatDecimalDisplay(
   value: number | null | undefined,
   maxDecimals: number = PRECISION_DECIMAL

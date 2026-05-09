@@ -6,6 +6,7 @@ import TiposIafasToolbar from "../tipos-iafas/components/TiposIafasToolbar";
 import TiposIafasTable from "../tipos-iafas/components/TiposIafasTable";
 import TiposIafasMobileList from "../tipos-iafas/components/TiposIafasMobileList";
 import TipoIafaFormCard from "../tipos-iafas/components/TipoIafaFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function TiposIafasPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["tipo_iafa"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

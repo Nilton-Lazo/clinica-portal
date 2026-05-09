@@ -17,6 +17,7 @@ import {
   type TarifaServicioBusqueda,
 } from "../../../../admision/citas/agenda/services/atencionCita.service";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
+import { useRealtimeModuleRefresh } from "../../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type Row = {
   codigo: string;
@@ -57,9 +58,29 @@ export default function ServiciosDefaultEmergenciaPage() {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [tarifaReferenciaId, setTarifaReferenciaId] = React.useState<number | null>(null);
   const [confirmClearOpen, setConfirmClearOpen] = React.useState(false);
+  const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
   const [isLgUp, setIsLgUp] = React.useState(() => {
     if (typeof window === "undefined") return true;
     return window.matchMedia("(min-width: 1024px)").matches;
+  });
+
+  useRealtimeModuleRefresh({
+    module: "ficheros",
+    entities: ["servicio_default_emergencia", "recargo_noche", "parametro_igv"],
+    onEvent: (event) => {
+      if (event.entity === "servicio_default_emergencia" && event.scope && event.scope !== String(tarifaId)) return;
+      setRealtimeReloadKey((key) => key + 1);
+      setNeedsFetchDetalles(true);
+    },
+  });
+
+  useRealtimeModuleRefresh({
+    module: "facturacion",
+    entities: ["tarifa_servicio"],
+    onEvent: () => {
+      setRealtimeReloadKey((key) => key + 1);
+      setNeedsFetchDetalles(true);
+    },
   });
 
   React.useEffect(() => {
@@ -135,7 +156,7 @@ export default function ServiciosDefaultEmergenciaPage() {
     return () => {
       cancelled = true;
     };
-  }, [tarifaId]);
+  }, [tarifaId, realtimeReloadKey]);
 
   const [detalleByNorm, setDetalleByNorm] = React.useState<Map<string, TarifaServicioBusqueda>>(new Map());
   const [igvPct, setIgvPct] = React.useState<number>(18);
@@ -147,7 +168,7 @@ export default function ServiciosDefaultEmergenciaPage() {
     void getIgvPorcentaje()
       .then((v) => setIgvPct(v))
       .catch(() => {});
-  }, []);
+  }, [realtimeReloadKey]);
 
   React.useEffect(() => {
     if (tarifaReferenciaId == null) return;

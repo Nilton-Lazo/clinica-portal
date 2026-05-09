@@ -96,7 +96,7 @@ export function useBancoTarjetaCaja() {
         const res = await getNextBancoTarjetaCajaCodigo();
         if (!alive) return;
         if (res.codigo) setCodigo(res.codigo);
-      } catch {}
+      } catch { void 0; }
     })();
     return () => {
       alive = false;
@@ -149,7 +149,7 @@ export function useBancoTarjetaCaja() {
     return () => {
       alive = false;
     };
-  }, [formaPagoIds.join(","), mode, selected?.id ?? 0]);
+  }, [formaPagoIds, mode, selected, toast]);
 
   const isValid = useMemo(() => {
     const c = codigo.trim();
@@ -358,6 +358,7 @@ export function useBancoTarjetaCaja() {
     data,
     loading,
     saving,
+    refresh,
     page,
     setPage,
     perPage,

@@ -9,6 +9,7 @@ import {
   type CuentaBitacoraNotaItem,
 } from "../services/cuentaBitacora.service";
 import { toUserFriendlyMessage } from "../utils/userFriendlyError";
+import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type Variant = "drawer" | "fullscreen";
 
@@ -83,6 +84,16 @@ export default function CuentaBitacoraDrawer(props: Props) {
     setDraft("");
     void load();
   }, [open, load]);
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["cuenta_bitacora_nota"],
+    onEvent: (event) => {
+      if (!open) return;
+      if (event.scope && nroCuenta.trim() && event.scope !== nroCuenta.trim()) return;
+      void load();
+    },
+  });
 
   const handleSave = React.useCallback(async () => {
     const text = draft.trim();

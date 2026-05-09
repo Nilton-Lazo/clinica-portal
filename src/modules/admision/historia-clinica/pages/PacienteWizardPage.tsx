@@ -20,6 +20,7 @@ import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
 import { toastService } from "../../../../shared/notifications";
+import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
 
@@ -43,6 +44,7 @@ export default function PacienteWizardPage() {
 
   const [initialDraft, setInitialDraft] = useState(() => emptyDraft());
   const [loadingPaciente, setLoadingPaciente] = useState(false);
+  const [realtimeReloadKey, setRealtimeReloadKey] = useState(0);
 
   useEffect(() => {
     const s = stepFromPath(loc.pathname);
@@ -87,7 +89,17 @@ export default function PacienteWizardPage() {
     };
 
     void load();
-  }, [isEdit, pacienteId]);
+  }, [isEdit, pacienteId, realtimeReloadKey]);
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["paciente", "paciente_plan", "paciente_contacto_emergencia"],
+    onEvent: (event) => {
+      if (!isEdit) return;
+      if (event.entity === "paciente" && event.id != null && Number(event.id) !== Number(pacienteId)) return;
+      setRealtimeReloadKey((key) => key + 1);
+    },
+  });
 
   const providerKey = useMemo(() => {
     if (!isEdit) return "new";
@@ -157,6 +169,11 @@ function WizardInner({
     if (!n) return false;
     if (!ap) return false;
     if (!am) return false;
+    const tipoPaciente = String((d as unknown as { tipo_paciente?: unknown })?.tipo_paciente ?? "").trim().toUpperCase();
+    if (tipoPaciente === "PRIVADO") {
+      const medicoTratanteId = String((d as unknown as { medico_tratante_id?: unknown })?.medico_tratante_id ?? "").trim();
+      if (!medicoTratanteId) return false;
+    }
     return true;
   }, [state.draft]);
 

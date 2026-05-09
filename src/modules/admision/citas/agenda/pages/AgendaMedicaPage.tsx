@@ -9,6 +9,7 @@ import AgendaMedicaMobileList from "../components/AgendaMedicaMobileList";
 import AgendaServicioProgramadoList from "../components/AgendaServicioProgramadoList";
 import AgendaMedicoProgramadoList from "../components/AgendaMedicoProgramadoList";
 import { useAgendaMedicaContext } from "../hooks/useAgendaMedicaContext";
+import { useRealtimeModuleRefresh } from "../../../../../shared/realtime/useRealtimeModuleRefresh";
 
 const perPageOptions: SelectOption[] = [
   { value: "25", label: "25" },
@@ -37,6 +38,14 @@ export default function AgendaMedicaPage() {
   const initRef = React.useRef(false);
   const [citaIdToSelect, setCitaIdToSelect] = React.useState<number | null>(null);
   const handledReturnFromAtencionRef = React.useRef(false);
+
+  useRealtimeModuleRefresh({
+    module: "admision",
+    entities: ["agenda_cita", "programacion_medica", "cita_atencion"],
+    onEvent: () => {
+      vm.refetchSlotsForNuevaCita();
+    },
+  });
 
   React.useEffect(() => {
     if (initRef.current) return;

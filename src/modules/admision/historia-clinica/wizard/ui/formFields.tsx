@@ -126,7 +126,7 @@ export function SelectField(
 
   return (
     <div>
-      <label className="text-sm text-(--color-text-primary)">{label}</label>
+      <span className="text-sm text-(--color-text-primary)">{label}</span>
       <div className="mt-1">
         <SelectMenu
           value={value}
@@ -153,15 +153,13 @@ export function DateField(
   }
 ) {
   const { label, value, onChange, ariaLabel, disabled, placeholder } = props;
-  const id = React.useId();
   const isTouchUi = useIsTouchUi();
 
   if (!isTouchUi) {
     return (
-      <div>
-        <label htmlFor={id} className="text-sm text-(--color-text-primary)">{label}</label>
+      <label className="block">
+        <span className="text-sm text-(--color-text-primary)">{label}</span>
         <input
-          id={id}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -169,13 +167,13 @@ export function DateField(
           aria-label={ariaLabel}
           className={inputBase}
         />
-      </div>
+      </label>
     );
   }
 
   return (
-    <div>
-      <label htmlFor={id} className="text-sm text-(--color-text-primary)">{label}</label>
+    <label className="block">
+      <span className="text-sm text-(--color-text-primary)">{label}</span>
 
       <div className="group relative mt-1 rounded-md">
         <div className="h-10 w-full rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 pr-10 text-sm flex items-center group-focus-within:border-(--color-primary)">
@@ -187,7 +185,6 @@ export function DateField(
         <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-icon-primary)" />
 
         <input
-          id={id}
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -196,6 +193,6 @@ export function DateField(
           aria-label={ariaLabel}
         />
       </div>
-    </div>
+    </label>
   );
 }

@@ -37,17 +37,45 @@ export function DataTable<T>(props: {
   emptyText?: string;
   tableClassName?: string;
   emptyRowClassName?: string;
+  heightMode?: "fill" | "hug";
 }) {
-  const { rows, columns, loading, selectedId, getRowId, onSelect, onDoubleClick, onContextMenu, onRowPointerEnter, emptyText, tableClassName, emptyRowClassName } = props;
+  const {
+    rows,
+    columns,
+    loading,
+    selectedId,
+    getRowId,
+    onSelect,
+    onDoubleClick,
+    onContextMenu,
+    onRowPointerEnter,
+    emptyText,
+    tableClassName,
+    emptyRowClassName,
+    heightMode = "fill",
+  } = props;
 
   const showOverlay = loading;
   const showEmptyRow = !loading && rows.length === 0;
   const showPlaceholderRow = loading && rows.length === 0;
 
+  const rootClass =
+    heightMode === "hug"
+      ? "relative flex w-full flex-none flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)"
+      : "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)";
+  const midClass =
+    heightMode === "hug"
+      ? "w-full overflow-x-auto app-scrollbar app-scrollbar-no-gutter"
+      : "min-h-0 min-w-0 flex-1 overflow-x-auto w-full app-scrollbar app-scrollbar-no-gutter";
+  const innerClass =
+    heightMode === "hug"
+      ? "w-full"
+      : "min-h-0 min-w-0 h-full overflow-y-auto app-scrollbar app-scrollbar-no-gutter";
+
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)">
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-auto w-full app-scrollbar app-scrollbar-no-gutter">
-        <div className="min-h-0 min-w-0 h-full overflow-y-auto app-scrollbar app-scrollbar-no-gutter">
+    <div className={rootClass}>
+      <div className={midClass}>
+        <div className={innerClass}>
           <table
             className={["w-full border-collapse text-sm", tableClassName ?? "min-w-full"].filter(Boolean).join(" ")}
           >

@@ -141,6 +141,7 @@ export type ServiciosSolicitadosSectionProps = {
   hideEstado?: boolean;
   largerTypography?: boolean;
   hideCopagoControls?: boolean;
+  editablePrecioConIgvCodigos?: string[];
 };
 
 const PRESUPUESTO_ESTADO_OPTIONS_FILTRO: SelectOption[] = [
@@ -180,6 +181,7 @@ export function ServiciosSolicitadosSection({
   hideEstado = false,
   largerTypography = false,
   hideCopagoControls = false,
+  editablePrecioConIgvCodigos = [],
 }: ServiciosSolicitadosSectionProps) {
   const esPresupuesto = nav.type === "presupuesto";
   const navPermitePaquete = esPresupuesto || nav.type === "pre_facturacion";
@@ -389,6 +391,10 @@ export function ServiciosSolicitadosSection({
     },
     [lineas, onLineasChange, selectedLineaIdx]
   );
+  const editableCodigoSet = React.useMemo(
+    () => new Set(editablePrecioConIgvCodigos.map((x) => x.trim()).filter((x) => x !== "")),
+    [editablePrecioConIgvCodigos]
+  );
 
   const finalColumns: DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>[] = React.useMemo(() => [
     { key: "codigo", header: "Código", headerClassName: "text-xs py-1.5 text-center w-24 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center tabular-nums align-middle", render: (x) => x.servicio_codigo ?? "—" },
@@ -569,7 +575,7 @@ export function ServiciosSolicitadosSection({
       headerClassName: "text-xs py-1.5 text-center w-28 min-w-[6rem] align-middle",
       cellClassName: "text-xs px-2 py-1.5 text-center whitespace-nowrap align-middle",
       render: (x) =>
-        readOnly || !x.desea_liberar_precio ? (
+        ((readOnly && !editableCodigoSet.has((x.servicio_codigo ?? "").trim())) || !x.desea_liberar_precio) ? (
           <PrecioCell valor={x.precio_con_igv ?? 0} />
         ) : (
           <div className="inline-flex items-baseline gap-0 text-xs">
@@ -616,7 +622,13 @@ export function ServiciosSolicitadosSection({
         ]),
     ...(hideMedicoUsuarioColumns
       ? []
-      : [{ key: "usuario", header: "Usuario", headerClassName: "text-xs py-1.5 text-center w-28 align-middle", cellClassName: "text-xs px-2 py-1.5 text-center align-middle", render: (x) => (x.user_username ?? x.user_nombre ?? "—") }]),
+      : [{
+          key: "usuario",
+          header: "Usuario",
+          headerClassName: "text-xs py-1.5 text-center w-28 align-middle",
+          cellClassName: "text-xs px-2 py-1.5 text-center align-middle",
+          render: (x: AtencionServicioLineaDisplay & { _idx: number }) => (x.user_username ?? x.user_nombre ?? "—"),
+        } satisfies DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>]),
     ...(hideEstado
       ? []
       : [
@@ -656,7 +668,7 @@ export function ServiciosSolicitadosSection({
             ),
           } satisfies DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>,
         ]),
-  ], [esPresupuesto, medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing, copFijoEditing, tarifaEsPrecioDirecto, readOnly, hideMedicoUsuarioColumns, hideEstado]);
+  ], [esPresupuesto, medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing, copFijoEditing, tarifaEsPrecioDirecto, readOnly, hideMedicoUsuarioColumns, hideEstado, editableCodigoSet]);
 
   const finalRows = React.useMemo(() => {
     const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
@@ -721,7 +733,7 @@ export function ServiciosSolicitadosSection({
         : [
             { value: "", label: "Todos" },
             { value: "PENDIENTE", label: "Pendiente" },
-            { value: "FACTURADO", label: "Cancelado" },
+            { value: "FACTURADO", label: "Facturado" },
           ],
     [esPresupuesto]
   );
@@ -1153,7 +1165,7 @@ export function ServiciosSolicitadosSection({
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Precio c/ IGV</span>
-                            {readOnly || !item.desea_liberar_precio ? (
+                            {((readOnly && !editableCodigoSet.has((item.servicio_codigo ?? "").trim())) || !item.desea_liberar_precio) ? (
                               <span className="h-9 flex items-center tabular-nums text-xs text-(--color-text-primary)">
                                 S/. {formatDecimalFixed(item.precio_con_igv, 2)}
                               </span>

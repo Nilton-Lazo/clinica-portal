@@ -6,6 +6,7 @@ import { useBancoTarjetaCaja } from "../banco-tarjeta/hooks/useBancoTarjetaCaja"
 import BancoTarjetaTable from "../components/BancoTarjetaTable";
 import BancoTarjetaMobileList from "../components/BancoTarjetaMobileList";
 import BancoTarjetaFormCard from "../components/BancoTarjetaFormCard";
+import { useFicherosRealtimeRefresh } from "../../../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() =>
@@ -25,6 +26,8 @@ export default function BancoTarjetaCajaPage() {
   const vm = useBancoTarjetaCaja();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["caja_banco_tarjeta"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

@@ -1,12 +1,15 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { CrudSplitLayout } from "../../ficheros/components/CrudSplitLayout";
-import type { RegistroEmergencia } from "../../types/registroEmergencia.types";
+import type { RegistroEmergencia } from "../types/registroEmergencia.types";
 import { useRegistroEmergencia } from "../registro/hooks/useRegistroEmergencia";
 import RegistroEmergenciaToolbar from "../registro/components/RegistroEmergenciaToolbar";
 import RegistroEmergenciaTable from "../registro/components/RegistroEmergenciaTable";
 import RegistroEmergenciaMobileList from "../registro/components/RegistroEmergenciaMobileList";
 import RegistroEmergenciaDetailCard from "../registro/components/RegistroEmergenciaDetailCard";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
+
+const EMERGENCIA_REGISTRO_ENTITIES = ["registro_emergencia", "atencion_emergencia"];
 
 function useIsLgUp() {
   const [isLgUp, setIsLgUp] = React.useState(() =>
@@ -80,6 +83,14 @@ export default function RegistroEmergenciaPage() {
       });
     });
   }, [selectedId, isLgUp]);
+
+  useRealtimeModuleRefresh({
+    module: "emergencia",
+    entities: EMERGENCIA_REGISTRO_ENTITIES,
+    onEvent: () => {
+      vm.refresh();
+    },
+  });
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">

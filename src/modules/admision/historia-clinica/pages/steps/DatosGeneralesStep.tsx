@@ -229,6 +229,8 @@ export function DatosGeneralesStep({
   const ubDom = String((d as unknown as { ubigeo_domicilio?: unknown }).ubigeo_domicilio ?? "").trim();
 
   const medicoIdStr = String((d as unknown as { medico_tratante_id?: unknown }).medico_tratante_id ?? "");
+  const tipoPacienteValor = String((d as unknown as { tipo_paciente?: unknown }).tipo_paciente ?? "").trim().toUpperCase();
+  const medicoTratanteLabel = tipoPacienteValor === "PRIVADO" ? "Médico tratante *" : "Médico tratante";
 
   const paisOptions = useMemo(
     () => ensureSelectedOption(paisOptionsBase, String(d.nacionalidad_iso2 ?? "").trim()),
@@ -386,7 +388,7 @@ export function DatosGeneralesStep({
         <FormCard title="Atención">
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <SelectField
-              label="Médico tratante"
+              label={medicoTratanteLabel}
               value={medicoIdStr}
               onChange={(v) => actions.set({ medico_tratante_id: v })}
               options={medicoOptions}
@@ -418,7 +420,14 @@ export function DatosGeneralesStep({
             <SelectField
               label="Tipo de paciente"
               value={String((d as unknown as { tipo_paciente?: unknown }).tipo_paciente ?? "")}
-              onChange={(v) => actions.set({ tipo_paciente: v })}
+              onChange={(v) => {
+                const nextTipoPaciente = String(v ?? "").trim().toUpperCase();
+                if (nextTipoPaciente === "PRIVADO") {
+                  actions.set({ tipo_paciente: v });
+                  return;
+                }
+                actions.set({ tipo_paciente: v, medico_tratante_id: "" });
+              }}
               options={tipoPacienteOptions}
               ariaLabel="Tipo de paciente"
               buttonClassName="w-full"

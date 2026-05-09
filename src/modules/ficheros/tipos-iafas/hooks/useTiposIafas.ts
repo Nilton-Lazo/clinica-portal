@@ -272,6 +272,7 @@ export function useTiposIafas() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

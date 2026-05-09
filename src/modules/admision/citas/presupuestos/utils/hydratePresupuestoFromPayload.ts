@@ -46,6 +46,10 @@ export function hydrateDetalleClienteLineasPaquete(payload: Record<string, unkno
     nr: pac.nr != null && String(pac.nr).trim() !== "" ? String(pac.nr) : null,
     nombre_completo: String(pac.nombre_completo ?? ""),
     planes: plan ? [plan] : [],
+    medico_tratante_id:
+      typeof pac.medico_tratante_id === "number" && Number.isFinite(pac.medico_tratante_id)
+        ? pac.medico_tratante_id
+        : null,
     tipo_paciente: strOrNull(pac.tipo_paciente),
     parentesco_seguro: strOrNull(pac.parentesco_seguro),
   };

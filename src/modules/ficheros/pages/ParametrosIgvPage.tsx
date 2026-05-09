@@ -3,6 +3,7 @@ import { PrimaryButton } from "../../../shared/ui/buttons";
 import { api } from "../../../shared/api";
 import { getApiErrorMessage } from "../../../shared/api/apiError";
 import { useNoticeToToast, inputBase } from "../utils/crudShared";
+import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
 
 export default function ParametrosIgvPage() {
   const [igv, setIgv] = React.useState<string>("18");
@@ -11,19 +12,30 @@ export default function ParametrosIgvPage() {
   const [notice, setNotice] = React.useState<{ type: "success" | "error"; text: string } | null>(null);
   useNoticeToToast(notice);
 
-  React.useEffect(() => {
+  const refresh = React.useCallback(async () => {
     setLoading(true);
-    api
-      .get<{ igv_porcentaje: number }>("/ficheros/parametros/igv")
-      .then((res) => {
-        setIgv(String(res.igv_porcentaje ?? 18));
-      })
-      .catch((e) => {
-        setIgv("18");
-        setNotice({ type: "error", text: getApiErrorMessage(e, "No se pudo cargar el porcentaje de IGV configurado.") });
-      })
-      .finally(() => setLoading(false));
+    try {
+      const res = await api.get<{ igv_porcentaje: number }>("/ficheros/parametros/igv");
+      setIgv(String(res.igv_porcentaje ?? 18));
+    } catch (e) {
+      setIgv("18");
+      setNotice({ type: "error", text: getApiErrorMessage(e, "No se pudo cargar el porcentaje de IGV configurado.") });
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useRealtimeModuleRefresh({
+    module: "ficheros",
+    entities: ["parametro_igv"],
+    onEvent: () => {
+      void refresh();
+    },
+  });
 
   const handleSave = React.useCallback(async () => {
     const num = parseFloat(igv);

@@ -10,6 +10,7 @@ import type {
   TarifaOperativa,
   TarifaServicioCrud,
   TarifaServicioListItem,
+  TarifarioServiciosCrudListResponse,
   TarifaSubcategoria,
   TarifaSubcategoriaLookup,
   TarifarioServiciosQuery,
@@ -255,8 +256,8 @@ export async function listServiciosCrud(
     subcategoria_id?: number;
     grupo_codigo?: string | null;
   }
-): Promise<PaginatedResponse<TarifaServicioCrud>> {
-  const res = await api.get<PaginatedResponse<TarifaServicioCrud>>(
+): Promise<TarifarioServiciosCrudListResponse> {
+  const res = await api.get<TarifarioServiciosCrudListResponse>(
     `/facturacion/tarifario/tarifas/${tarifaId}/servicios-crud${qs({
       page: query.page,
       per_page: query.per_page,
@@ -302,7 +303,7 @@ export async function createServicio(
     `/facturacion/tarifario/tarifas/${tarifaId}/servicios-crud`,
     payload
   );
-  return { data: res.data };
+  return { data: res.data, propagacion: res.propagacion };
 }
 
 export async function updateServicio(

@@ -653,6 +653,7 @@ export function useMedicos() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

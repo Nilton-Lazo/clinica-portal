@@ -6,6 +6,7 @@ import ParamOptionToolbar from "../../emergencia/components/ParamOptionToolbar";
 import ParamOptionTable from "../../emergencia/components/ParamOptionTable";
 import ParamOptionMobileList from "../../emergencia/components/ParamOptionMobileList";
 import ParamOptionFormCard from "../../emergencia/components/ParamOptionFormCard";
+import { useFicherosRealtimeRefresh } from "../../../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() =>
@@ -25,6 +26,8 @@ export default function AreaJefaturaPage() {
   const vm = useAreaJefatura();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["area_jefatura"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

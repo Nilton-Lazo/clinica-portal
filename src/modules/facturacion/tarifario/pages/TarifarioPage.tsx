@@ -11,6 +11,7 @@ import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { formatPrecioUnidad } from "../../../../shared/constants/decimalPrecision";
 import { toastService } from "../../../../shared/notifications";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
+import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 const gestionOptions = [
   { value: "categorias", label: "Categorías" },
@@ -153,6 +154,19 @@ export default function TarifarioPage() {
   const vm = useTarifario();
   const [gestion, setGestion] = React.useState("categorias");
   const setTarifaId = vm.setTarifaId;
+
+  useRealtimeModuleRefresh({
+    module: "facturacion",
+    entities: ["tarifa_categoria", "tarifa_subcategoria", "tarifa_servicio", "tarifario_clonacion"],
+    onEvent: (event) => {
+      if (event.scope && vm.tarifaId && event.scope !== String(vm.tarifaId)) {
+        void vm.refreshBaseTree();
+        return;
+      }
+      void vm.refresh({ page: 1, silent: true });
+      void vm.refreshBaseTree();
+    },
+  });
 
   const tarifaIdFromUrl = searchParams.get("tarifaId");
   React.useLayoutEffect(() => {

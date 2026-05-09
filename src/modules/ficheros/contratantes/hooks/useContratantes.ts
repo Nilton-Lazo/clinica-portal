@@ -318,6 +318,7 @@ export function useContratantes() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

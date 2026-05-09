@@ -6,6 +6,7 @@ import TurnosToolbar from "../turnos/components/TurnosToolbar";
 import TurnosTable from "../turnos/components/TurnosTable";
 import TurnosMobileList from "../turnos/components/TurnosMobileList";
 import TurnoFormCard from "../turnos/components/TurnoFormCard";
+import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 
 function useIsLgUp(): boolean {
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -30,6 +31,8 @@ export default function TurnosPage() {
 
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
+
+  useFicherosRealtimeRefresh(vm, ["turno"]);
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();

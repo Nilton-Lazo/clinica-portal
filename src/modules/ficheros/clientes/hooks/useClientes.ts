@@ -331,6 +331,7 @@ export function useClientes() {
     loading,
     saving,
     notice,
+    refresh,
 
     page,
     setPage,

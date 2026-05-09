@@ -23,11 +23,13 @@ export default function MedioPagoMobileList(props: {
         getRowId={(x) => x.id}
         onSelect={onSelect}
         renderMain={(x) => (
-          <div className="text-sm font-semibold text-(--color-text-primary)">
-            <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
+          <div>
+            <div className="text-sm font-semibold text-(--color-text-primary)">
+              <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
+            </div>
+            <div className="text-xs text-(--color-text-secondary)">{x.forma_pago_labels.join(", ")}</div>
           </div>
         )}
-        renderSub={(x) => <div className="text-xs text-(--color-text-secondary)">{x.forma_pago_labels.join(", ")}</div>}
         renderRight={(x) => <StatusBadge status={x.estado} />}
       />
       <PaginationFooter meta={data.meta} variant="mobile" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />

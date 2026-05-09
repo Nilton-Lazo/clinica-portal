@@ -6,6 +6,7 @@ export type RegistroEmergencia = {
   id: number;
   orden: string;
   hora: string;
+  hora_asistencia?: string | null;
   numero_hc: string;
   apellidos_nombres: string;
   sexo: string;
