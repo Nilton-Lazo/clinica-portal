@@ -1,5 +1,8 @@
 import * as React from "react";
+import { prepareFormText } from "../../../shared/textInput/uppercaseTextInput";
 import { toastService } from "../../../shared/notifications";
+
+export { prepareFormText };
 
 export const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";

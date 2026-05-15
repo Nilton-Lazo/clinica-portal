@@ -94,6 +94,7 @@ export default function NumeracionComprobanteCajaPage() {
             onTipoDocumentoIdChange={vm.setTipoDocumentoId}
             serie={vm.serie}
             onSerieChange={vm.setSerie}
+            onSerieBlur={vm.onSerieBlur}
             numeroText={vm.numeroText}
             onNumeroTextChange={vm.setNumeroText}
             onNumeroBlur={vm.onNumeroBlur}

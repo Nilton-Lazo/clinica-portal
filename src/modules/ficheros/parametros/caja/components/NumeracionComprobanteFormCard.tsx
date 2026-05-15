@@ -17,6 +17,7 @@ export default function NumeracionComprobanteFormCard(props: {
   onSerieChange: (v: string) => void;
   numeroText: string;
   onNumeroTextChange: (v: string) => void;
+  onSerieBlur: () => void;
   onNumeroBlur: () => void;
   estado: RecordStatus;
   onEstadoChange: (v: RecordStatus) => void;
@@ -38,6 +39,7 @@ export default function NumeracionComprobanteFormCard(props: {
     onSerieChange,
     numeroText,
     onNumeroTextChange,
+    onSerieBlur,
     onNumeroBlur,
     estado,
     onEstadoChange,
@@ -103,9 +105,13 @@ export default function NumeracionComprobanteFormCard(props: {
             <label className="text-sm text-(--color-text-primary)">Serie</label>
             <input
               value={serie}
-              onChange={(e) => onSerieChange(e.target.value.toUpperCase())}
-              className={`mt-1 h-10 w-full ${inputBase}`}
-              maxLength={20}
+              onChange={(e) => onSerieChange(e.target.value)}
+              onBlur={onSerieBlur}
+              className={`mt-1 h-10 w-full tabular-nums ${inputBase}`}
+              inputMode="numeric"
+              maxLength={3}
+              placeholder="000"
+              aria-label="Serie"
             />
           </div>
           <div>

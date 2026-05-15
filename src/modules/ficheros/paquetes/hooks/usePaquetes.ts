@@ -11,6 +11,7 @@ import {
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
 import { PRECISION_DECIMAL, roundToPrecision } from "../../../../shared/constants/decimalPrecision";
 
 export type Mode = "new" | "edit";
@@ -147,7 +148,7 @@ export function usePaquetes() {
   }, []);
 
   const isValid = useMemo(() => {
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!d || d.length > 255) return false;
     if (!tarifaId || tarifaId <= 0) return false;
     const p = parsePrecioInput(precioSinIgv);
@@ -322,7 +323,7 @@ export function usePaquetes() {
     }
 
     const payloadBase = {
-      descripcion: descripcion.trim(),
+      descripcion: prepareFormText(descripcion),
       tarifa_id: tarifaId,
       precio_sin_igv: precio,
       vigencia_actual: vigenciaActual.trim(),

@@ -11,7 +11,7 @@ import {
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
@@ -110,7 +110,7 @@ export function useConsultorios() {
 
   const isValid = useMemo(() => {
     const a = abreviatura.trim().toUpperCase();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
 
     if (!isAbreviaturaComplete(a)) return false;
     if (!d) return false;
@@ -244,7 +244,7 @@ export function useConsultorios() {
     setNotice(null);
 
     const a = abreviatura.trim().toUpperCase();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
 
     if (!isAbreviaturaComplete(a)) {
       setNotice({ type: "error", text: "Abreviatura debe ser C + 3 números (ej. C101), sin espacios." });

@@ -12,7 +12,7 @@ import {
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
@@ -78,7 +78,7 @@ export function useCirugias() {
 
   const isValid = useMemo(() => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
 
     if (!d) return false;
     if (d.length > 255) return false;
@@ -203,7 +203,7 @@ export function useCirugias() {
   const onSave = useCallback(async () => {
     setNotice(null);
 
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
 
     if (!isValid) {
       setNotice({ type: "error", text: "Completa la descripción de la cirugía correctamente." });

@@ -4,6 +4,7 @@ import { useBootstrapAuth } from "../../shared/hooks/useBootstrapAuth";
 import { useAuth } from "../../shared/auth/useAuth";
 import { sessionEvents } from "../../shared/auth/sessionEvents";
 import { useClientContextSync } from "./useClientContextSync";
+import { loadCodigoCorrelativoConfig } from "../../shared/services/codigoCorrelativoConfig.service";
 
 const LOADING_HINT_AFTER_MS = 5000;
 
@@ -14,6 +15,11 @@ export default function AppBootstrap() {
 
   useBootstrapAuth();
   useClientContextSync();
+
+  useEffect(() => {
+    if (isLoading) return;
+    void loadCodigoCorrelativoConfig();
+  }, [isLoading]);
 
   useEffect(() => {
     const off = sessionEvents.onUnauthorized((payload) => {

@@ -6,7 +6,7 @@ import { createTurno, deactivateTurno, getNextTurnoCodigo, listTurnos, updateTur
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
@@ -188,7 +188,7 @@ export function useTurnos() {
   }, []);
 
   const effectiveDescripcion = useMemo(() => {
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     return d ? d : descripcionPreview;
   }, [descripcion, descripcionPreview]);
 

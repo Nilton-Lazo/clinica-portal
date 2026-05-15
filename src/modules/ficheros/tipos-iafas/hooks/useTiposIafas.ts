@@ -3,6 +3,7 @@ import type { PaginatedResponse, RecordStatus, TipoIafa, TiposIafasQuery } from 
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
 import {
   createTipoIafa,
   deactivateTipoIafa,
@@ -66,7 +67,7 @@ export function useTiposIafas() {
   }, [mode, fetchCodigoPreview]);
 
   const isValid = useMemo(() => {
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!d) return false;
     if (d.length > 120) return false;
     return true;
@@ -193,7 +194,7 @@ export function useTiposIafas() {
     }
 
     const payloadBase = {
-      descripcion: descripcion.trim(),
+      descripcion: prepareFormText(descripcion),
     };
 
     setSaving(true);

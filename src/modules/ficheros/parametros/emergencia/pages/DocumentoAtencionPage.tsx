@@ -43,7 +43,7 @@ export default function DocumentoAtencionPage() {
       <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="text-base font-semibold text-(--color-text-primary)">Documento de Atención</div>
-          <div className="text-sm text-(--color-text-secondary)">CRUD con código definido por el usuario (único)</div>
+          <div className="text-sm text-(--color-text-secondary)">CRUD con código correlativo automático (único)</div>
         </div>
       </div>
       <div className="w-full shrink-0">

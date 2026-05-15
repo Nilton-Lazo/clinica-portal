@@ -10,7 +10,7 @@ import {
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
@@ -91,7 +91,7 @@ export function useClientes() {
   }, [mode, fetchCodigoPreview]);
 
   const isValid = useMemo(() => {
-    const n = nombre.trim();
+    const n = prepareFormText(nombre);
     if (!n || n.length > 255) return false;
     if (!isDniOrRucValid(dniORuc)) return false;
     if (telefono.trim().length > 30) return false;
@@ -248,7 +248,7 @@ export function useClientes() {
 
     const payloadBase = {
       tipo,
-      nombre: nombre.trim(),
+      nombre: prepareFormText(nombre),
       dni_o_ruc: normalizeDni(dniORuc),
       telefono: toNullIfBlank(telefono),
       direccion: toNullIfBlank(direccion),

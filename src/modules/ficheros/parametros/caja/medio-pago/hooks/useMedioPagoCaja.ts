@@ -14,7 +14,7 @@ import {
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type { StatusFilter };
 
@@ -78,7 +78,7 @@ export function useMedioPagoCaja() {
 
   const isValid = useMemo(() => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!d || d.length > 255) return false;
     if (!c || c.length > 50) return false;
     if (!formaPagoId.trim()) return false;
@@ -173,7 +173,7 @@ export function useMedioPagoCaja() {
 
   const onSave = useCallback(async () => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     const formaId = Number(formaPagoId);
     const ids = Number.isFinite(formaId) && formaId > 0 ? [formaId] : [];
     if (!isValid) {

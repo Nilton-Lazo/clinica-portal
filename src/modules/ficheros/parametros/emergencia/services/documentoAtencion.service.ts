@@ -31,6 +31,11 @@ function buildQuery(query: ParamOptionQuery): string {
   return s ? `?${s}` : "";
 }
 
+export async function getNextDocumentoAtencionCodigo(): Promise<{ codigo: string }> {
+  const res = await api.get<{ data: { codigo: unknown } }>(`${BASE}/next-codigo`);
+  return { codigo: String(res.data?.codigo ?? "").trim() };
+}
+
 export function listDocumentoAtencion(query: ParamOptionQuery): Promise<PaginatedResponse<ParamOption>> {
   return api.get<PaginatedResponse<ParamOption>>(`${BASE}${buildQuery(query)}`);
 }

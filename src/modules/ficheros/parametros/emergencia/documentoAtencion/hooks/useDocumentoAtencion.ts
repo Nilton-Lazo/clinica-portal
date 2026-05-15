@@ -3,13 +3,14 @@ import type { ParamOption, PaginatedResponse, RecordStatus, StatusFilter } from 
 import {
   createDocumentoAtencion,
   deactivateDocumentoAtencion,
+  getNextDocumentoAtencionCodigo,
   listDocumentoAtencion,
   updateDocumentoAtencion,
 } from "../../services/documentoAtencion.service";
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type { StatusFilter };
 
@@ -41,9 +42,26 @@ export function useDocumentoAtencion() {
   const originalRef = useRef<{ codigo: string; descripcion: string; estado: RecordStatus } | null>(null);
   const lastToastedErrorRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (mode !== "new" || codigo.trim()) return;
+    let alive = true;
+    (async () => {
+      try {
+        const res = await getNextDocumentoAtencionCodigo();
+        if (!alive) return;
+        if (res.codigo) setCodigo(res.codigo);
+      } catch {
+        void 0;
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [mode, codigo]);
+
   const isValid = useMemo(() => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!d || d.length > 255) return false;
     if (!c || c.length > 50) return false;
     return true;
@@ -119,7 +137,7 @@ export function useDocumentoAtencion() {
 
   const onSave = useCallback(async () => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!isValid) { toast.error("Completa código y descripción."); return; }
     if (mode === "edit" && !selected) { toast.error("Selecciona un documento de atención para editar."); return; }
     if (!isDirty) { toast.error("No hay cambios para guardar."); return; }

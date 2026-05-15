@@ -13,6 +13,12 @@ import {
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
+import {
+  formatSerieNumeracion,
+  isValidSerieNumeracion,
+  parseSerieNumeracionInput,
+  serieNumeracionFromStored,
+} from "../serieNumeracion";
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
@@ -81,8 +87,7 @@ export function useNumeracionComprobanteCaja() {
   const isValid = useMemo(() => {
     const td = Number(tipoDocumentoId);
     if (!tipoDocumentoId || !Number.isFinite(td) || td <= 0) return false;
-    const s = serie.trim();
-    if (!s || s.length > 20) return false;
+    if (!isValidSerieNumeracion(serie)) return false;
     const n = parseNumero(numeroText);
     if (n < 1 || n > 9999999) return false;
     return true;
@@ -93,7 +98,7 @@ export function useNumeracionComprobanteCaja() {
     if (!o) return mode === "new" ? isValid : false;
     return (
       o.tipo_documento_id !== Number(tipoDocumentoId) ||
-      o.serie !== serie.trim().toUpperCase() ||
+      o.serie !== formatSerieNumeracion(serie) ||
       o.numero !== parseNumero(numeroText) ||
       o.estado !== estado
     );
@@ -113,7 +118,7 @@ export function useNumeracionComprobanteCaja() {
     setMode("edit");
     setSelected(x);
     setTipoDocumentoId(String(x.tipo_documento_id));
-    setSerie(x.serie);
+    setSerie(serieNumeracionFromStored(x.serie));
     setNumeroText(formatNumero(x.numero));
     setEstado(x.estado);
     originalRef.current = {
@@ -185,13 +190,17 @@ export function useNumeracionComprobanteCaja() {
     setNumeroText(formatNumero(parseNumero(numeroText)));
   }, [numeroText]);
 
+  const onSerieBlur = useCallback(() => {
+    setSerie((prev) => formatSerieNumeracion(prev));
+  }, []);
+
   const onSave = useCallback(async () => {
     const td = Number(tipoDocumentoId);
-    const s = serie.trim().toUpperCase();
+    const s = formatSerieNumeracion(serie);
     const n = parseNumero(numeroText);
 
-    if (!isValid) {
-      toast.error("Completa tipo de documento, serie y número.");
+    if (!isValid || !s) {
+      toast.error("Completa tipo de documento, serie (1 a 3 dígitos) y número.");
       return;
     }
     if (mode === "edit" && !selected) {
@@ -204,6 +213,7 @@ export function useNumeracionComprobanteCaja() {
     }
     if (saving) return;
 
+    setSerie(s);
     setNumeroText(formatNumero(n));
     setSaving(true);
     try {
@@ -281,9 +291,10 @@ export function useNumeracionComprobanteCaja() {
     tipoDocumentoId,
     setTipoDocumentoId,
     serie,
-    setSerie,
+    setSerie: (v: string) => setSerie(parseSerieNumeracionInput(v)),
     numeroText,
     setNumeroText,
+    onSerieBlur,
     onNumeroBlur,
     estado,
     setEstado,

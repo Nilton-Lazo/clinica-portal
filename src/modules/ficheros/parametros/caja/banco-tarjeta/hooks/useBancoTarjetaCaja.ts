@@ -16,7 +16,7 @@ import {
 import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
-
+import { prepareFormText } from "../../../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type { StatusFilter };
 
@@ -153,7 +153,7 @@ export function useBancoTarjetaCaja() {
 
   const isValid = useMemo(() => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!d || d.length > 255) return false;
     if (!c || c.length > 50) return false;
     if (formaPagoIds.length !== 1) return false;
@@ -266,7 +266,7 @@ export function useBancoTarjetaCaja() {
 
   const onSave = useCallback(async () => {
     const c = codigo.trim();
-    const d = descripcion.trim();
+    const d = prepareFormText(descripcion);
     if (!isValid) {
       toast.error("Completa código, descripción, forma de pago y medio de pago.");
       return;
