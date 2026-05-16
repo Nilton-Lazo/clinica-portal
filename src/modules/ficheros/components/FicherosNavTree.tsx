@@ -26,6 +26,9 @@ const groups: Group[] = [
       { label: "Contratantes", to: "/ficheros/contratantes"},
       { label: "Tarifas", to: "/ficheros/tarifas"},
       { label: "Tipos de clientes", to: "/ficheros/tipos-clientes"},
+      { label: "Clonación de tarifa", to: "/ficheros/clonacion-tarifa"},
+      { label: "Categorías", to: "/ficheros/tarifario-categorias"},
+      { label: "Subcategorías", to: "/ficheros/tarifario-subcategorias"},
     ],
   },
   {

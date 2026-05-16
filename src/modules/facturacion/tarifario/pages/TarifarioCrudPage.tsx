@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
@@ -250,6 +249,25 @@ function useCategoriasCrud(tarifaId: number | null) {
     originalRef.current = null;
     setNotice(null);
   }, []);
+
+  React.useEffect(() => {
+    if (tarifaId) return;
+    setData({
+      data: [],
+      meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+    });
+    setLoading(false);
+    setNotice(null);
+    prevFiltersRef.current = null;
+    resetToNew();
+    setPage(1);
+  }, [tarifaId, resetToNew]);
+
+  React.useEffect(() => {
+    if (!tarifaId) return;
+    resetToNew();
+    setPage(1);
+  }, [tarifaId, resetToNew]);
 
   const loadForEdit = React.useCallback((x: TarifaCategoria) => {
     setMode("edit");
@@ -609,6 +627,26 @@ function useSubcategoriasCrud(tarifaId: number | null) {
     originalRef.current = null;
     setNotice(null);
   }, []);
+
+  React.useEffect(() => {
+    if (tarifaId) return;
+    setData({
+      data: [],
+      meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+    });
+    setLoading(false);
+    setNotice(null);
+    setCategorias([]);
+    prevFiltersRef.current = null;
+    resetToNew();
+    setPage(1);
+  }, [tarifaId, resetToNew]);
+
+  React.useEffect(() => {
+    if (!tarifaId) return;
+    resetToNew();
+    setPage(1);
+  }, [tarifaId, resetToNew]);
 
   const loadForEdit = React.useCallback((x: TarifaSubcategoria) => {
     setMode("edit");
@@ -1133,6 +1171,25 @@ function useServiciosCrud(tarifaId: number | null) {
     setNotice(null);
   }, []);
 
+  React.useEffect(() => {
+    if (tarifaId) return;
+    setData({
+      data: [],
+      meta: { current_page: 1, per_page: 50, total: 0, last_page: 1, igv_porcentaje: 18 },
+    });
+    setLoading(false);
+    setNotice(null);
+    prevFiltersRef.current = null;
+    resetToNew();
+    setPage(1);
+  }, [tarifaId, resetToNew]);
+
+  React.useEffect(() => {
+    if (!tarifaId) return;
+    resetToNew();
+    setPage(1);
+  }, [tarifaId, resetToNew]);
+
   const loadForEdit = React.useCallback((x: TarifaServicioCrud) => {
     setMode("edit");
     setSelected(x);
@@ -1419,98 +1476,38 @@ function useServiciosCrud(tarifaId: number | null) {
   };
 }
 
-function CrudHeader({
-  title,
-  onBack,
-  tarifaLabel,
+export function TarifarioCategoriasCrudView({
+  tarifaId,
+  tarifaMenuValue,
+  tarifaMenuOptions,
+  tarifaMenuLoading,
+  tarifaMenuError,
+  onTarifaMenuChange,
 }: {
-  title: string;
-  onBack: () => void;
-  tarifaLabel: string;
+  tarifaId: number | null;
+  tarifaMenuValue: string;
+  tarifaMenuOptions: SelectOption[];
+  tarifaMenuLoading: boolean;
+  tarifaMenuError: string | null;
+  onTarifaMenuChange: (value: string) => void;
 }) {
-  return (
-    <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-      <div className="min-w-0">
-        <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
-        <div className="text-sm text-(--color-text-secondary)">
-          CRUD con paginación y estados · {tarifaLabel}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onBack}
-        className="h-10 rounded px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-      >
-        Volver a Tarifario
-      </button>
-    </div>
-  );
-}
-
-function CrudToolbar(props: {
-  q: string;
-  onQChange: (v: string) => void;
-  statusFilter: StatusFilter;
-  onStatusChange: (v: StatusFilter) => void;
-  perPage: number;
-  onPerPageChange: (v: number) => void;
-  onNew: () => void;
-}) {
-  const { q, onQChange, statusFilter, onStatusChange, perPage, onPerPageChange, onNew } = props;
-  return (
-    <div className="w-full shrink-0">
-      <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-        <input
-          value={q}
-          onChange={(e) => onQChange(e.target.value)}
-          placeholder="Buscar…"
-          className={`h-10 basis-full lg:basis-auto lg:flex-1 min-w-65 ${inputBase}`}
-          aria-label="Buscar por código o descripción"
-        />
-
-        <SelectMenu
-          value={String(statusFilter)}
-          onChange={(v) => onStatusChange(v === "ALL" ? "ALL" : (v as RecordStatus))}
-          options={statusOptions}
-          ariaLabel="Filtrar por estado"
-          buttonClassName={`w-full sm:w-auto min-w-[160px] h-10 ${inputBase}`}
-          menuClassName="min-w-[120px]"
-        />
-
-        <SelectMenu
-          value={String(perPage)}
-          onChange={(v) => onPerPageChange(Number(v))}
-          options={perPageOptions}
-          ariaLabel="Registros por página"
-          buttonClassName={`w-full sm:w-auto min-w-[96px] h-10 ${inputBase}`}
-          menuClassName="min-w-[90px]"
-        />
-
-        <PrimaryButton className="w-full sm:w-auto" onClick={onNew}>
-          Nuevo
-        </PrimaryButton>
-      </div>
-    </div>
-  );
-}
-
-function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabel: string }) {
   const vm = useCategoriasCrud(tarifaId);
+  const tarifaReady = Boolean(tarifaId);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
   useNoticeToToast(vm.notice);
 
   useRealtimeModuleRefresh({
     module: "facturacion",
     entities: TARIFARIO_ENTITIES,
     onEvent: (event) => {
-      if (event.scope !== String(tarifaId)) return;
+      if (!tarifaId || event.scope !== String(tarifaId)) return;
       void vm.refresh();
     },
   });
 
   const handleNew = React.useCallback(() => {
+    if (!tarifaReady) return;
     vm.resetToNew();
     if (isLgUp) return;
     requestAnimationFrame(() => {
@@ -1518,7 +1515,7 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
         formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
-  }, [vm, isLgUp]);
+  }, [vm, isLgUp, tarifaReady]);
 
   const columns: DataTableColumn<TarifaCategoria>[] = [
     {
@@ -1544,20 +1541,53 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <CrudHeader
-        title="Categorías"
-        onBack={() => navigate(`/facturacion/tarifario?tarifaId=${tarifaId}`)}
-        tarifaLabel={tarifaLabel}
-      />
-      <CrudToolbar
-        q={vm.q}
-        onQChange={vm.setQ}
-        statusFilter={vm.statusFilter}
-        onStatusChange={vm.setStatusFilter}
-        perPage={vm.perPage}
-        onPerPageChange={vm.setPerPage}
-        onNew={handleNew}
-      />
+      {tarifaMenuError ? (
+        <div className="text-sm text-(--color-danger)">{tarifaMenuError}</div>
+      ) : null}
+      <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <SelectMenu
+            value={tarifaMenuValue}
+            onChange={onTarifaMenuChange}
+            options={tarifaMenuOptions}
+            ariaLabel="Tarifa"
+            disabled={tarifaMenuLoading}
+            buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${inputBase}`}
+            menuClassName="min-w-[220px]"
+          />
+          <input
+            value={vm.q}
+            onChange={(e) => vm.setQ(e.target.value)}
+            placeholder="BUSCAR…"
+            disabled={!tarifaReady}
+            className={`h-10 min-w-50 flex-1 basis-full sm:basis-0 ${inputBase}`}
+            aria-label="Buscar por código o descripción"
+          />
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <SelectMenu
+              value={String(vm.statusFilter)}
+              onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
+              options={statusOptions}
+              ariaLabel="Filtrar por estado"
+              disabled={!tarifaReady}
+              buttonClassName={`h-10 min-w-[120px] ${inputBase}`}
+              menuClassName="min-w-[120px]"
+            />
+            <SelectMenu
+              value={String(vm.perPage)}
+              onChange={(v) => vm.setPerPage(Number(v))}
+              options={perPageOptions}
+              ariaLabel="Registros por página"
+              disabled={!tarifaReady}
+              buttonClassName={`h-10 min-w-[80px] ${inputBase}`}
+              menuClassName="min-w-[80px]"
+            />
+            <PrimaryButton className="shrink-0" disabled={!tarifaReady} onClick={handleNew}>
+              Nuevo
+            </PrimaryButton>
+          </div>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
@@ -1568,15 +1598,28 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
-              onSelect={vm.loadForEdit}
+              onSelect={tarifaReady ? vm.loadForEdit : () => {}}
+              emptyText={tarifaReady ? undefined : ""}
             />
             <PaginationFooter
               meta={vm.data.meta}
               variant="desktop"
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              onFirst={() => vm.setPage(1)}
-              onLast={() => vm.setPage(vm.data.meta.last_page)}
+              onPrev={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.max(1, p - 1));
+              }}
+              onNext={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1));
+              }}
+              onFirst={() => {
+                if (!tarifaReady) return;
+                vm.setPage(1);
+              }}
+              onLast={() => {
+                if (!tarifaReady) return;
+                vm.setPage(vm.data.meta.last_page);
+              }}
             />
           </div>
 
@@ -1586,7 +1629,8 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
-              onSelect={vm.loadForEdit}
+              onSelect={tarifaReady ? vm.loadForEdit : () => {}}
+              emptyText={tarifaReady ? undefined : ""}
               renderMain={(x) => (
                 <div className="text-sm font-semibold text-(--color-text-primary)">
                   <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
@@ -1597,10 +1641,22 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
             <PaginationFooter
               meta={vm.data.meta}
               variant="mobile"
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              onFirst={() => vm.setPage(1)}
-              onLast={() => vm.setPage(vm.data.meta.last_page)}
+              onPrev={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.max(1, p - 1));
+              }}
+              onNext={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1));
+              }}
+              onFirst={() => {
+                if (!tarifaReady) return;
+                vm.setPage(1);
+              }}
+              onLast={() => {
+                if (!tarifaReady) return;
+                vm.setPage(vm.data.meta.last_page);
+              }}
             />
           </div>
         </div>
@@ -1608,7 +1664,10 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
         <div ref={formRef} className="min-w-0 shrink-0">
           <div
             className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
-            onKeyDown={makeEnterKeySaveHandler(Boolean(vm.isValid && vm.isDirty && !vm.saving), vm.onSave)}
+            onKeyDown={makeEnterKeySaveHandler(
+              Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
+              vm.onSave
+            )}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -1629,6 +1688,7 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
                   <input
                     value={vm.codigo}
                     readOnly
+                    disabled={!tarifaReady}
                     placeholder={vm.mode === "new" ? "Generando" : ""}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
@@ -1646,6 +1706,7 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
                         { value: "SUSPENDIDO", label: "Suspendido" },
                       ]}
                       ariaLabel="Estado"
+                      disabled={!tarifaReady}
                       buttonClassName={`w-full h-10 ${inputBase}`}
                       menuClassName="min-w-full"
                     />
@@ -1658,19 +1719,28 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
                 <input
                   value={vm.descripcion}
                   onChange={(e) => vm.setDescripcion(e.target.value)}
+                  disabled={!tarifaReady}
                   className={`mt-1 h-10 w-full ${inputBase}`}
                 />
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-3 gap-2">
-              <PrimaryButton className="w-full min-w-0" disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+              <PrimaryButton
+                className="w-full min-w-0"
+                disabled={!tarifaReady || !vm.isValid || !vm.isDirty || vm.saving}
+                onClick={vm.onSave}
+              >
                 {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
               </PrimaryButton>
-              <SecondaryButton className="w-full min-w-0" disabled={vm.saving} onClick={vm.cancel}>
+              <SecondaryButton className="w-full min-w-0" disabled={vm.saving || !tarifaReady} onClick={vm.cancel}>
                 Cancelar
               </SecondaryButton>
-              <DangerButton className="w-full min-w-0" disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+              <DangerButton
+                className="w-full min-w-0"
+                disabled={!tarifaReady || !vm.canDeactivate || vm.saving}
+                onClick={vm.requestDeactivate}
+              >
                 Desactivar
               </DangerButton>
             </div>
@@ -1694,11 +1764,25 @@ function CategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLab
   );
 }
 
-function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabel: string }) {
+export function TarifarioSubcategoriasCrudView({
+  tarifaId,
+  tarifaMenuValue,
+  tarifaMenuOptions,
+  tarifaMenuLoading,
+  tarifaMenuError,
+  onTarifaMenuChange,
+}: {
+  tarifaId: number | null;
+  tarifaMenuValue: string;
+  tarifaMenuOptions: SelectOption[];
+  tarifaMenuLoading: boolean;
+  tarifaMenuError: string | null;
+  onTarifaMenuChange: (value: string) => void;
+}) {
   const vm = useSubcategoriasCrud(tarifaId);
+  const tarifaReady = Boolean(tarifaId);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
   useNoticeToToast(vm.notice);
   const categoriaCodigoById = React.useMemo(() => {
     const map = new Map<number, string>();
@@ -1710,12 +1794,13 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
     module: "facturacion",
     entities: TARIFARIO_ENTITIES,
     onEvent: (event) => {
-      if (event.scope !== String(tarifaId)) return;
+      if (!tarifaId || event.scope !== String(tarifaId)) return;
       void vm.refresh();
     },
   });
 
   const handleNew = React.useCallback(() => {
+    if (!tarifaReady) return;
     vm.resetToNew();
     if (isLgUp) return;
     requestAnimationFrame(() => {
@@ -1723,7 +1808,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
         formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
-  }, [vm, isLgUp]);
+  }, [vm, isLgUp, tarifaReady]);
 
   const columns: DataTableColumn<TarifaSubcategoria>[] = [
     {
@@ -1752,57 +1837,66 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <CrudHeader
-        title="Subcategorías"
-        onBack={() => navigate(`/facturacion/tarifario?tarifaId=${tarifaId}`)}
-        tarifaLabel={tarifaLabel}
-      />
-      <div className="w-full shrink-0">
-        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+      {tarifaMenuError ? (
+        <div className="text-sm text-(--color-danger)">{tarifaMenuError}</div>
+      ) : null}
+      <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <SelectMenu
+            value={tarifaMenuValue}
+            onChange={onTarifaMenuChange}
+            options={tarifaMenuOptions}
+            ariaLabel="Tarifa"
+            disabled={tarifaMenuLoading}
+            buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${inputBase}`}
+            menuClassName="min-w-[220px]"
+          />
           <input
             value={vm.q}
             onChange={(e) => vm.setQ(e.target.value)}
-            placeholder="Buscar…"
-            className={`h-10 basis-full lg:basis-auto lg:flex-1 min-w-65 ${inputBase}`}
+            placeholder="BUSCAR…"
+            disabled={!tarifaReady}
+            className={`h-10 min-w-50 flex-1 basis-full sm:basis-0 ${inputBase}`}
             aria-label="Buscar por código o descripción"
           />
-
-          <SelectMenu
-            value={String(vm.statusFilter)}
-            onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
-            options={statusOptions}
-            ariaLabel="Filtrar por estado"
-            buttonClassName={`w-full sm:w-auto min-w-[160px] h-10 ${inputBase}`}
-            menuClassName="min-w-[120px]"
-          />
-
-          <SelectMenu
-            value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
-            onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
-            options={[
-              { value: "", label: "Todas las categorías" },
-              ...vm.categorias.map((c) => ({
-                value: String(c.id),
-                label: `${c.codigo} - ${c.descripcion}`,
-              })),
-            ]}
-            ariaLabel="Categoría filtro"
-            buttonClassName={`w-full sm:w-auto min-w-[220px] h-10 ${inputBase}`}
-            menuClassName="min-w-[200px]"
-          />
-
-          <SelectMenu
-            value={String(vm.perPage)}
-            onChange={(v) => vm.setPerPage(Number(v))}
-            options={perPageOptions}
-            ariaLabel="Registros por página"
-            buttonClassName={`w-full sm:w-auto min-w-[96px] h-10 ${inputBase}`}
-            menuClassName="min-w-[90px]"
-          />
-
-          <PrimaryButton className="w-full sm:w-auto" onClick={handleNew}>
-            Nuevo
-          </PrimaryButton>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <SelectMenu
+              value={String(vm.statusFilter)}
+              onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
+              options={statusOptions}
+              ariaLabel="Filtrar por estado"
+              disabled={!tarifaReady}
+              buttonClassName={`h-10 min-w-[120px] ${inputBase}`}
+              menuClassName="min-w-[120px]"
+            />
+            <SelectMenu
+              value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
+              onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
+              options={[
+                { value: "", label: "Todas las categorías" },
+                ...vm.categorias.map((c) => ({
+                  value: String(c.id),
+                  label: `${c.codigo} - ${c.descripcion}`,
+                })),
+              ]}
+              ariaLabel="Categoría filtro"
+              disabled={!tarifaReady}
+              buttonClassName={`h-10 min-w-[220px] ${inputBase}`}
+              menuClassName="min-w-[200px]"
+            />
+            <SelectMenu
+              value={String(vm.perPage)}
+              onChange={(v) => vm.setPerPage(Number(v))}
+              options={perPageOptions}
+              ariaLabel="Registros por página"
+              disabled={!tarifaReady}
+              buttonClassName={`h-10 min-w-[80px] ${inputBase}`}
+              menuClassName="min-w-[80px]"
+            />
+            <PrimaryButton className="shrink-0" disabled={!tarifaReady} onClick={handleNew}>
+              Nuevo
+            </PrimaryButton>
+          </div>
         </div>
       </div>
 
@@ -1815,15 +1909,28 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
-              onSelect={vm.loadForEdit}
+              onSelect={tarifaReady ? vm.loadForEdit : () => {}}
+              emptyText={tarifaReady ? undefined : ""}
             />
             <PaginationFooter
               meta={vm.data.meta}
               variant="desktop"
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              onFirst={() => vm.setPage(1)}
-              onLast={() => vm.setPage(vm.data.meta.last_page)}
+              onPrev={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.max(1, p - 1));
+              }}
+              onNext={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1));
+              }}
+              onFirst={() => {
+                if (!tarifaReady) return;
+                vm.setPage(1);
+              }}
+              onLast={() => {
+                if (!tarifaReady) return;
+                vm.setPage(vm.data.meta.last_page);
+              }}
             />
           </div>
 
@@ -1833,7 +1940,8 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
-              onSelect={vm.loadForEdit}
+              onSelect={tarifaReady ? vm.loadForEdit : () => {}}
+              emptyText={tarifaReady ? undefined : ""}
               renderMain={(x) => {
                 const catCode = categoriaCodigoById.get(x.categoria_id);
                 const codigoFull = catCode ? `${catCode}.${x.codigo}` : x.codigo;
@@ -1848,10 +1956,22 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
             <PaginationFooter
               meta={vm.data.meta}
               variant="mobile"
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              onFirst={() => vm.setPage(1)}
-              onLast={() => vm.setPage(vm.data.meta.last_page)}
+              onPrev={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.max(1, p - 1));
+              }}
+              onNext={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1));
+              }}
+              onFirst={() => {
+                if (!tarifaReady) return;
+                vm.setPage(1);
+              }}
+              onLast={() => {
+                if (!tarifaReady) return;
+                vm.setPage(vm.data.meta.last_page);
+              }}
             />
           </div>
         </div>
@@ -1859,7 +1979,10 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
         <div ref={formRef} className="min-w-0 shrink-0">
           <div
             className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
-            onKeyDown={makeEnterKeySaveHandler(Boolean(vm.isValid && vm.isDirty && !vm.saving), vm.onSave)}
+            onKeyDown={makeEnterKeySaveHandler(
+              Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
+              vm.onSave
+            )}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -1890,6 +2013,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
                       })),
                     ]}
                     ariaLabel="Categoría"
+                    disabled={!tarifaReady}
                     buttonClassName={`w-full h-10 ${inputBase}`}
                     menuClassName="min-w-full"
                   />
@@ -1906,6 +2030,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
                         : vm.codigo
                     }
                     readOnly
+                    disabled={!tarifaReady}
                     placeholder={vm.mode === "new" ? "Generando" : ""}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
@@ -1923,6 +2048,7 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
                         { value: "SUSPENDIDO", label: "Suspendido" },
                       ]}
                       ariaLabel="Estado"
+                      disabled={!tarifaReady}
                       buttonClassName={`w-full h-10 ${inputBase}`}
                       menuClassName="min-w-full"
                     />
@@ -1935,19 +2061,28 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
                 <input
                   value={vm.descripcion}
                   onChange={(e) => vm.setDescripcion(e.target.value)}
+                  disabled={!tarifaReady}
                   className={`mt-1 h-10 w-full ${inputBase}`}
                 />
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-3 gap-2">
-              <PrimaryButton className="w-full min-w-0" disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+              <PrimaryButton
+                className="w-full min-w-0"
+                disabled={!tarifaReady || !vm.isValid || !vm.isDirty || vm.saving}
+                onClick={vm.onSave}
+              >
                 {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
               </PrimaryButton>
-              <SecondaryButton className="w-full min-w-0" disabled={vm.saving} onClick={vm.cancel}>
+              <SecondaryButton className="w-full min-w-0" disabled={vm.saving || !tarifaReady} onClick={vm.cancel}>
                 Cancelar
               </SecondaryButton>
-              <DangerButton className="w-full min-w-0" disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+              <DangerButton
+                className="w-full min-w-0"
+                disabled={!tarifaReady || !vm.canDeactivate || vm.saving}
+                onClick={vm.requestDeactivate}
+              >
                 Desactivar
               </DangerButton>
             </div>
@@ -1973,18 +2108,32 @@ function SubcategoriasView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifa
   );
 }
 
-function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabel: string }) {
+export function TarifarioServiciosCrudView({
+  tarifaId,
+  tarifaMenuValue,
+  tarifaMenuOptions,
+  tarifaMenuLoading,
+  tarifaMenuError,
+  onTarifaMenuChange,
+}: {
+  tarifaId: number | null;
+  tarifaMenuValue: string;
+  tarifaMenuOptions: SelectOption[];
+  tarifaMenuLoading: boolean;
+  tarifaMenuError: string | null;
+  onTarifaMenuChange: (value: string) => void;
+}) {
   const vm = useServiciosCrud(tarifaId);
+  const tarifaReady = Boolean(tarifaId);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  const navigate = useNavigate();
   useNoticeToToast(vm.notice);
 
   useRealtimeModuleRefresh({
     module: "facturacion",
     entities: TARIFARIO_ENTITIES,
     onEvent: (event) => {
-      if (event.scope !== String(tarifaId)) return;
+      if (!tarifaId || event.scope !== String(tarifaId)) return;
       void vm.refresh();
     },
   });
@@ -1993,11 +2142,13 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
     module: "ficheros",
     entities: ["parametro_igv"],
     onEvent: () => {
+      if (!tarifaId) return;
       void vm.refresh();
     },
   });
 
   const handleNew = React.useCallback(() => {
+    if (!tarifaReady) return;
     vm.resetToNew();
     if (isLgUp) return;
     requestAnimationFrame(() => {
@@ -2005,7 +2156,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
         formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
-  }, [vm, isLgUp]);
+  }, [vm, isLgUp, tarifaReady]);
 
   const columns: DataTableColumn<TarifaServicioCrud>[] = [
     {
@@ -2037,18 +2188,26 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <CrudHeader
-        title="Servicios"
-        onBack={() => navigate(`/facturacion/tarifario?tarifaId=${tarifaId}`)}
-        tarifaLabel={tarifaLabel}
-      />
+      {tarifaMenuError ? (
+        <div className="text-sm text-(--color-danger)">{tarifaMenuError}</div>
+      ) : null}
       <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center gap-3">
+            <SelectMenu
+              value={tarifaMenuValue}
+              onChange={onTarifaMenuChange}
+              options={tarifaMenuOptions}
+              ariaLabel="Tarifa"
+              disabled={tarifaMenuLoading}
+              buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${inputBase}`}
+              menuClassName="min-w-[220px]"
+            />
             <input
               value={vm.q}
               onChange={(e) => vm.setQ(e.target.value)}
-              placeholder="Buscar…"
+              placeholder="BUSCAR…"
+              disabled={!tarifaReady}
               className={`h-10 min-w-50 flex-1 basis-full sm:basis-0 ${inputBase}`}
               aria-label="Buscar por código, descripción o nomenclador"
             />
@@ -2058,6 +2217,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 onChange={(v) => vm.setStatusFilter(v === "ALL" ? "ALL" : (v as RecordStatus))}
                 options={statusOptions}
                 ariaLabel="Filtrar por estado"
+                disabled={!tarifaReady}
                 buttonClassName={`h-10 min-w-[120px] ${inputBase}`}
                 menuClassName="min-w-[120px]"
               />
@@ -2066,10 +2226,11 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 onChange={(v) => vm.setPerPage(Number(v))}
                 options={perPageOptions}
                 ariaLabel="Registros por página"
+                disabled={!tarifaReady}
                 buttonClassName={`h-10 min-w-[80px] ${inputBase}`}
                 menuClassName="min-w-[80px]"
               />
-              <PrimaryButton className="shrink-0" onClick={handleNew}>
+              <PrimaryButton className="shrink-0" disabled={!tarifaReady} onClick={handleNew}>
                 Nuevo
               </PrimaryButton>
             </div>
@@ -2090,6 +2251,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   })),
                 ]}
                 ariaLabel="Categoría"
+                disabled={!tarifaReady}
                 buttonClassName={`h-10 w-full min-w-[120px] sm:w-fit ${inputBase}`}
                 menuClassName="w-full"
               />
@@ -2106,6 +2268,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   })),
                 ]}
                 ariaLabel="Subcategoría"
+                disabled={!tarifaReady}
                 buttonClassName={`h-10 w-full min-w-[120px] sm:w-fit ${inputBase}`}
                 menuClassName="w-full"
               />
@@ -2119,6 +2282,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   ...vm.gruposOpciones.map((g) => ({ value: g.codigo, label: g.descripcion })),
                 ]}
                 ariaLabel="Filtrar por grupo"
+                disabled={!tarifaReady}
                 buttonClassName={`h-10 w-full min-w-[120px] sm:w-fit ${inputBase}`}
                 menuClassName="w-full"
               />
@@ -2136,15 +2300,28 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
-              onSelect={vm.loadForEdit}
+              onSelect={tarifaReady ? vm.loadForEdit : () => {}}
+              emptyText={tarifaReady ? undefined : ""}
             />
             <PaginationFooter
               meta={vm.data.meta}
               variant="desktop"
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              onFirst={() => vm.setPage(1)}
-              onLast={() => vm.setPage(vm.data.meta.last_page)}
+              onPrev={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.max(1, p - 1));
+              }}
+              onNext={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1));
+              }}
+              onFirst={() => {
+                if (!tarifaReady) return;
+                vm.setPage(1);
+              }}
+              onLast={() => {
+                if (!tarifaReady) return;
+                vm.setPage(vm.data.meta.last_page);
+              }}
             />
           </div>
 
@@ -2154,7 +2331,8 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
               loading={vm.loading}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
-              onSelect={vm.loadForEdit}
+              onSelect={tarifaReady ? vm.loadForEdit : () => {}}
+              emptyText={tarifaReady ? undefined : ""}
               renderMain={(x) => (
                 <div className="text-sm font-semibold text-(--color-text-primary)">
                   <span className="tabular-nums">{x.codigo}</span> · {x.descripcion}
@@ -2165,10 +2343,22 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
             <PaginationFooter
               meta={vm.data.meta}
               variant="mobile"
-              onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
-              onNext={() => vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))}
-              onFirst={() => vm.setPage(1)}
-              onLast={() => vm.setPage(vm.data.meta.last_page)}
+              onPrev={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.max(1, p - 1));
+              }}
+              onNext={() => {
+                if (!tarifaReady) return;
+                vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1));
+              }}
+              onFirst={() => {
+                if (!tarifaReady) return;
+                vm.setPage(1);
+              }}
+              onLast={() => {
+                if (!tarifaReady) return;
+                vm.setPage(vm.data.meta.last_page);
+              }}
             />
           </div>
         </div>
@@ -2176,7 +2366,10 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
         <div ref={formRef} className="lg:w-[380px] lg:min-w-[380px] lg:shrink-0 lg:max-h-full lg:overflow-y-auto app-scrollbar-thin">
           <div
             className="rounded border border-(--border-color-default) bg-(--color-surface) p-4"
-            onKeyDown={makeEnterKeySaveHandler(Boolean(vm.isValid && vm.isDirty && !vm.saving), vm.onSave)}
+            onKeyDown={makeEnterKeySaveHandler(
+              Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
+              vm.onSave
+            )}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -2206,6 +2399,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                         })),
                       ]}
                       ariaLabel="Categoría"
+                      disabled={!tarifaReady}
                       buttonClassName={`w-full h-10 ${inputBase}`}
                       menuClassName="min-w-full"
                     />
@@ -2226,6 +2420,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                         })),
                       ]}
                       ariaLabel="Subcategoría"
+                      disabled={!tarifaReady}
                       buttonClassName={`w-full h-10 ${inputBase}`}
                       menuClassName="min-w-full"
                     />
@@ -2239,6 +2434,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   <input
                     value={vm.codigo}
                     readOnly
+                    disabled={!tarifaReady}
                     placeholder={vm.mode === "new" ? "Generando" : ""}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
@@ -2256,6 +2452,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                         { value: "SUSPENDIDO", label: "Suspendido" },
                       ]}
                       ariaLabel="Estado"
+                      disabled={!tarifaReady}
                       buttonClassName={`w-full h-10 ${inputBase}`}
                       menuClassName="min-w-full"
                     />
@@ -2268,6 +2465,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                 <input
                   value={vm.descripcion}
                   onChange={(e) => vm.setDescripcion(e.target.value)}
+                  disabled={!tarifaReady}
                   className={`mt-1 h-10 w-full ${inputBase}`}
                 />
               </div>
@@ -2279,6 +2477,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                     value={vm.precioConIgv}
                     onChange={(e) => vm.onPrecioConIgvChange(e.target.value)}
                     inputMode="decimal"
+                    disabled={!tarifaReady}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
                 </div>
@@ -2288,6 +2487,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                     value={vm.precioSinIgv}
                     onChange={(e) => vm.onPrecioSinIgvChange(e.target.value)}
                     inputMode="decimal"
+                    disabled={!tarifaReady}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
                 </div>
@@ -2299,6 +2499,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   <input
                     value={vm.nomenclador}
                     onChange={(e) => vm.setNomenclador(e.target.value)}
+                    disabled={!tarifaReady}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
                 </div>
@@ -2308,6 +2509,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                     value={vm.unidad}
                     onChange={(e) => vm.setUnidad(e.target.value)}
                     inputMode="decimal"
+                    disabled={!tarifaReady}
                     className={`mt-1 h-10 w-full ${inputBase}`}
                   />
                 </div>
@@ -2324,6 +2526,7 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                       ...vm.gruposOpciones.map((g) => ({ value: g.codigo, label: g.descripcion })),
                     ]}
                     ariaLabel="Grupo del servicio"
+                    disabled={!tarifaReady}
                     buttonClassName={`w-full h-10 ${inputBase}`}
                     menuClassName="min-w-[260px]"
                   />
@@ -2335,19 +2538,28 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
                   type="checkbox"
                   checked={vm.deseaLiberarPrecio}
                   onChange={(e) => vm.setDeseaLiberarPrecio(e.target.checked)}
+                  disabled={!tarifaReady}
                   className="h-4 w-4 rounded border border-(--border-color-default) accent-(--color-primary)"
                 />
                 Desea liberar el precio del servicio
               </label>
 
               <div className="mt-6 grid grid-cols-3 gap-2">
-                <PrimaryButton className="w-full min-w-0" disabled={!vm.isValid || !vm.isDirty || vm.saving} onClick={vm.onSave}>
+                <PrimaryButton
+                  className="w-full min-w-0"
+                  disabled={!tarifaReady || !vm.isValid || !vm.isDirty || vm.saving}
+                  onClick={vm.onSave}
+                >
                   {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
                 </PrimaryButton>
-                <SecondaryButton className="w-full min-w-0" disabled={vm.saving} onClick={vm.cancel}>
+                <SecondaryButton className="w-full min-w-0" disabled={vm.saving || !tarifaReady} onClick={vm.cancel}>
                   Cancelar
                 </SecondaryButton>
-                <DangerButton className="w-full min-w-0" disabled={!vm.canDeactivate || vm.saving} onClick={vm.requestDeactivate}>
+                <DangerButton
+                  className="w-full min-w-0"
+                  disabled={!tarifaReady || !vm.canDeactivate || vm.saving}
+                  onClick={vm.requestDeactivate}
+                >
                   Desactivar
                 </DangerButton>
               </div>
@@ -2373,35 +2585,3 @@ function ServiciosView({ tarifaId, tarifaLabel }: { tarifaId: number; tarifaLabe
   );
 }
 
-export default function TarifarioCrudPage() {
-  const { tipo } = useParams<{ tipo?: string }>();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
-  const tarifaIdRaw = Number(searchParams.get("tarifaId"));
-  const tarifaId = Number.isFinite(tarifaIdRaw) && tarifaIdRaw > 0 ? tarifaIdRaw : null;
-  const tarifaLabel = searchParams.get("tarifaLabel") || "Tarifario";
-
-  if (!tarifaId) {
-    return (
-      <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-6">
-        <div className="text-base font-semibold text-(--color-text-primary)">Tarifario</div>
-        <div className="mt-2 text-sm text-(--color-text-secondary)">
-          Selecciona una tarifa antes de gestionar categorías, subcategorías o servicios.
-        </div>
-        <button
-          type="button"
-          className="mt-4 h-10 rounded px-4 text-sm font-medium bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
-          onClick={() => navigate("/facturacion/tarifario")}
-        >
-          Ir a Tarifario
-        </button>
-      </div>
-    );
-  }
-
-  if (tipo === "categorias") return <CategoriasView tarifaId={tarifaId} tarifaLabel={tarifaLabel} />;
-  if (tipo === "subcategorias")
-    return <SubcategoriasView tarifaId={tarifaId} tarifaLabel={tarifaLabel} />;
-  return <ServiciosView tarifaId={tarifaId} tarifaLabel={tarifaLabel} />;
-}

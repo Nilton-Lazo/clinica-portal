@@ -1,7 +1,7 @@
-import { TarifarioServiciosCrudView } from "./TarifarioCrudPage";
-import { useTarifarioUrlTarifaPicker } from "../hooks/useTarifarioUrlTarifaPicker";
+import { TarifarioSubcategoriasCrudView } from "../../facturacion/tarifario/pages/TarifarioCrudPage";
+import { useTarifarioUrlTarifaPicker } from "../../facturacion/tarifario/hooks/useTarifarioUrlTarifaPicker";
 
-export default function TarifarioPage() {
+export default function TarifarioSubcategoriasPage() {
   const {
     tarifaId,
     tarifaMenuValue,
@@ -12,7 +12,7 @@ export default function TarifarioPage() {
   } = useTarifarioUrlTarifaPicker();
 
   return (
-    <TarifarioServiciosCrudView
+    <TarifarioSubcategoriasCrudView
       tarifaId={tarifaId}
       tarifaMenuValue={tarifaMenuValue}
       tarifaMenuOptions={tarifaMenuOptions}

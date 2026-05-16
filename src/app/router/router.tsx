@@ -9,8 +9,10 @@ import LoginPage from "../../modules/login/pages/LoginPage";
 import HomePage from "../../modules/inicio/pages/HomePage";
 import FacturacionHomePage from "../../modules/facturacion/pages/FacturacionHomePage";
 import TarifarioPage from "../../modules/facturacion/tarifario/pages/TarifarioPage";
-import TarifarioCrudPage from "../../modules/facturacion/tarifario/pages/TarifarioCrudPage";
-import TarifarioCrudLayoutPage from "../../modules/facturacion/tarifario/pages/TarifarioCrudLayoutPage";
+import TarifarioGestionRedirect from "../../modules/facturacion/tarifario/pages/TarifarioGestionRedirect";
+import TarifarioClonacionPage from "../../modules/ficheros/pages/TarifarioClonacionPage";
+import TarifarioCategoriasPage from "../../modules/ficheros/pages/TarifarioCategoriasPage";
+import TarifarioSubcategoriasPage from "../../modules/ficheros/pages/TarifarioSubcategoriasPage";
 import AdmisionHomePage from "../../modules/admision/pages/AdmisionHomePage";
 
 import FicherosPage from "../../modules/ficheros/pages/FicherosPage";
@@ -135,6 +137,9 @@ export const router = createBrowserRouter([
                   { path: "tipos-iafas", element: <TiposIafasPage /> },
                   { path: "iafas", element: <IafasPage /> },
                   { path: "contratantes", element: <ContratantesPage /> },
+                  { path: "clonacion-tarifa", element: <TarifarioClonacionPage /> },
+                  { path: "tarifario-categorias", element: <TarifarioCategoriasPage /> },
+                  { path: "tarifario-subcategorias", element: <TarifarioSubcategoriasPage /> },
                   { path: "tarifas", element: <TarifasPage /> },
                   { path: "tipos-clientes", element: <TiposClientesPage /> },
                   { path: "parametros/igv", element: <ParametrosIgvPage /> },
@@ -179,11 +184,7 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <FacturacionHomePage /> },
                   { path: "tarifario", element: <TarifarioPage /> },
-                  {
-                    path: "tarifario/gestion",
-                    element: <TarifarioCrudLayoutPage />,
-                    children: [{ path: ":tipo", element: <TarifarioCrudPage /> }],
-                  },
+                  { path: "tarifario/gestion/:tipo", element: <TarifarioGestionRedirect /> },
                 ],
               },
               {

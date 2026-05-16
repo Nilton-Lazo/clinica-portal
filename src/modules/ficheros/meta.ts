@@ -77,6 +77,21 @@ export const ficherosMeta: Record<string, RouteMeta> = {
         subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
         breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Contratantes" }],
     },
+    "/ficheros/clonacion-tarifa": {
+        title: "Ficheros",
+        subtitle: "Clonar estructura y servicios desde el tarifario base.",
+        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Clonación de tarifa" }],
+    },
+    "/ficheros/tarifario-categorias": {
+        title: "Ficheros",
+        subtitle: "Categorías por tarifa.",
+        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Categorías" }],
+    },
+    "/ficheros/tarifario-subcategorias": {
+        title: "Ficheros",
+        subtitle: "Subcategorías por tarifa.",
+        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Subcategorías" }],
+    },
     "/ficheros/tarifas": {
         title: "Ficheros",
         subtitle: "Gestión de tablas maestras y registros configurables del sistema.",

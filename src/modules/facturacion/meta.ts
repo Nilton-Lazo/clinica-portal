@@ -8,34 +8,7 @@ export const facturacionMeta: Record<string, RouteMeta> = {
   },
   "/facturacion/tarifario": {
     title: "Tarifario",
-    subtitle: "Administración central con control de precios, unidades y clonación de tarifas.",
+    subtitle: "Gestión de servicios por tarifa: precios, nomencladores y unidades.",
     breadcrumb: [{ label: "Facturación", path: "/facturacion" }, { label: "Tarifario" }],
-  },
-  "/facturacion/tarifario/gestion/categorias": {
-    title: "Tarifario",
-    subtitle: "Gestión de categorías del tarifario.",
-    breadcrumb: [
-      { label: "Facturación", path: "/facturacion" },
-      { label: "Tarifario", path: "/facturacion/tarifario" },
-      { label: "Categorías" },
-    ],
-  },
-  "/facturacion/tarifario/gestion/subcategorias": {
-    title: "Tarifario",
-    subtitle: "Gestión de subcategorías del tarifario.",
-    breadcrumb: [
-      { label: "Facturación", path: "/facturacion" },
-      { label: "Tarifario", path: "/facturacion/tarifario" },
-      { label: "Subcategorías" },
-    ],
-  },
-  "/facturacion/tarifario/gestion/servicios": {
-    title: "Tarifario",
-    subtitle: "Gestión de servicios del tarifario.",
-    breadcrumb: [
-      { label: "Facturación", path: "/facturacion" },
-      { label: "Tarifario", path: "/facturacion/tarifario" },
-      { label: "Servicios" },
-    ],
   },
 };
