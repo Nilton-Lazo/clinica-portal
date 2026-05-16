@@ -2164,27 +2164,6 @@ export function TarifarioServiciosCrudView({
     });
   }, [vm, isLgUp, tarifaReady]);
 
-  const [serviciosDeskPairH, setServiciosDeskPairH] = React.useState(0);
-  React.useLayoutEffect(() => {
-    if (!isLgUp || typeof ResizeObserver === "undefined") {
-      setServiciosDeskPairH(0);
-      return;
-    }
-    const sync = () => {
-      const el = formRef.current;
-      setServiciosDeskPairH(el ? Math.round(el.getBoundingClientRect().height) : 0);
-    };
-    const el = formRef.current;
-    if (!el) {
-      sync();
-      return;
-    }
-    const ro = new ResizeObserver(() => sync());
-    ro.observe(el);
-    sync();
-    return () => ro.disconnect();
-  }, [isLgUp]);
-
   const columns: DataTableColumn<TarifaServicioCrud>[] = [
     {
       key: "codigo",
@@ -2347,11 +2326,8 @@ export function TarifarioServiciosCrudView({
         </div>
       </div>
 
-      <div className="flex min-w-0 w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_520px] lg:gap-2 lg:items-start">
-        <div
-          className="flex min-h-0 min-w-0 flex-col overflow-hidden max-lg:flex-1 lg:shrink-0"
-          style={isLgUp && serviciosDeskPairH > 0 ? { height: serviciosDeskPairH } : undefined}
-        >
+      <div className="flex min-w-0 w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_520px] lg:grid-rows-[minmax(0,1fr)] lg:gap-2 lg:items-stretch">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden max-lg:flex-1 lg:h-full lg:min-h-0">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
               rows={vm.data.data}
@@ -2422,15 +2398,18 @@ export function TarifarioServiciosCrudView({
           </div>
         </div>
 
-        <div ref={formRef} className="min-h-0 min-w-0 w-full shrink-0 lg:self-start">
+        <div
+          ref={formRef}
+          className="min-h-0 min-w-0 w-full shrink-0 lg:flex lg:min-h-0 lg:h-full lg:flex-col lg:self-stretch"
+        >
           <div
-            className="flex min-w-0 flex-col overflow-hidden rounded border border-(--border-color-default) bg-(--color-surface) lg:h-auto lg:min-h-0 lg:shrink-0"
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded border border-(--border-color-default) bg-(--color-surface)"
             onKeyDown={makeEnterKeySaveHandler(
               Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
               vm.onSave
             )}
           >
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 app-scrollbar-thin app-scrollbar-no-gutter lg:flex-none lg:min-h-0 lg:overflow-visible">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 app-scrollbar-thin app-scrollbar-no-gutter">
               <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">

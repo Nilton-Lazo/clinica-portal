@@ -132,7 +132,9 @@ export default function AppShell() {
             className={[
               "mx-auto flex w-full flex-col p-4 lg:p-2",
               isScrollableContent
-                ? ""
+                ? isTarifario
+                  ? "min-h-0 flex-1"
+                  : ""
                 : "min-h-0 flex-1 overflow-y-auto lg:overflow-hidden",
             ].join(" ")}
           >
