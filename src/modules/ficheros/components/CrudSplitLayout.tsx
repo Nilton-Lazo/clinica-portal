@@ -44,7 +44,7 @@ export function CrudSplitLayout({
         className={
           isFill
             ? "flex w-full shrink-0 flex-col lg:min-h-0 lg:w-(--form-width) lg:min-w-(--form-width) lg:flex-none lg:overflow-hidden"
-            : "w-full shrink-0 lg:h-full lg:min-h-0 lg:w-(--form-width) lg:min-w-(--form-width) lg:max-h-full lg:overflow-y-auto lg:app-scrollbar-thin"
+            : "flex min-h-0 w-full shrink-0 flex-col lg:h-full lg:max-h-full lg:w-(--form-width) lg:min-w-(--form-width) lg:flex-none lg:overflow-hidden"
         }
       >
         {isFill ? (
@@ -52,7 +52,9 @@ export function CrudSplitLayout({
             {right}
           </div>
         ) : (
-          <div className="w-full lg:h-full lg:min-h-full">{right}</div>
+          <div className="min-h-0 w-full flex-1 lg:min-h-0 lg:overflow-y-auto app-scrollbar-thin app-scrollbar-no-gutter">
+            {right}
+          </div>
         )}
       </div>
     </div>

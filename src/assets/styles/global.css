@@ -316,6 +316,10 @@ html, body {
   background-color: var(--scrollbar-thumb-hover);
 }
 
+.app-scrollbar-thin.app-scrollbar-no-gutter {
+  scrollbar-gutter: auto;
+}
+
 .Toastify__toast-container {
   z-index: 9999;
   font-family: var(--toastify-font-family);
