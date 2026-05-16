@@ -24,7 +24,7 @@ const inputBase =
 const toolbarFilterSelectBase =
   "h-10 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) shadow-sm outline-none transition-colors hover:scale-100 active:scale-100 hover:border-(--color-primary)/50 focus:ring-0 focus:border-(--color-primary)";
 const tarifaEmptyHighlightTriggerCls =
-  "rounded-lg border-2 border-(--color-primary)/55 bg-(--color-surface) px-3 text-sm font-semibold text-(--color-primary) outline-none shadow-md hover:scale-100 active:scale-100 focus:border-(--color-primary) focus:ring-0 tarifario-tarifa-trigger-attn";
+  "rounded-lg border-2 border-(--color-primary)/70 bg-(--color-surface) px-3 text-sm font-semibold text-(--color-primary) outline-none shadow-md hover:scale-100 active:scale-100 focus:border-(--color-primary) focus:ring-0 tarifario-tarifa-trigger-attn";
 const TARIFARIO_ENTITIES = ["tarifa_categoria", "tarifa_subcategoria", "tarifa_servicio", "tarifario_clonacion"];
 import type {
   GrupoServicioLookup,
