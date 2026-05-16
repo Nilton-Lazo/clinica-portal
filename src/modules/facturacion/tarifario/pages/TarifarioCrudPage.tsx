@@ -1,4 +1,5 @@
 import * as React from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
@@ -11,6 +12,7 @@ import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
+import { ReporteSolesAmount } from "../../../caja/components/ReporteSolesAmount";
 import {
   formatDecimalFixed,
   parseDecimalInput,
@@ -19,6 +21,8 @@ import {
 
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
+const toolbarFilterSelectBase =
+  "h-10 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) shadow-sm outline-none transition-colors hover:scale-100 active:scale-100 hover:border-(--color-primary)/50 focus:ring-0 focus:border-(--color-primary)";
 const TARIFARIO_ENTITIES = ["tarifa_categoria", "tarifa_subcategoria", "tarifa_servicio", "tarifario_clonacion"];
 import type {
   GrupoServicioLookup,
@@ -2174,6 +2178,27 @@ export function TarifarioServiciosCrudView({
       render: (x) => x.descripcion,
     },
     {
+      key: "precio_con_igv",
+      header: "Precio",
+      headerClassName: "text-center min-w-[8.5rem]",
+      cellClassName: "px-3 py-2 align-middle text-sm",
+      render: (x) => (
+        <div className="flex w-full justify-center">
+          <ReporteSolesAmount
+            boldAmount={false}
+            value={String(x.precio_con_igv ?? "").trim()}
+          />
+        </div>
+      ),
+    },
+    {
+      key: "unidad",
+      header: "Unidad",
+      headerClassName: "text-center w-24",
+      cellClassName: "px-3 py-2 text-center tabular-nums",
+      render: (x) => String(x.unidad ?? "").trim(),
+    },
+    {
       key: "estado",
       header: "Estado",
       headerClassName: "text-center w-44",
@@ -2192,7 +2217,7 @@ export function TarifarioServiciosCrudView({
         <div className="text-sm text-(--color-danger)">{tarifaMenuError}</div>
       ) : null}
       <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <SelectMenu
               value={tarifaMenuValue}
@@ -2235,63 +2260,71 @@ export function TarifarioServiciosCrudView({
               </PrimaryButton>
             </div>
           </div>
-          <div className="flex flex-wrap items-stretch gap-3 border-t border-(--border-color-default) pt-4">
-            <span className="flex items-center text-xs font-medium uppercase tracking-wide text-(--color-text-secondary) shrink-0">
-              Filtrar por
-            </span>
-            <div className="w-full min-w-30 shrink-0 max-w-full sm:w-fit">
-              <SelectMenu
-                value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
-                onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
-                options={[
-                  { value: "", label: "Todas las categorías" },
-                  ...vm.categorias.map((c) => ({
-                    value: String(c.id),
-                    label: `${c.codigo} - ${c.descripcion}`,
-                  })),
-                ]}
-                ariaLabel="Categoría"
-                disabled={!tarifaReady}
-                buttonClassName={`h-10 w-full min-w-[120px] sm:w-fit ${inputBase}`}
-                menuClassName="w-full"
-              />
-            </div>
-            <div className="w-full min-w-30 shrink-0 max-w-full sm:w-fit">
-              <SelectMenu
-                value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
-                onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
-                options={[
-                  { value: "", label: "Todas las subcategorías" },
-                  ...vm.subcategoriasFilter.map((s) => ({
-                    value: String(s.id),
-                    label: `${s.codigo} - ${s.descripcion}`,
-                  })),
-                ]}
-                ariaLabel="Subcategoría"
-                disabled={!tarifaReady}
-                buttonClassName={`h-10 w-full min-w-[120px] sm:w-fit ${inputBase}`}
-                menuClassName="w-full"
-              />
-            </div>
-            <div className="w-full min-w-30 shrink-0 max-w-full sm:w-fit">
-              <SelectMenu
-                value={vm.filterGrupoCodigo ?? ""}
-                onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
-                options={[
-                  { value: "", label: "Todos los grupos" },
-                  ...vm.gruposOpciones.map((g) => ({ value: g.codigo, label: g.descripcion })),
-                ]}
-                ariaLabel="Filtrar por grupo"
-                disabled={!tarifaReady}
-                buttonClassName={`h-10 w-full min-w-[120px] sm:w-fit ${inputBase}`}
-                menuClassName="w-full"
-              />
+          <div className="rounded-xl border border-dashed border-(--border-color-default) bg-(--color-panel-bg) px-4 py-3 sm:px-5 sm:py-3.5">
+            <div className="flex flex-wrap items-stretch gap-x-6 gap-y-3.5">
+              <span className="inline-flex max-w-full items-center gap-2 self-center pr-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-secondary)">
+                <span
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-surface) text-(--color-primary) shadow-sm"
+                  aria-hidden
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2.25} />
+                </span>
+                Filtrar por
+              </span>
+              <div className="w-full min-w-[12rem] shrink-0 sm:w-auto sm:min-w-[11rem]">
+                <SelectMenu
+                  value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
+                  onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
+                  options={[
+                    { value: "", label: "Todas las categorías" },
+                    ...vm.categorias.map((c) => ({
+                      value: String(c.id),
+                      label: `${c.codigo} - ${c.descripcion}`,
+                    })),
+                  ]}
+                  ariaLabel="Categoría"
+                  disabled={!tarifaReady}
+                  buttonClassName={`w-full min-w-0 sm:min-w-[13rem] ${toolbarFilterSelectBase}`}
+                  menuClassName="w-full sm:min-w-[16rem]"
+                />
+              </div>
+              <div className="w-full min-w-[12rem] shrink-0 sm:w-auto sm:min-w-[11rem]">
+                <SelectMenu
+                  value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
+                  onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
+                  options={[
+                    { value: "", label: "Todas las subcategorías" },
+                    ...vm.subcategoriasFilter.map((s) => ({
+                      value: String(s.id),
+                      label: `${s.codigo} - ${s.descripcion}`,
+                    })),
+                  ]}
+                  ariaLabel="Subcategoría"
+                  disabled={!tarifaReady}
+                  buttonClassName={`w-full min-w-0 sm:min-w-[13rem] ${toolbarFilterSelectBase}`}
+                  menuClassName="w-full sm:min-w-[16rem]"
+                />
+              </div>
+              <div className="w-full min-w-[12rem] shrink-0 sm:w-auto sm:min-w-[11rem]">
+                <SelectMenu
+                  value={vm.filterGrupoCodigo ?? ""}
+                  onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
+                  options={[
+                    { value: "", label: "Todos los grupos" },
+                    ...vm.gruposOpciones.map((g) => ({ value: g.codigo, label: g.descripcion })),
+                  ]}
+                  ariaLabel="Filtrar por grupo"
+                  disabled={!tarifaReady}
+                  buttonClassName={`w-full min-w-0 sm:min-w-[13rem] ${toolbarFilterSelectBase}`}
+                  menuClassName="w-full sm:min-w-[16rem]"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_520px] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
@@ -2363,7 +2396,7 @@ export function TarifarioServiciosCrudView({
           </div>
         </div>
 
-        <div ref={formRef} className="lg:w-[380px] lg:min-w-[380px] lg:shrink-0 lg:max-h-full lg:overflow-y-auto app-scrollbar-thin">
+        <div ref={formRef} className="lg:w-[520px] lg:min-w-[520px] lg:shrink-0 lg:max-h-full lg:overflow-y-auto app-scrollbar-thin">
           <div
             className="rounded border border-(--border-color-default) bg-(--color-surface) p-4"
             onKeyDown={makeEnterKeySaveHandler(
