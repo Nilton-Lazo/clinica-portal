@@ -23,6 +23,8 @@ const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 const toolbarFilterSelectBase =
   "h-10 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) shadow-sm outline-none transition-colors hover:scale-100 active:scale-100 hover:border-(--color-primary)/50 focus:ring-0 focus:border-(--color-primary)";
+const tarifaEmptyHighlightTriggerCls =
+  "rounded-lg border-2 border-(--color-primary)/55 bg-(--color-surface) px-3 text-sm font-semibold text-(--color-primary) outline-none shadow-md hover:scale-100 active:scale-100 focus:border-(--color-primary) focus:ring-0 tarifario-tarifa-trigger-attn";
 const TARIFARIO_ENTITIES = ["tarifa_categoria", "tarifa_subcategoria", "tarifa_servicio", "tarifario_clonacion"];
 import type {
   GrupoServicioLookup,
@@ -2223,9 +2225,9 @@ export function TarifarioServiciosCrudView({
               value={tarifaMenuValue}
               onChange={onTarifaMenuChange}
               options={tarifaMenuOptions}
-              ariaLabel="Tarifa"
+              ariaLabel="Seleccione una tarifa para cargar el listado de servicios."
               disabled={tarifaMenuLoading}
-              buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${inputBase}`}
+              buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${tarifaReady ? `w-full sm:w-auto ${inputBase}` : `w-full sm:w-auto ${tarifaEmptyHighlightTriggerCls}`}`}
               menuClassName="min-w-[220px]"
             />
             <input

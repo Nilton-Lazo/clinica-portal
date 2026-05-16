@@ -175,6 +175,31 @@ body,
    Tokens globales (UI)
    ========================= */
 
+@keyframes tarifario-tarifa-trigger-soft {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 transparent,
+      0 1px 3px color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--color-primary) 10%, transparent),
+      0 4px 14px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  }
+}
+
+.tarifario-tarifa-trigger-attn {
+  animation: tarifario-tarifa-trigger-soft 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarifario-tarifa-trigger-attn {
+    animation: none;
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
+}
+
 :root {
   --color-primary: #1A388B;
   --color-primary-hover: #142f75;
