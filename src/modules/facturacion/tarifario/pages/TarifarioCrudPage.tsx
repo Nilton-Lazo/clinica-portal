@@ -2409,7 +2409,7 @@ export function TarifarioServiciosCrudView({
               vm.onSave
             )}
           >
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 app-scrollbar-thin app-scrollbar-no-gutter">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 app-scrollbar app-scrollbar-no-gutter">
               <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-(--color-text-primary)">

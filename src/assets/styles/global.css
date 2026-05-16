@@ -232,6 +232,8 @@ body,
   --form-panel-width-lg: 35rem;
   --form-panel-width-xl: 36.25rem;
   --form-panel-width-2xl: 37.5rem;
+  --scrollbar-size: 9px;
+  --scrollbar-thumb-border: 2px;
   --scrollbar-thumb: rgba(15, 23, 42, 0.25);
   --scrollbar-thumb-hover: rgba(15, 23, 42, 0.4);
   --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.278);
@@ -264,28 +266,28 @@ html, body {
   overflow-x: hidden;
 }
 
-.app-scrollbar {
+* {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
-  scrollbar-gutter: stable;
 }
 
-.app-scrollbar::-webkit-scrollbar {
-  width: 9px;
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
 
-.app-scrollbar::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.app-scrollbar::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background-color: var(--scrollbar-thumb);
   border-radius: 999px;
-  border: 2px solid transparent;
+  border: var(--scrollbar-thumb-border) solid transparent;
   background-clip: content-box;
 }
 
-.app-scrollbar::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background-color: var(--scrollbar-thumb-hover);
 }
 
@@ -294,36 +296,15 @@ html, body {
   --scrollbar-thumb-hover: var(--sidebar-scrollbar-thumb-hover);
 }
 
+.app-scrollbar {
+  scrollbar-gutter: stable;
+}
+
 .app-scrollbar-no-gutter {
   scrollbar-gutter: auto;
 }
 
 .app-scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-  scrollbar-gutter: auto;
-}
-
-.app-scrollbar-thin::-webkit-scrollbar {
-  width: 5px;
-}
-
-.app-scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.app-scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-.app-scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: var(--scrollbar-thumb-hover);
-}
-
-.app-scrollbar-thin.app-scrollbar-no-gutter {
   scrollbar-gutter: auto;
 }
 

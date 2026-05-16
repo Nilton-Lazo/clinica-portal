@@ -111,7 +111,7 @@ export default function RegistroEmergenciaDetailCard(props: {
         </div>
 
         <div
-          className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden app-scrollbar-thin lg:overscroll-contain lg:touch-pan-y"
+          className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden app-scrollbar lg:overscroll-contain lg:touch-pan-y"
           style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
         >
           <div className="rounded border border-(--border-color-default) p-3">

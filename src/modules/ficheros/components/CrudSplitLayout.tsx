@@ -47,7 +47,7 @@ export function CrudSplitLayout({
             {right}
           </div>
         ) : (
-          <div className="min-h-0 w-full flex-1 lg:min-h-0 lg:overflow-y-auto app-scrollbar-thin app-scrollbar-no-gutter">
+          <div className="min-h-0 w-full flex-1 lg:min-h-0 lg:overflow-y-auto app-scrollbar app-scrollbar-no-gutter">
             {right}
           </div>
         )}
