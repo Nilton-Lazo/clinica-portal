@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useEspecialidades } from "../especialidades/hooks/useEspecialidades";
@@ -82,7 +82,7 @@ export default function EspecialidadesPage() {
           />
       </div>
 
-      <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<>
+      <CrudSplitLayout formWidth="var(--form-panel-width-md)" rightRef={formRef} left={<>
           <EspecialidadesTable
             data={vm.data}
             loading={vm.loading}

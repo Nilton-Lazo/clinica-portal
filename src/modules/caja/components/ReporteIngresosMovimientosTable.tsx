@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { DataTable, type DataTableColumn } from "../../../shared/crud/DataTable";
 import { AtencionEstadoBadge } from "../../../shared/ui/AtencionEstadoBadge";
 import type { ReporteIngresosMovimiento } from "../services/reporteIngresosCaja.service";
@@ -114,7 +114,7 @@ export function ReporteIngresosMovimientosTable(props: {
         cellClassName: `${centerTd} text-(--color-text-secondary)`,
         render: (x) =>
           x.adelanto === "GARANTIA" ? (
-            <span className="inline-flex items-center rounded-full border border-(--color-warning) px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-(--color-warning)">
+            <span className="inline-flex items-center rounded-full border border-(--color-warning) px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--color-warning)">
               Garantía
             </span>
           ) : (

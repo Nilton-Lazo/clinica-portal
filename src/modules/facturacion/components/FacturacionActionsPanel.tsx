@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+﻿import { ChevronRight } from "lucide-react";
 import type { FacturacionHubItem } from "../types/facturacionHub.types";
 
 type Props = {
@@ -71,7 +71,7 @@ function PanelBody({
         {hasActions && (
           <>
             <div className={compact ? "px-4 pt-3 pb-1" : "px-5 pt-4 pb-1"}>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-(--color-text-secondary)/70">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-(--color-text-secondary)/70">
                 Acceso directo
               </span>
             </div>

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import ProgramacionCalendarCard from "../programacion/components/ProgramacionCalendarCard";
 import ProgramacionMedicaFormCard from "../programacion/components/ProgramacionMedicaFormCard";
@@ -55,7 +55,7 @@ export default function ProgramacionMedicaPage() {
 
   return (
     <div className="flex w-full min-w-0 min-h-[calc(100vh+1px)] shrink-0 flex-col gap-4 lg:gap-2">
-      <div className="grid shrink-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch lg:gap-2">
+      <div className="grid shrink-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,var(--form-panel-width))_minmax(0,1fr)] lg:items-stretch lg:gap-2">
         <div className="min-w-0 h-full">
           <ProgramacionCalendarCard
             modalidad={vm.modalidad}

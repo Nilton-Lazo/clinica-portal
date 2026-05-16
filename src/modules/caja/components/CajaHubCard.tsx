@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import type { CajaHubItem } from "../services/cajaHub.registry";
 
 type Props = {
@@ -12,7 +12,7 @@ export default function CajaHubCard({ item }: Props) {
     <Link
       to={item.to}
       className={[
-        "block w-full h-full min-h-[72px]",
+        "block w-full h-full min-h-[4.5rem]",
         "flex items-center gap-4",
         "px-5 py-4",
         "text-left rounded-xl border",

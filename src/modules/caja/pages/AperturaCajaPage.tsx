@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Banknote,
@@ -46,7 +46,7 @@ function formatPen(value: string | number | null | undefined): string {
 }
 
 const control = "h-10 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3 text-sm";
-const labelSm = "text-[11px] font-semibold uppercase tracking-wide text-(--color-text-secondary)";
+const labelSm = "text-[10px] font-semibold uppercase tracking-wide text-(--color-text-secondary)";
 
 export default function AperturaCajaPage() {
   const navigate = useNavigate();

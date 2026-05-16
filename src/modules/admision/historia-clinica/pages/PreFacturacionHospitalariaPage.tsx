@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
@@ -1138,7 +1138,7 @@ export default function PreFacturacionHospitalariaPage() {
                     {cuentaEstado ? <AtencionEstadoBadge value={cuentaEstado} /> : null}
                     {mostrarPacientePrivado ? (
                       <span
-                        className="inline-flex items-center rounded-full border border-(--color-primary) bg-(--color-primary)/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-(--color-primary)"
+                        className="inline-flex items-center rounded-full border border-(--color-primary) bg-(--color-primary)/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-(--color-primary)"
                         title="Plan privado"
                       >
                         Paciente privado

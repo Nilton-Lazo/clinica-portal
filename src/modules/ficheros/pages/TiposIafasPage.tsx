@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useTiposIafas } from "../tipos-iafas/hooks/useTiposIafas";
@@ -68,7 +68,7 @@ export default function TiposIafasPage() {
         />
       </div>
 
-      <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<> <TiposIafasTable
+      <CrudSplitLayout formWidth="var(--form-panel-width-md)" rightRef={formRef} left={<> <TiposIafasTable
             data={vm.data}
             loading={vm.loading}
             selectedId={vm.selected?.id ?? null}

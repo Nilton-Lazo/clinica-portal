@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
@@ -1595,7 +1595,7 @@ export function TarifarioCategoriasCrudView({
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_var(--form-panel-width)] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
@@ -1906,7 +1906,7 @@ export function TarifarioSubcategoriasCrudView({
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-2 lg:items-stretch">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_var(--form-panel-width)] lg:gap-2 lg:items-stretch">
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
           <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
             <DataTable
@@ -2264,7 +2264,7 @@ export function TarifarioServiciosCrudView({
           </div>
           <div className="rounded-xl border border-dashed border-(--border-color-default) bg-(--color-panel-bg) px-4 py-3 sm:px-5 sm:py-3.5">
             <div className="flex flex-wrap items-stretch gap-x-6 gap-y-3.5">
-              <span className="inline-flex max-w-full items-center gap-2 self-center pr-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-secondary)">
+              <span className="inline-flex max-w-full items-center gap-2 self-center pr-1 text-[10px] font-semibold uppercase tracking-wider text-(--color-text-secondary)">
                 <span
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-surface) text-(--color-primary) shadow-sm"
                   aria-hidden

@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { Link } from "react-router-dom";
 import { Save, User, UserSearch, Wallet, type LucideIcon } from "lucide-react";
 import type { SelectOption } from "../../../shared/ui/SelectMenu";
@@ -70,7 +70,7 @@ function normalizarNroCuenta10(raw: string): string | null {
   return core.padStart(10, "0");
 }
 
-const chkLbl = "text-[11px] font-medium leading-tight text-(--color-text-secondary)";
+const chkLbl = "text-[10px] font-medium leading-tight text-(--color-text-secondary)";
 
 const chk =
   "h-4 w-4 shrink-0 cursor-pointer rounded border border-(--border-color-default) accent-(--color-primary)";

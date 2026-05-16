@@ -60,7 +60,7 @@ export default function Sidebar({
                 <img
                 src={brandLogo}
                 alt="HeartCare"
-                className="h-12 w-12 object-contain"
+                className="h-11 w-11 object-contain"
                 draggable={false}
                 />
 
@@ -107,7 +107,7 @@ export default function Sidebar({
                       : "";
 
                   const iconWrapBase = [
-                      "h-12 w-12 rounded-full",
+                      "h-11 w-11 rounded-full",
                       "flex items-center justify-center",
                       "transition-[transform,background-color,box-shadow] duration-200 ease-out",
                       "will-change-transform",

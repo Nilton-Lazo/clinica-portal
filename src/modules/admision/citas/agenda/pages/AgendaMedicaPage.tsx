@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../../shared/ui/buttons";
@@ -112,7 +112,7 @@ export default function AgendaMedicaPage() {
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-4 lg:h-full lg:max-h-full lg:shrink-0 lg:overflow-hidden lg:gap-2">
-      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-stretch lg:gap-2">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,var(--form-panel-width))_minmax(0,1fr)] lg:items-stretch lg:gap-2">
         <div className="flex min-w-0 flex-col lg:min-h-0">
           <div className="flex flex-col space-y-4 rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:app-scrollbar">
             <AgendaMedicaCalendarCard
@@ -221,7 +221,7 @@ export default function AgendaMedicaPage() {
                   </div>
                 </div>
 
-                <div className="flex min-h-[380px] min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="flex min-h-[23.75rem] min-w-0 flex-1 flex-col overflow-hidden">
                   <AgendaMedicaTable
                     data={vm.data}
                     loading={vm.loading}

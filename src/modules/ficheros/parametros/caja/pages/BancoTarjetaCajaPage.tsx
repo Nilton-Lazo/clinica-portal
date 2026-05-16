@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { CrudSplitLayout } from "../../../components/CrudSplitLayout";
 import ParamOptionToolbar from "../../emergencia/components/ParamOptionToolbar";
@@ -59,7 +59,7 @@ export default function BancoTarjetaCajaPage() {
         />
       </div>
       <CrudSplitLayout
-        formWidth="600px"
+        formWidth="var(--form-panel-width-2xl)"
         rightRef={formRef}
         left={
           <>

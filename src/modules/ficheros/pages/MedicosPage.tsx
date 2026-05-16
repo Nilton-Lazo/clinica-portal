@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useMedicos } from "../medicos/hooks/useMedicos";
@@ -68,7 +68,7 @@ export default function MedicosPage() {
           />
       </div>
 
-      <CrudSplitLayout formWidth="580px" rightRef={formRef} left={<>
+      <CrudSplitLayout formWidth="var(--form-panel-width-xl)" rightRef={formRef} left={<>
           <MedicosTable
             data={vm.data}
             loading={vm.loading}

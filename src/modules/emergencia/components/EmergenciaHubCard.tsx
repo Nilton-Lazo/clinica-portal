@@ -1,4 +1,4 @@
-import type { EmergenciaHubItem } from "../types/emergenciaHub.types";
+﻿import type { EmergenciaHubItem } from "../types/emergenciaHub.types";
 
 type Props = {
   item: EmergenciaHubItem;
@@ -14,7 +14,7 @@ export default function EmergenciaHubCard({ item, active, onSelect }: Props) {
       type="button"
       onClick={onSelect}
       className={[
-        "w-full h-full min-h-[72px]",
+        "w-full h-full min-h-[4.5rem]",
         "flex items-center gap-4",
         "px-5 py-4",
         "text-left rounded-xl border",

@@ -1,4 +1,4 @@
-import { CheckCheck, Info, AlertTriangle, XCircle, CheckCircle, Loader2 } from "lucide-react";
+﻿import { CheckCheck, Info, AlertTriangle, XCircle, CheckCircle, Loader2 } from "lucide-react";
 import type { UserNotification, NotificationType } from "./notificationService";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ function NotifItem({
         <div className="mt-0.5 text-xs text-(--color-text-secondary) leading-snug line-clamp-2">
           {n.message}
         </div>
-        <div className="mt-1 text-[11px] text-(--color-text-secondary)/70">
+        <div className="mt-1 text-[10px] text-(--color-text-secondary)/70">
           {relativeTime(n.created_at)}
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function NotificationPanel({
         aria-label="Centro de notificaciones"
         className={[
           "absolute right-0 top-[calc(100%+8px)] z-40",
-          "w-[380px] max-w-[calc(100vw-16px)]",
+          "w-(--form-panel-width) max-w-[calc(100vw-16px)]",
           "max-h-[520px]",
           "flex flex-col",
           "rounded-xl border border-(--color-border)",
@@ -149,7 +149,7 @@ export default function NotificationPanel({
               Notificaciones
             </span>
             {unreadCount > 0 && (
-              <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-(--color-primary) text-white text-[11px] font-bold flex items-center justify-center leading-none">
+              <span className="h-5 min-w-[20px] px-1.5 rounded-full bg-(--color-primary) text-white text-[10px] font-bold flex items-center justify-center leading-none">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
@@ -213,7 +213,7 @@ export default function NotificationPanel({
 
         {notifications.length > 0 && (
           <div className="px-4 py-2 border-t border-(--color-border) shrink-0">
-            <p className="text-[11px] text-(--color-text-secondary) text-center">
+            <p className="text-[10px] text-(--color-text-secondary) text-center">
               {totalCount > pageSize ? `Mostrando las últimas ${notifications.length} de ${totalCount}` : `Mostrando ${notifications.length} notificaciones`}
             </p>
           </div>

@@ -1,4 +1,4 @@
-import { formatDecimalFixed } from "../../../shared/constants/decimalPrecision";
+﻿import { formatDecimalFixed } from "../../../shared/constants/decimalPrecision";
 import type { ReporteIngresosMedio } from "../services/reporteIngresosCaja.service";
 import imgAmex from "../../../assets/images/amex.png";
 import imgEfectivo from "../../../assets/images/efectivo.png";

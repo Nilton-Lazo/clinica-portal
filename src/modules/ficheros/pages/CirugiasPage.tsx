@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useCirugias } from "../cirugias/hooks/useCirugias";
@@ -68,7 +68,7 @@ export default function CirugiasPage() {
       </div>
 
       <CrudSplitLayout
-        formWidth="480px"
+        formWidth="var(--form-panel-width-md)"
         rightRef={formRef}
         left={
           <>

@@ -1,4 +1,4 @@
-import { ShieldCheck, ClipboardList } from "lucide-react";
+﻿import { ShieldCheck, ClipboardList } from "lucide-react";
 import type {
   RegistroEmergencia,
   PaginatedResponse,

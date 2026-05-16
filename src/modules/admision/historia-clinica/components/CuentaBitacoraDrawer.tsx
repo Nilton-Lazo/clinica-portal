@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { toastService } from "../../../../shared/notifications";
 import {
@@ -150,7 +150,7 @@ export default function CuentaBitacoraDrawer(props: Props) {
           disabled={saving || !canUseBitacora}
           className="mt-1.5 w-full resize-y rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-sm text-(--color-text-primary) outline-none focus:border-(--color-primary) focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
         />
-        <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-(--color-text-secondary)">
+        <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-(--color-text-secondary)">
           <span>{draft.length}/{MAX_LEN}</span>
           <PrimaryButton
             type="button"
@@ -183,7 +183,7 @@ export default function CuentaBitacoraDrawer(props: Props) {
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                     <span className="text-xs font-semibold text-(--color-text-primary)">{autor}</span>
-                    <span className="text-[11px] tabular-nums text-(--color-text-secondary)">
+                    <span className="text-[10px] tabular-nums text-(--color-text-secondary)">
                       {fecha} · {hora}
                     </span>
                   </div>

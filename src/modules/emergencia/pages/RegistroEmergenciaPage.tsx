@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { CrudSplitLayout } from "../../ficheros/components/CrudSplitLayout";
 import type { RegistroEmergencia } from "../types/registroEmergencia.types";
@@ -112,7 +112,7 @@ export default function RegistroEmergenciaPage() {
 
       {vm.selected ? (
         <CrudSplitLayout
-          formWidth="440px"
+          formWidth="var(--form-panel-width-wide)"
           rightColumnMode="fill"
           rightRef={formRef}
           left={tableAndPagination(vm, handleSelectRow)}

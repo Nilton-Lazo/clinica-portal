@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useRecargoNoche } from "../recargo-noche/hooks/useRecargoNoche";
@@ -83,7 +83,7 @@ export default function RecargoNochePage() {
       </div>
 
       {vm.tarifaId ? (
-        <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<>
+        <CrudSplitLayout formWidth="var(--form-panel-width-md)" rightRef={formRef} left={<>
             <RecargoNocheTable
               reglas={slicedReglas}
               loading={vm.loading}

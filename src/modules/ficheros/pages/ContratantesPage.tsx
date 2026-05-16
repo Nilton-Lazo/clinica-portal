@@ -1,4 +1,4 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { useContratantes } from "../contratantes/hooks/useContratantes";
@@ -66,7 +66,7 @@ export default function ContratantesPage() {
         />
       </div>
 
-      <CrudSplitLayout formWidth="480px" rightRef={formRef} left={<>
+      <CrudSplitLayout formWidth="var(--form-panel-width-md)" rightRef={formRef} left={<>
           <ContratantesTable
             data={vm.data}
             loading={vm.loading}

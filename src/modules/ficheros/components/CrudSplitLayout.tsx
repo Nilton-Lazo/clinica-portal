@@ -1,10 +1,5 @@
 import * as React from "react";
 
-/**
- * Modo de la columna derecha:
- * - "scroll": la columna hace scroll (formularios largos, ej. ficheros).
- * - "fill": la columna ocupa todo el alto y el contenido interno hace scroll (paneles de detalle).
- */
 export type RightColumnMode = "scroll" | "fill";
 
 export interface CrudSplitLayoutProps {
@@ -12,11 +7,11 @@ export interface CrudSplitLayoutProps {
   right: React.ReactNode;
   rightRef?: React.RefObject<HTMLDivElement | null>;
   formWidth?: string;
-  /** Por defecto "scroll" (comportamiento clásico para formularios). Usar "fill" para paneles de detalle que scrollan por dentro. */
   rightColumnMode?: RightColumnMode;
 }
 
-const DEFAULT_FORM_WIDTH = "380px";
+const DEFAULT_FORM_WIDTH = "var(--form-panel-width)";
+
 export function CrudSplitLayout({
   left,
   right,

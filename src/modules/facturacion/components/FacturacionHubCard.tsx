@@ -1,4 +1,4 @@
-import type { FacturacionHubItem } from "../types/facturacionHub.types";
+﻿import type { FacturacionHubItem } from "../types/facturacionHub.types";
 
 type Props = {
   item: FacturacionHubItem;
@@ -14,7 +14,7 @@ export default function FacturacionHubCard({ item, active, onSelect }: Props) {
       type="button"
       onClick={onSelect}
       className={[
-        "w-full h-full min-h-[72px]",
+        "w-full h-full min-h-[4.5rem]",
         "flex items-center gap-4",
         "px-5 py-4",
         "text-left rounded-xl border",
