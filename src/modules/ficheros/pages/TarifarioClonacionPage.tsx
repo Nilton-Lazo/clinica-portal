@@ -17,7 +17,12 @@ export default function TarifarioClonacionPage() {
 
   useRealtimeModuleRefresh({
     module: "facturacion",
-    entities: ["tarifa_categoria", "tarifa_subcategoria", "tarifa_servicio", "tarifario_clonacion"],
+    entities: [
+      "tarifa_categoria",
+      "tarifa_subcategoria",
+      "tarifa_servicio",
+      "tarifario_clonacion",
+    ],
     onEvent: (event) => {
       if (event.scope && vm.tarifaId && event.scope !== String(vm.tarifaId)) {
         void vm.refreshBaseTree();
@@ -52,7 +57,9 @@ export default function TarifarioClonacionPage() {
     ];
   }, [vm.tarifas]);
 
-  const selectedCloneTarifaStr = vm.cloneTarifaId ? String(vm.cloneTarifaId) : "";
+  const selectedCloneTarifaStr = vm.cloneTarifaId
+    ? String(vm.cloneTarifaId)
+    : "";
 
   const selectionCounts = React.useMemo(
     () => ({
@@ -60,7 +67,7 @@ export default function TarifarioClonacionPage() {
       subcategorias: vm.selectedSubcategorias.size,
       servicios: vm.selectedServicios.size,
     }),
-    [vm.selectedCategorias, vm.selectedSubcategorias, vm.selectedServicios]
+    [vm.selectedCategorias, vm.selectedSubcategorias, vm.selectedServicios],
   );
 
   const hasSelection =
@@ -71,14 +78,18 @@ export default function TarifarioClonacionPage() {
   const treePanel = (
     <div className="flex min-h-[min(420px,55vh)] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface) lg:min-h-0">
       <div className="shrink-0 border-b border-(--border-color-default) px-3 py-2.5">
-        <div className="text-sm font-semibold text-(--color-text-primary)">Tarifario base</div>
+        <div className="text-sm font-semibold text-(--color-text-primary)">
+          Tarifario base
+        </div>
         <p className="mt-0.5 text-xs text-(--color-text-secondary)">
           Expande y marca categorías, subcategorías o servicios a copiar.
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-3 app-scrollbar app-scrollbar-no-gutter">
         {vm.baseTreeLoading ? (
-          <div className="text-sm text-(--color-text-secondary)">Cargando árbol base…</div>
+          <div className="text-sm text-(--color-text-secondary)">
+            Cargando árbol base…
+          </div>
         ) : vm.baseTree ? (
           <div className="space-y-2">
             {vm.baseTree.tree.map((cat) => (
@@ -99,7 +110,9 @@ export default function TarifarioClonacionPage() {
             ))}
           </div>
         ) : (
-          <div className="text-sm text-(--color-text-secondary)">No hay árbol base disponible.</div>
+          <div className="text-sm text-(--color-text-secondary)">
+            No hay árbol base disponible.
+          </div>
         )}
       </div>
     </div>
@@ -107,7 +120,9 @@ export default function TarifarioClonacionPage() {
 
   const actionsPanel = (
     <div className="flex h-full min-h-0 flex-col rounded-md border border-(--border-color-default) bg-(--color-surface) p-4">
-      <div className="text-sm font-semibold text-(--color-text-primary)">Destino de la clonación</div>
+      <div className="text-sm font-semibold text-(--color-text-primary)">
+        Destino de la clonación
+      </div>
 
       <div className="mt-3">
         <SelectMenu
@@ -122,24 +137,34 @@ export default function TarifarioClonacionPage() {
       </div>
 
       <div className="mt-4 rounded-md border border-(--border-color-default) bg-(--color-panel-bg) px-3 py-3">
-        <div className="text-sm font-semibold text-(--color-text-primary)">Selección en el árbol</div>
+        <div className="text-sm font-semibold text-(--color-text-primary)">
+          Selección en el árbol
+        </div>
         {hasSelection ? (
           <ul className="mt-2 space-y-1.5 text-sm text-(--color-text-secondary)">
             {selectionCounts.categorias > 0 ? (
               <li>
-                <span className="font-medium text-(--color-text-primary)">{selectionCounts.categorias}</span>{" "}
+                <span className="font-medium text-(--color-text-primary)">
+                  {selectionCounts.categorias}
+                </span>{" "}
                 {selectionCounts.categorias === 1 ? "categoría" : "categorías"}
               </li>
             ) : null}
             {selectionCounts.subcategorias > 0 ? (
               <li>
-                <span className="font-medium text-(--color-text-primary)">{selectionCounts.subcategorias}</span>{" "}
-                {selectionCounts.subcategorias === 1 ? "subcategoría" : "subcategorías"}
+                <span className="font-medium text-(--color-text-primary)">
+                  {selectionCounts.subcategorias}
+                </span>{" "}
+                {selectionCounts.subcategorias === 1
+                  ? "subcategoría"
+                  : "subcategorías"}
               </li>
             ) : null}
             {selectionCounts.servicios > 0 ? (
               <li>
-                <span className="font-medium text-(--color-text-primary)">{selectionCounts.servicios}</span>{" "}
+                <span className="font-medium text-(--color-text-primary)">
+                  {selectionCounts.servicios}
+                </span>{" "}
                 {selectionCounts.servicios === 1 ? "servicio" : "servicios"}
               </li>
             ) : null}
@@ -186,7 +211,9 @@ export default function TarifarioClonacionPage() {
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <div className="shrink-0 text-base font-semibold text-(--color-text-primary)">Clonación de tarifa</div>
+      <div className="shrink-0 text-base font-semibold text-(--color-text-primary)">
+        Clonación de tarifa
+      </div>
 
       <CrudSplitLayout
         formWidth="var(--form-panel-width-md)"

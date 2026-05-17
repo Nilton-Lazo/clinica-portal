@@ -1,7 +1,14 @@
 import type { RecordStatus } from "../../types/tarifas.types";
 import type { StatusFilter } from "../hooks/useTarifas";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
-import { inputBase } from "../../utils/crudShared";
+import { PrimaryButton } from "../../../../shared/ui/buttons";
+import {
+  FicherosCrudToolbarActions,
+  FicherosCrudToolbarRow,
+  ficherosToolbarSearchClass,
+  ficherosToolbarSelectPerPageClass,
+  ficherosToolbarSelectStatusClass,
+} from "../../components/FicherosCrudToolbar";
 
 export default function TarifasToolbar(props: {
   q: string;
@@ -28,41 +35,35 @@ export default function TarifasToolbar(props: {
   ];
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
-        <input
-          value={q}
-          onChange={(e) => onQChange(e.target.value)}
-          placeholder="Buscar por código, descripción, etc."
-          className={`h-10 basis-full lg:basis-auto lg:flex-1 min-w-65 ${inputBase}`}
-        />
-
+    <FicherosCrudToolbarRow>
+      <input
+        value={q}
+        onChange={(e) => onQChange(e.target.value)}
+        placeholder="BUSCAR POR CÓDIGO O DESCRIPCIÓN"
+        className={ficherosToolbarSearchClass}
+        aria-label="Buscar por código o descripción"
+      />
+      <FicherosCrudToolbarActions>
         <SelectMenu
           value={String(statusFilter)}
           onChange={(v) => onStatusChange(v === "ALL" ? "ALL" : (v as RecordStatus))}
           options={statusOptions}
-          ariaLabel="Filtrar por estado"
-          buttonClassName={`w-full sm:w-auto min-w-[160px] h-10 ${inputBase}`}
+          ariaLabel="Estado"
+          buttonClassName={ficherosToolbarSelectStatusClass}
           menuClassName="min-w-[120px]"
         />
-
         <SelectMenu
           value={String(perPage)}
           onChange={(v) => onPerPageChange(Number(v))}
           options={perPageOptions}
           ariaLabel="Registros por página"
-          buttonClassName={`w-full sm:w-auto min-w-[96px] h-10 ${inputBase}`}
-          menuClassName="min-w-[90px]"
+          buttonClassName={ficherosToolbarSelectPerPageClass}
+          menuClassName="min-w-[80px]"
         />
-
-        <button
-          type="button"
-          className="h-10 rounded px-4 text-sm font-medium bg-(--color-primary) text-(--color-text-inverse) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto"
-          onClick={onNew}
-        >
+        <PrimaryButton className="w-full shrink-0 sm:w-auto" onClick={onNew}>
           Nuevo
-        </button>
-      </div>
-    </div>
+        </PrimaryButton>
+      </FicherosCrudToolbarActions>
+    </FicherosCrudToolbarRow>
   );
 }

@@ -3,12 +3,15 @@ import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { SelectMenu } from "../../../shared/ui/SelectMenu";
 import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import type { TreeCategoria } from "../types/paqueteServicios.types";
+import { FicherosCrudPageLayout } from "../components/FicherosCrudPageLayout";
+import {
+  FicherosCrudToolbarRow,
+  ficherosToolbarSearchClass,
+  ficherosToolbarSelectMdClass,
+} from "../components/FicherosCrudToolbar";
 import { usePaqueteServicios } from "../paquete-servicios/hooks/usePaqueteServicios";
 import { useFicherosRealtimeRefresh } from "../realtime/useFicherosRealtimeRefresh";
 import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
-
-const inputBase =
-  "h-10 rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 
 function TreeSearchInput({
   value,
@@ -16,7 +19,7 @@ function TreeSearchInput({
   isPending,
   placeholder,
   className,
-  ariaLabel
+  ariaLabel,
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -59,7 +62,10 @@ function TreeSearchInput({
         aria-busy={isPending || isTyping}
       />
       {(isPending || isTyping) && (
-        <div className="mt-1 text-xs text-(--color-text-secondary)" aria-live="polite">
+        <div
+          className="mt-1 text-xs text-(--color-text-secondary)"
+          aria-live="polite"
+        >
           Aplicando filtro…
         </div>
       )}
@@ -106,7 +112,11 @@ const TreeNode = React.memo(function TreeNode({
           onClick={() => onToggleExpandCategoria(cat.id)}
           aria-label="Expandir categoría"
         >
-          {isCatOpen ? <ChevronDown className="h-4 w-4 text-(--color-text-secondary)" /> : <ChevronRight className="h-4 w-4 text-(--color-text-secondary)" />}
+          {isCatOpen ? (
+            <ChevronDown className="h-4 w-4 text-(--color-text-secondary)" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-(--color-text-secondary)" />
+          )}
         </button>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
@@ -118,7 +128,9 @@ const TreeNode = React.memo(function TreeNode({
             onChange={() => onToggleCategoria(cat.id)}
             className="h-4 w-4 rounded border border-(--border-color-default)"
           />
-          <span className="font-semibold">{cat.codigo} - {cat.nombre}</span>
+          <span className="font-semibold">
+            {cat.codigo} - {cat.nombre}
+          </span>
         </label>
       </div>
 
@@ -135,7 +147,11 @@ const TreeNode = React.memo(function TreeNode({
                     onClick={() => onToggleExpandSubcategoria(sub.id)}
                     aria-label="Expandir subcategoría"
                   >
-                    {isSubOpen ? <ChevronDown className="h-4 w-4 text-(--color-text-secondary)" /> : <ChevronRight className="h-4 w-4 text-(--color-text-secondary)" />}
+                    {isSubOpen ? (
+                      <ChevronDown className="h-4 w-4 text-(--color-text-secondary)" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-(--color-text-secondary)" />
+                    )}
                   </button>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
@@ -147,15 +163,27 @@ const TreeNode = React.memo(function TreeNode({
                       onChange={() => onToggleSubcategoria(sub.id)}
                       className="h-4 w-4 rounded border border-(--border-color-default)"
                     />
-                    <span>{cat.codigo}.{sub.codigo} - {sub.nombre}</span>
+                    <span>
+                      {cat.codigo}.{sub.codigo} - {sub.nombre}
+                    </span>
                   </label>
                 </div>
                 {isSubOpen ? (
                   <div className="pl-8 space-y-1">
                     {sub.servicios.map((sv) => (
-                      <label key={sv.id} className="flex items-start gap-2 text-sm cursor-pointer">
-                        <input type="checkbox" checked={selectedServicios.has(sv.id)} onChange={() => onToggleServicio(sv.id)} className="h-4 w-4 rounded border border-(--border-color-default)" />
-                        <span className="whitespace-normal wrap-break-word leading-5">{sv.codigo} - {sv.descripcion}</span>
+                      <label
+                        key={sv.id}
+                        className="flex items-start gap-2 text-sm cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedServicios.has(sv.id)}
+                          onChange={() => onToggleServicio(sv.id)}
+                          className="h-4 w-4 rounded border border-(--border-color-default)"
+                        />
+                        <span className="whitespace-normal wrap-break-word leading-5">
+                          {sv.codigo} - {sv.descripcion}
+                        </span>
                       </label>
                     ))}
                   </div>
@@ -172,83 +200,92 @@ const TreeNode = React.memo(function TreeNode({
 export default function PaqueteServiciosPage() {
   const vm = usePaqueteServicios();
 
-  useFicherosRealtimeRefresh(vm, [
-    "paquete_servicio",
-    "paquete",
-    "tarifa",
-  ]);
+  useFicherosRealtimeRefresh(vm, ["paquete_servicio", "paquete", "tarifa"]);
 
   useRealtimeModuleRefresh({
     module: "facturacion",
-    entities: ["tarifa_servicio", "tarifa_categoria", "tarifa_subcategoria", "tarifario_clonacion"],
+    entities: [
+      "tarifa_servicio",
+      "tarifa_categoria",
+      "tarifa_subcategoria",
+      "tarifario_clonacion",
+    ],
     onEvent: () => {
       vm.refresh();
     },
   });
 
   const tarifaOptions = React.useMemo(
-    () => [{ value: "", label: "Seleccione tarifa" }, ...vm.tarifas.map((t) => ({ value: String(t.id), label: `${t.codigo} - ${t.descripcion_tarifa}` }))],
-    [vm.tarifas]
+    () => [
+      { value: "", label: "Seleccione tarifa" },
+      ...vm.tarifas.map((t) => ({
+        value: String(t.id),
+        label: `${t.codigo} - ${t.descripcion_tarifa}`,
+      })),
+    ],
+    [vm.tarifas],
   );
   const paqueteOptions = React.useMemo(
-    () => [{ value: "", label: "Seleccione paquete" }, ...vm.paquetes.map((p) => ({ value: String(p.id), label: `${p.codigo} - ${p.descripcion}` }))],
-    [vm.paquetes]
+    () => [
+      { value: "", label: "Seleccione paquete" },
+      ...vm.paquetes.map((p) => ({
+        value: String(p.id),
+        label: `${p.codigo} - ${p.descripcion}`,
+      })),
+    ],
+    [vm.paquetes],
   );
 
   return (
-    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <div className="min-w-0">
-        <div className="text-base font-semibold text-(--color-text-primary)">Servicios por paquete</div>
-        <div className="text-sm text-(--color-text-secondary)">Asigna servicios de la tarifa al paquete seleccionado</div>
-      </div>
-
+    <FicherosCrudPageLayout
+      toolbar={
+        <FicherosCrudToolbarRow>
+          <SelectMenu
+            value={vm.tarifaId ? String(vm.tarifaId) : ""}
+            onChange={(v) => vm.setTarifaId(v ? Number(v) : null)}
+            options={tarifaOptions}
+            ariaLabel="Tarifa"
+            disabled={vm.loadingTarifas}
+            buttonClassName={`${ficherosToolbarSelectMdClass} min-w-[200px] shrink-0 basis-full sm:basis-auto`}
+            menuClassName="min-w-[200px]"
+          />
+          <SelectMenu
+            value={vm.paqueteId ? String(vm.paqueteId) : ""}
+            onChange={(v) => vm.setPaqueteId(v ? Number(v) : null)}
+            options={paqueteOptions}
+            ariaLabel="Paquete"
+            disabled={!vm.tarifaId || vm.loadingPaquetes}
+            buttonClassName={`${ficherosToolbarSelectMdClass} min-w-[200px] shrink-0 basis-full sm:basis-auto`}
+            menuClassName="min-w-[200px]"
+          />
+          <TreeSearchInput
+            value={vm.treeQuery}
+            onChange={vm.setTreeQuery}
+            placeholder="Buscar por código o descripción"
+            className={ficherosToolbarSearchClass}
+            ariaLabel="Buscar en árbol"
+            isPending={vm.treeFilterPending}
+          />
+        </FicherosCrudToolbarRow>
+      }
+    >
       <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:min-h-0 lg:flex-1">
         <section className="rounded border border-(--border-color-default) bg-(--color-surface) p-3 lg:min-h-0 lg:flex lg:flex-col">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            <div>
-              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Tarifa</label>
-              <SelectMenu
-                value={vm.tarifaId ? String(vm.tarifaId) : ""}
-                onChange={(v) => vm.setTarifaId(v ? Number(v) : null)}
-                options={tarifaOptions}
-                ariaLabel="Tarifa"
-                disabled={vm.loadingTarifas}
-                buttonClassName={`w-full ${inputBase}`}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-(--color-text-secondary) mb-0.5">Paquete</label>
-              <SelectMenu
-                value={vm.paqueteId ? String(vm.paqueteId) : ""}
-                onChange={(v) => vm.setPaqueteId(v ? Number(v) : null)}
-                options={paqueteOptions}
-                ariaLabel="Paquete"
-                disabled={!vm.tarifaId || vm.loadingPaquetes}
-                buttonClassName={`w-full ${inputBase}`}
-              />
-            </div>
-          </div>
-
-          <div className="mt-3 flex items-center gap-2 text-xs text-(--color-text-secondary)">
+          <div className="flex items-center gap-2 text-xs text-(--color-text-secondary)">
             <span>Servicios seleccionados: {vm.selectedCount}</span>
-            <span className="text-(--color-success)">Por agregar: +{vm.addedCount}</span>
-            <span className="text-(--color-danger)">Por quitar: -{vm.removedCount}</span>
-          </div>
-
-          <div className="mt-2 space-y-1">
-            <TreeSearchInput
-              value={vm.treeQuery}
-              onChange={vm.setTreeQuery}
-              placeholder="Buscar por código o descripción"
-              className={`w-full ${inputBase}`}
-              ariaLabel="Buscar en árbol"
-              isPending={vm.treeFilterPending}
-            />
+            <span className="text-(--color-success)">
+              Por agregar: +{vm.addedCount}
+            </span>
+            <span className="text-(--color-danger)">
+              Por quitar: -{vm.removedCount}
+            </span>
           </div>
 
           <div className="mt-3 overflow-auto app-scrollbar app-scrollbar-no-gutter lg:min-h-0 lg:flex-1">
             {vm.loadingTree ? (
-              <div className="text-sm text-(--color-text-secondary)">Cargando árbol…</div>
+              <div className="text-sm text-(--color-text-secondary)">
+                Cargando árbol…
+              </div>
             ) : vm.filteredTree ? (
               <div className="space-y-2">
                 {vm.filteredTree.tree.length === 0 ? (
@@ -287,22 +324,36 @@ export default function PaqueteServiciosPage() {
           </div>
 
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <SecondaryButton className="w-full" onClick={vm.onReset} disabled={!vm.isDirty || vm.saving}>
+            <SecondaryButton
+              className="w-full"
+              onClick={vm.onReset}
+              disabled={!vm.isDirty || vm.saving}
+            >
               Deshacer cambios
             </SecondaryButton>
-            <PrimaryButton className="w-full" onClick={vm.onSave} disabled={!vm.paqueteId || !vm.isDirty || vm.saving}>
+            <PrimaryButton
+              className="w-full"
+              onClick={vm.onSave}
+              disabled={!vm.paqueteId || !vm.isDirty || vm.saving}
+            >
               {vm.saving ? "Guardando..." : "Guardar cambios"}
             </PrimaryButton>
           </div>
         </section>
 
         <section className="rounded border border-(--border-color-default) bg-(--color-surface) p-3 lg:min-h-0 lg:flex lg:flex-col">
-          <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios actuales del paquete</h2>
-          <p className="mt-1 text-xs text-(--color-text-secondary)">Quita o agrega servicios y guarda.</p>
+          <h2 className="text-sm font-semibold text-(--color-text-primary)">
+            Servicios actuales del paquete
+          </h2>
+          <p className="mt-1 text-xs text-(--color-text-secondary)">
+            Quita o agrega servicios y guarda.
+          </p>
 
           <div className="mt-3 overflow-auto app-scrollbar app-scrollbar-no-gutter lg:min-h-0 lg:flex-1">
             {vm.loadingAssigned ? (
-              <div className="text-sm text-(--color-text-secondary)">Cargando servicios del paquete…</div>
+              <div className="text-sm text-(--color-text-secondary)">
+                Cargando servicios del paquete…
+              </div>
             ) : vm.workingSelectedRows.length === 0 ? (
               <div className="text-sm text-(--color-text-secondary)">
                 No hay servicios seleccionados en este paquete.
@@ -310,7 +361,10 @@ export default function PaqueteServiciosPage() {
             ) : (
               <div className="space-y-2">
                 {vm.workingSelectedRows.map((x) => (
-                  <div key={x.id} className="rounded border border-(--border-color-default) px-3 py-2">
+                  <div
+                    key={x.id}
+                    className="rounded border border-(--border-color-default) px-3 py-2"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="text-sm font-medium text-(--color-text-primary) whitespace-normal wrap-break-word leading-5">
                         {x.codigo} - {x.descripcion}
@@ -326,7 +380,8 @@ export default function PaqueteServiciosPage() {
                       </button>
                     </div>
                     <div className="mt-0.5 text-xs text-(--color-text-secondary)">
-                      {x.categoria_codigo}.{x.subcategoria_codigo} · {x.categoria_nombre} / {x.subcategoria_nombre}
+                      {x.categoria_codigo}.{x.subcategoria_codigo} ·{" "}
+                      {x.categoria_nombre} / {x.subcategoria_nombre}
                     </div>
                   </div>
                 ))}
@@ -335,6 +390,6 @@ export default function PaqueteServiciosPage() {
           </div>
         </section>
       </div>
-    </div>
+    </FicherosCrudPageLayout>
   );
 }

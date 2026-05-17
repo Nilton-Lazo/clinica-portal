@@ -7,6 +7,9 @@ export { prepareFormText };
 export const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
 
+export const ficherosToolbarSelectBase =
+  "h-10 rounded-lg border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) shadow-sm outline-none transition-colors hover:border-(--color-primary)/50 focus:ring-0 focus:border-(--color-primary)";
+
 export type Notice = { type: "success" | "error"; text: string } | null;
 
 export function makeEnterKeySaveHandler(

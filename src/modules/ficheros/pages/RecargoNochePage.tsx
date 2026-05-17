@@ -1,6 +1,7 @@
-﻿import * as React from "react";
+import * as React from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
+import { FicherosCrudPageLayout } from "../components/FicherosCrudPageLayout";
 import { useRecargoNoche } from "../recargo-noche/hooks/useRecargoNoche";
 import RecargoNocheToolbar from "../recargo-noche/components/RecargoNocheToolbar";
 import RecargoNocheTable from "../recargo-noche/components/RecargoNocheTable";
@@ -28,7 +29,6 @@ function useIsLgUp(): boolean {
 const PER_PAGE = 25;
 
 export default function RecargoNochePage() {
-  const title = "Recargo nocturno";
   const vm = useRecargoNoche();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
@@ -61,79 +61,83 @@ export default function RecargoNochePage() {
   }, [vm, isLgUp]);
 
   return (
-    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="text-base font-semibold text-(--color-text-primary)">{title}</div>
-          <div className="text-sm text-(--color-text-secondary)">
-            Configure por tarifario qué categorías llevan recargo y desde qué hora.
+    <>
+      <FicherosCrudPageLayout
+        toolbar={
+          <RecargoNocheToolbar
+            tarifas={vm.tarifas}
+            tarifasLoading={vm.tarifasLoading}
+            tarifaId={vm.tarifaId}
+            onTarifaChange={vm.setTarifaId}
+            statusFilter={vm.statusFilter}
+            onStatusChange={vm.setStatusFilter}
+            onNew={handleNew}
+          />
+        }
+      >
+        {vm.tarifaId ? (
+          <CrudSplitLayout
+            formWidth="var(--form-panel-width-md)"
+            rightRef={formRef}
+            left={
+              <>
+                <RecargoNocheTable
+                  reglas={slicedReglas}
+                  loading={vm.loading}
+                  selectedId={vm.selected?.id ?? null}
+                  onSelect={vm.loadForEdit}
+                  paginationMeta={paginationMeta}
+                  onPrev={() => setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
+                  onFirst={() => setPage(1)}
+                  onLast={() => setPage(lastPage)}
+                />
+
+                <RecargoNocheMobileList
+                  reglas={slicedReglas}
+                  loading={vm.loading}
+                  selectedId={vm.selected?.id ?? null}
+                  onSelect={vm.loadForEdit}
+                  paginationMeta={paginationMeta}
+                  onPrev={() => setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
+                  onFirst={() => setPage(1)}
+                  onLast={() => setPage(lastPage)}
+                />
+              </>
+            }
+            right={
+              <RecargoNocheFormCard
+                mode={vm.mode}
+                selected={vm.selected}
+                categoriasDisponibles={vm.categoriasDisponiblesParaNuevo}
+                formCategoriaId={vm.formCategoriaId}
+                onFormCategoriaIdChange={vm.setFormCategoriaId}
+                formPorcentaje={vm.formPorcentaje}
+                onFormPorcentajeChange={vm.setFormPorcentaje}
+                formHoraDesde={vm.formHoraDesde}
+                onFormHoraDesdeChange={vm.setFormHoraDesde}
+                formHoraHasta={vm.formHoraHasta}
+                onFormHoraHastaChange={vm.setFormHoraHasta}
+                formEstado={vm.formEstado}
+                onFormEstadoChange={vm.setFormEstado}
+                saving={vm.saving}
+                isValid={vm.isValid}
+                isDirty={vm.isDirty}
+                canDeactivate={vm.canDeactivate}
+                onSave={vm.onSave}
+                onCancel={vm.cancel}
+                onDeactivate={vm.requestDeactivate}
+              />
+            }
+          />
+        ) : (
+          <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-6 text-center text-sm text-(--color-text-secondary)">
+            Seleccione un tarifario para gestionar las reglas de recargo
+            nocturno.
           </div>
-        </div>
-      </div>
-      <div className="w-full shrink-0">
-        <RecargoNocheToolbar
-          tarifas={vm.tarifas}
-          tarifasLoading={vm.tarifasLoading}
-          tarifaId={vm.tarifaId}
-          onTarifaChange={vm.setTarifaId}
-          statusFilter={vm.statusFilter}
-          onStatusChange={vm.setStatusFilter}
-          onNew={handleNew}
-        />
-      </div>
-
-      {vm.tarifaId ? (
-        <CrudSplitLayout formWidth="var(--form-panel-width-md)" rightRef={formRef} left={<>
-            <RecargoNocheTable
-              reglas={slicedReglas}
-              loading={vm.loading}
-              selectedId={vm.selected?.id ?? null}
-              onSelect={vm.loadForEdit}
-              paginationMeta={paginationMeta}
-              onPrev={() => setPage((p) => Math.max(1, p - 1))}
-              onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
-              onFirst={() => setPage(1)}
-              onLast={() => setPage(lastPage)}
-            />
-
-            <RecargoNocheMobileList
-              reglas={slicedReglas}
-              loading={vm.loading}
-              selectedId={vm.selected?.id ?? null}
-              onSelect={vm.loadForEdit}
-              paginationMeta={paginationMeta}
-              onPrev={() => setPage((p) => Math.max(1, p - 1))}
-              onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
-              onFirst={() => setPage(1)}
-              onLast={() => setPage(lastPage)}
-            />
-          </>} right={<RecargoNocheFormCard
-              mode={vm.mode}
-              selected={vm.selected}
-              categoriasDisponibles={vm.categoriasDisponiblesParaNuevo}
-              formCategoriaId={vm.formCategoriaId}
-              onFormCategoriaIdChange={vm.setFormCategoriaId}
-              formPorcentaje={vm.formPorcentaje}
-              onFormPorcentajeChange={vm.setFormPorcentaje}
-              formHoraDesde={vm.formHoraDesde}
-              onFormHoraDesdeChange={vm.setFormHoraDesde}
-              formHoraHasta={vm.formHoraHasta}
-              onFormHoraHastaChange={vm.setFormHoraHasta}
-              formEstado={vm.formEstado}
-              onFormEstadoChange={vm.setFormEstado}
-              saving={vm.saving}
-              isValid={vm.isValid}
-              isDirty={vm.isDirty}
-              canDeactivate={vm.canDeactivate}
-              onSave={vm.onSave}
-              onCancel={vm.cancel}
-              onDeactivate={vm.requestDeactivate}
-            />} />
-      ) : (
-        <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-6 text-center text-sm text-(--color-text-secondary)">
-          Seleccione un tarifario para gestionar las reglas de recargo nocturno.
-        </div>
-      )}
+        )}
+      </FicherosCrudPageLayout>
 
       <ConfirmDialog
         open={vm.confirmDeactivateOpen}
@@ -149,6 +153,6 @@ export default function RecargoNochePage() {
         onCancel={() => vm.setConfirmDeactivateOpen(false)}
         onConfirm={vm.onDeactivateConfirmed}
       />
-    </div>
+    </>
   );
 }

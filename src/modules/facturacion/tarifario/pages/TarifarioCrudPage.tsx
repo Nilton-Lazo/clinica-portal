@@ -5,6 +5,7 @@ import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTab
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
 import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
+import { ficherosCrudToolbarShellClass } from "../../../ficheros/components/FicherosCrudPageLayout";
 import { makeEnterKeySaveHandler } from "../../../ficheros/utils/crudShared";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 import { DangerButton, PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
@@ -1550,8 +1551,8 @@ export function TarifarioCategoriasCrudView({
       {tarifaMenuError ? (
         <div className="text-sm text-(--color-danger)">{tarifaMenuError}</div>
       ) : null}
-      <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className={ficherosCrudToolbarShellClass}>
+        <div className="flex w-full flex-wrap items-stretch gap-x-6 gap-y-3.5 sm:items-center">
           <SelectMenu
             value={tarifaMenuValue}
             onChange={onTarifaMenuChange}
@@ -1846,8 +1847,8 @@ export function TarifarioSubcategoriasCrudView({
       {tarifaMenuError ? (
         <div className="text-sm text-(--color-danger)">{tarifaMenuError}</div>
       ) : null}
-      <div className="w-full shrink-0 rounded border border-(--border-color-default) bg-(--color-surface) p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className={ficherosCrudToolbarShellClass}>
+        <div className="flex w-full flex-wrap items-stretch gap-x-6 gap-y-3.5 sm:items-center">
           <SelectMenu
             value={tarifaMenuValue}
             onChange={onTarifaMenuChange}

@@ -1,15 +1,33 @@
 import * as React from "react";
-import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "../../../../../shared/crud/DataTable";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
-import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
-import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
+import {
+  SelectMenu,
+  type SelectOption,
+} from "../../../../../shared/ui/SelectMenu";
+import {
+  PrimaryButton,
+  SecondaryButton,
+} from "../../../../../shared/ui/buttons";
 import { toastService } from "../../../../../shared/notifications";
 import { listTarifas } from "../../../services/tarifas.service";
-import { upsertServiciosDefaultEmergenciaByTarifa, listServiciosDefaultEmergenciaByTarifa } from "../services/serviciosDefaultEmergencia.service";
+import {
+  upsertServiciosDefaultEmergenciaByTarifa,
+  listServiciosDefaultEmergenciaByTarifa,
+} from "../services/serviciosDefaultEmergencia.service";
 import { ServicioPicker } from "../../../../admision/citas/agenda/components/ServicioPicker";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
+import { FicherosCrudPageLayout } from "../../../components/FicherosCrudPageLayout";
+import {
+  FicherosCrudToolbarActions,
+  FicherosCrudToolbarBackLink,
+  FicherosCrudToolbarRow,
+} from "../../../components/FicherosCrudToolbar";
+import { inputBase } from "../../../utils/crudShared";
 import { getApiErrorMessage } from "../../../../../shared/api/apiError";
 import {
   buscarServiciosTarifa,
@@ -39,7 +57,7 @@ function getHoraActual(): string {
 function precioConRecargo(
   precioSinIgv: string | number | null | undefined,
   recargoActivo: boolean,
-  recargoPct: number
+  recargoPct: number,
 ): number {
   const base = parseFloat(String(precioSinIgv ?? 0)) || 0;
   if (!recargoActivo || recargoPct <= 0) return base;
@@ -56,7 +74,9 @@ export default function ServiciosDefaultEmergenciaPage() {
   const [saving, setSaving] = React.useState(false);
   const [dirty, setDirty] = React.useState(false);
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [tarifaReferenciaId, setTarifaReferenciaId] = React.useState<number | null>(null);
+  const [tarifaReferenciaId, setTarifaReferenciaId] = React.useState<
+    number | null
+  >(null);
   const [confirmClearOpen, setConfirmClearOpen] = React.useState(false);
   const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
   const [isLgUp, setIsLgUp] = React.useState(() => {
@@ -68,7 +88,12 @@ export default function ServiciosDefaultEmergenciaPage() {
     module: "ficheros",
     entities: ["servicio_default_emergencia", "recargo_noche", "parametro_igv"],
     onEvent: (event) => {
-      if (event.entity === "servicio_default_emergencia" && event.scope && event.scope !== String(tarifaId)) return;
+      if (
+        event.entity === "servicio_default_emergencia" &&
+        event.scope &&
+        event.scope !== String(tarifaId)
+      )
+        return;
       setRealtimeReloadKey((key) => key + 1);
       setNeedsFetchDetalles(true);
     },
@@ -108,10 +133,16 @@ export default function ServiciosDefaultEmergenciaPage() {
     const run = async () => {
       setLoadingTarifas(true);
       try {
-        const res = await listTarifas({ page: 1, per_page: 100, status: "ACTIVO" });
+        const res = await listTarifas({
+          page: 1,
+          per_page: 100,
+          status: "ACTIVO",
+        });
         if (!alive) return;
         const opts: SelectOption[] = (res.data ?? []).map((t) => {
-          const label = t.codigo ? `${t.codigo} · ${t.descripcion_tarifa}` : `Tarifa ${t.id}`;
+          const label = t.codigo
+            ? `${t.codigo} · ${t.descripcion_tarifa}`
+            : `Tarifa ${t.id}`;
           return { value: String(t.id), label };
         });
         setTarifas(opts);
@@ -158,7 +189,9 @@ export default function ServiciosDefaultEmergenciaPage() {
     };
   }, [tarifaId, realtimeReloadKey]);
 
-  const [detalleByNorm, setDetalleByNorm] = React.useState<Map<string, TarifaServicioBusqueda>>(new Map());
+  const [detalleByNorm, setDetalleByNorm] = React.useState<
+    Map<string, TarifaServicioBusqueda>
+  >(new Map());
   const [igvPct, setIgvPct] = React.useState<number>(18);
   const [needsFetchDetalles, setNeedsFetchDetalles] = React.useState(false);
   const [recargoTick, setRecargoTick] = React.useState(0);
@@ -185,7 +218,12 @@ export default function ServiciosDefaultEmergenciaPage() {
       return;
     }
     if (detalleByNorm.size === 0) setNeedsFetchDetalles(true);
-  }, [tarifaReferenciaId, serviciosDefault.length, detalleByNorm.size, loadingDefaults]);
+  }, [
+    tarifaReferenciaId,
+    serviciosDefault.length,
+    detalleByNorm.size,
+    loadingDefaults,
+  ]);
 
   React.useEffect(() => {
     if (tarifaReferenciaId == null) return;
@@ -232,12 +270,16 @@ export default function ServiciosDefaultEmergenciaPage() {
 
               const found =
                 res.data.find(
-                  (s) => normalizeCodigoForDefault(String(s.codigo ?? "")) === normalizeCodigoForDefault(rawCodigo)
-                ) ?? res.data[0] ?? null;
+                  (s) =>
+                    normalizeCodigoForDefault(String(s.codigo ?? "")) ===
+                    normalizeCodigoForDefault(rawCodigo),
+                ) ??
+                res.data[0] ??
+                null;
 
               if (cancelled) return;
               if (found) newMap.set(norm, found);
-            })
+            }),
           );
         }
 
@@ -300,7 +342,9 @@ export default function ServiciosDefaultEmergenciaPage() {
       }
 
       const precioSinIgv = parseFloat(String(d.precio_sin_igv ?? ""));
-      const recargoActivo = Boolean(d.recargo_noche_activo) && (d.recargo_noche_porcentaje ?? 0) > 0;
+      const recargoActivo =
+        Boolean(d.recargo_noche_activo) &&
+        (d.recargo_noche_porcentaje ?? 0) > 0;
       const recargoPct = d.recargo_noche_porcentaje ?? 0;
 
       if (!Number.isFinite(precioSinIgv)) {
@@ -313,7 +357,11 @@ export default function ServiciosDefaultEmergenciaPage() {
         };
       }
 
-      const precioConRecargoSinIgv = precioConRecargo(precioSinIgv, recargoActivo, recargoPct);
+      const precioConRecargoSinIgv = precioConRecargo(
+        precioSinIgv,
+        recargoActivo,
+        recargoPct,
+      );
       const precioConRecargoConIgv = precioConRecargoSinIgv * igvFactor;
       const precioStr = `S/. ${precioConRecargoConIgv.toFixed(PRECISION_DECIMAL)}`;
 
@@ -356,7 +404,9 @@ export default function ServiciosDefaultEmergenciaPage() {
           <div className="flex flex-col items-end gap-0.5">
             <span className="tabular-nums text-sm">{x.precioConIgv}</span>
             {x.recargoActivo && x.recargoPct > 0 && (
-              <span className="text-xs text-(--color-primary)">Recargo {x.recargoPct}%</span>
+              <span className="text-xs text-(--color-primary)">
+                Recargo {x.recargoPct}%
+              </span>
             )}
           </div>
         ),
@@ -374,7 +424,9 @@ export default function ServiciosDefaultEmergenciaPage() {
               className="inline-flex items-center justify-center rounded border border-(--color-danger) bg-(--color-surface) text-(--color-danger) w-7 h-7 transition-transform duration-150 hover:scale-[1.12] active:scale-[0.98] hover:bg-(--color-danger) hover:text-(--color-text-inverse)"
               onClick={(e) => {
                 e.stopPropagation();
-                setServiciosDefault((prev) => prev.filter((c) => normalizeCodigoForDefault(c) !== norm));
+                setServiciosDefault((prev) =>
+                  prev.filter((c) => normalizeCodigoForDefault(c) !== norm),
+                );
                 setDetalleByNorm((prev) => {
                   const next = new Map(prev);
                   next.delete(norm);
@@ -391,12 +443,14 @@ export default function ServiciosDefaultEmergenciaPage() {
         },
       },
     ],
-    []
+    [],
   );
 
   const tarifaReferenciaLabel = React.useMemo(() => {
     if (tarifaReferenciaId == null) return "—";
-    return tarifas.find((t) => t.value === String(tarifaReferenciaId))?.label ?? "—";
+    return (
+      tarifas.find((t) => t.value === String(tarifaReferenciaId))?.label ?? "—"
+    );
   }, [tarifas, tarifaReferenciaId]);
 
   const onPickServiciosDefault = React.useCallback(
@@ -433,7 +487,7 @@ export default function ServiciosDefaultEmergenciaPage() {
 
       setDirty(true);
     },
-    [setDetalleByNorm]
+    [setDetalleByNorm],
   );
 
   const onSave = React.useCallback(async () => {
@@ -444,20 +498,33 @@ export default function ServiciosDefaultEmergenciaPage() {
         const targetTarifas = tarifas
           .map((t) => Number(t.value))
           .filter((id) => Number.isFinite(id) && id > 0);
-        if (!targetTarifas.length) throw new Error("No hay tarifarios activos.");
+        if (!targetTarifas.length)
+          throw new Error("No hay tarifarios activos.");
 
         const maxConcurrent = 4;
         for (let i = 0; i < targetTarifas.length; i += maxConcurrent) {
           const chunk = targetTarifas.slice(i, i + maxConcurrent);
-          await Promise.all(chunk.map((id) => upsertServiciosDefaultEmergenciaByTarifa(id, serviciosDefault)));
+          await Promise.all(
+            chunk.map((id) =>
+              upsertServiciosDefaultEmergenciaByTarifa(id, serviciosDefault),
+            ),
+          );
         }
       } else {
-        await upsertServiciosDefaultEmergenciaByTarifa(tarifaId, serviciosDefault);
+        await upsertServiciosDefaultEmergenciaByTarifa(
+          tarifaId,
+          serviciosDefault,
+        );
       }
       setDirty(false);
       toastService.showSuccess("Servicios por defecto guardados.");
     } catch (e) {
-      toastService.showError(getApiErrorMessage(e, "No se pudieron guardar los servicios por defecto."));
+      toastService.showError(
+        getApiErrorMessage(
+          e,
+          "No se pudieron guardar los servicios por defecto.",
+        ),
+      );
     } finally {
       setSaving(false);
     }
@@ -479,70 +546,53 @@ export default function ServiciosDefaultEmergenciaPage() {
   }, [dirty, tarifaId, loadingDefaults, tarifas.length, onSave]);
 
   return (
-    <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
-      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="text-base font-semibold text-(--color-text-primary)">Servicios por defecto (Emergencia)</div>
-          <div className="text-sm text-(--color-text-secondary)">Por cada tarifario, define qué servicios se precargan automáticamente.</div>
-        </div>
-        <div className="flex gap-2 lg:justify-end">
-          <Link
-            to="/ficheros/parametros/emergencia"
-            className="h-10 rounded px-4 text-sm font-medium border border-(--border-color-default) bg-(--color-surface) text-(--color-text-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] w-full sm:w-auto inline-flex items-center justify-center"
-          >
-            Volver
-          </Link>
-          {saving ? (
-            <div className="flex items-center text-sm text-(--color-text-secondary) px-2">
-              Guardando…
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="w-full shrink-0">
-        <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-3 mt-3">
-          <div className="text-sm font-semibold text-(--color-text-primary)">Seleccionar</div>
-          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs text-(--color-text-secondary)">Aplicar a</label>
-              <div className="mt-1">
-                <SelectMenu
-                  value={tarifaId != null ? String(tarifaId) : "0"}
-                  onChange={(v) => setTarifaId(Number(v))}
-                  options={[{ value: "0", label: "Todos los tarifarios" }, ...tarifas]}
-                  ariaLabel="Aplicar a"
-                  buttonClassName="w-full h-8 lg:h-8 lg:rounded text-sm"
-                  menuClassName="min-w-full"
-                  disabled={loadingTarifas}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-(--color-text-secondary)">Tarifario de referencia</label>
-              <div className="mt-1">
-                <SelectMenu
-                  value={tarifaReferenciaId != null ? String(tarifaReferenciaId) : ""}
-                  onChange={(v) => setTarifaReferenciaId(v ? Number(v) : null)}
-                  options={[{ value: "", label: "Seleccione referencia" }, ...tarifas]}
-                  ariaLabel="Tarifario de referencia"
-                  buttonClassName="w-full h-8 lg:h-8 lg:rounded text-sm"
-                  menuClassName="min-w-full"
-                  disabled={tarifaId !== 0 || loadingTarifas}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-3 mt-3">
+    <>
+      <FicherosCrudPageLayout
+        toolbar={
+          <>
+            <FicherosCrudToolbarRow>
+              <SelectMenu
+                value={tarifaId != null ? String(tarifaId) : "0"}
+                onChange={(v) => setTarifaId(Number(v))}
+                options={[{ value: "0", label: "Todos los tarifarios" }, ...tarifas]}
+                ariaLabel="Aplicar a"
+                disabled={loadingTarifas}
+                buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto sm:flex-1 ${inputBase}`}
+                menuClassName="min-w-[220px]"
+              />
+              <SelectMenu
+                value={tarifaReferenciaId != null ? String(tarifaReferenciaId) : ""}
+                onChange={(v) => setTarifaReferenciaId(v ? Number(v) : null)}
+                options={[{ value: "", label: "Seleccione referencia" }, ...tarifas]}
+                ariaLabel="Tarifario de referencia"
+                disabled={tarifaId !== 0 || loadingTarifas}
+                buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto sm:flex-1 ${inputBase}`}
+                menuClassName="min-w-[220px]"
+              />
+              <FicherosCrudToolbarActions>
+                <FicherosCrudToolbarBackLink href="/ficheros/parametros/emergencia" />
+                {saving ? (
+                  <span className="px-2 text-sm text-(--color-text-secondary)">Guardando…</span>
+                ) : null}
+              </FicherosCrudToolbarActions>
+            </FicherosCrudToolbarRow>
+          </>
+        }
+      >
+        <div className="rounded border border-(--border-color-default) bg-(--color-surface) p-3 lg:min-h-0 lg:flex lg:flex-col">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-sm font-semibold text-(--color-text-primary)">Servicios precargados</h3>
+            <h3 className="text-sm font-semibold text-(--color-text-primary)">
+              Servicios precargados
+            </h3>
             <div className="flex gap-2">
               <PrimaryButton
                 onClick={() => setPickerOpen(true)}
                 disabled={tarifaReferenciaId == null || loadingTarifas}
-                title={tarifaReferenciaId == null ? "Selecciona un tarifario de referencia" : "Buscar y agregar servicios"}
+                title={
+                  tarifaReferenciaId == null
+                    ? "Selecciona un tarifario de referencia"
+                    : "Buscar y agregar servicios"
+                }
               >
                 Buscar servicio
               </PrimaryButton>
@@ -559,7 +609,11 @@ export default function ServiciosDefaultEmergenciaPage() {
               onSelect={(row) => {
                 void row;
               }}
-              emptyText={tarifaId == null ? "Seleccione un tarifario." : "No hay servicios por defecto. Use “Buscar servicio” para agregar."}
+              emptyText={
+                tarifaId == null
+                  ? "Seleccione un tarifario."
+                  : "No hay servicios por defecto. Use “Buscar servicio” para agregar."
+              }
             />
           </div>
 
@@ -574,11 +628,17 @@ export default function ServiciosDefaultEmergenciaPage() {
               }}
               renderMain={(x) => (
                 <div className="min-w-0 flex flex-col gap-0.5">
-                  <div className="text-sm font-semibold text-(--color-text-primary) tabular-nums truncate">{x.codigo}</div>
-                  <div className="text-xs text-(--color-text-secondary) truncate">{x.descripcion}</div>
+                  <div className="text-sm font-semibold text-(--color-text-primary) tabular-nums truncate">
+                    {x.codigo}
+                  </div>
+                  <div className="text-xs text-(--color-text-secondary) truncate">
+                    {x.descripcion}
+                  </div>
                   <div className="text-xs text-(--color-text-primary) tabular-nums">
                     {x.precioConIgv}
-                    {x.recargoActivo && x.recargoPct > 0 ? ` (Recargo ${x.recargoPct}%)` : ""}
+                    {x.recargoActivo && x.recargoPct > 0
+                      ? ` (Recargo ${x.recargoPct}%)`
+                      : ""}
                   </div>
                 </div>
               )}
@@ -589,7 +649,9 @@ export default function ServiciosDefaultEmergenciaPage() {
                   onClick={(e) => {
                     e.stopPropagation();
                     const norm = normalizeCodigoForDefault(x.codigo);
-                    setServiciosDefault((prev) => prev.filter((c) => normalizeCodigoForDefault(c) !== norm));
+                    setServiciosDefault((prev) =>
+                      prev.filter((c) => normalizeCodigoForDefault(c) !== norm),
+                    );
                     setDetalleByNorm((prev) => {
                       const next = new Map(prev);
                       next.delete(norm);
@@ -603,7 +665,11 @@ export default function ServiciosDefaultEmergenciaPage() {
                   <Trash2 className="h-3 w-3" />
                 </button>
               )}
-              emptyText={tarifaId == null ? "Seleccione un tarifario." : "No hay servicios por defecto. Use “Buscar servicio” para agregar."}
+              emptyText={
+                tarifaId == null
+                  ? "Seleccione un tarifario."
+                  : "No hay servicios por defecto. Use “Buscar servicio” para agregar."
+              }
             />
           </div>
 
@@ -612,13 +678,15 @@ export default function ServiciosDefaultEmergenciaPage() {
               onClick={() => {
                 setConfirmClearOpen(true);
               }}
-              disabled={tarifaId == null || serviciosDefault.length === 0 || saving}
+              disabled={
+                tarifaId == null || serviciosDefault.length === 0 || saving
+              }
             >
               Limpiar lista
             </SecondaryButton>
           </div>
         </div>
-      </div>
+      </FicherosCrudPageLayout>
 
       <ConfirmDialog
         open={confirmClearOpen}
@@ -637,7 +705,6 @@ export default function ServiciosDefaultEmergenciaPage() {
         }}
       />
 
-
       <ServicioPicker
         open={pickerOpen}
         variant={isLgUp ? "drawer" : "fullscreen"}
@@ -649,7 +716,6 @@ export default function ServiciosDefaultEmergenciaPage() {
         tarifaId={tarifaReferenciaId}
         tarifaDescripcion={tarifaReferenciaLabel}
       />
-    </div>
+    </>
   );
 }
-

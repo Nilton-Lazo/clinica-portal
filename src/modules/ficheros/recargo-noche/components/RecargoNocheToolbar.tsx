@@ -3,6 +3,12 @@ import type { StatusFilter } from "../hooks/useRecargoNoche";
 import type { TarifaOperativa } from "../../services/recargoNoche.service";
 import { SelectMenu } from "../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../shared/ui/buttons";
+import {
+  FicherosCrudToolbarActions,
+  FicherosCrudToolbarRow,
+  ficherosToolbarSelectMdClass,
+  ficherosToolbarSelectStatusClass,
+} from "../../components/FicherosCrudToolbar";
 
 type Opt = { value: string; label: string };
 
@@ -15,15 +21,7 @@ export default function RecargoNocheToolbar(props: {
   onStatusChange: (v: StatusFilter) => void;
   onNew: () => void;
 }) {
-  const {
-    tarifas,
-    tarifasLoading,
-    tarifaId,
-    onTarifaChange,
-    statusFilter,
-    onStatusChange,
-    onNew,
-  } = props;
+  const { tarifas, tarifasLoading, tarifaId, onTarifaChange, statusFilter, onStatusChange, onNew } = props;
 
   const tarifaOptions: Opt[] = React.useMemo(
     () => [
@@ -33,7 +31,7 @@ export default function RecargoNocheToolbar(props: {
         label: `${t.codigo} · ${t.descripcion_tarifa ?? ""}`.trim() || String(t.id),
       })),
     ],
-    [tarifas]
+    [tarifas],
   );
 
   const statusOptions: Opt[] = [
@@ -44,37 +42,29 @@ export default function RecargoNocheToolbar(props: {
   ];
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap items-end gap-2 lg:flex-nowrap">
-        <div className="basis-full min-w-0 lg:basis-auto lg:min-w-[200px]">
-          <label className="text-xs text-(--color-text-secondary)">Tarifario</label>
-          <SelectMenu
-            value={tarifaId != null ? String(tarifaId) : ""}
-            onChange={(v) => onTarifaChange(v ? Number(v) : null)}
-            options={tarifaOptions}
-            ariaLabel="Tarifario"
-            disabled={tarifasLoading}
-            buttonClassName="mt-1 w-full"
-            menuClassName="w-full min-w-0"
-          />
-        </div>
-
-        <div className="basis-full sm:basis-auto">
-          <label className="text-xs text-(--color-text-secondary)">Estado</label>
-          <SelectMenu
-            value={String(statusFilter)}
-            onChange={(v) => onStatusChange(v as StatusFilter)}
-            options={statusOptions}
-            ariaLabel="Filtrar por estado"
-            buttonClassName="mt-1 w-full sm:w-auto min-w-[140px]"
-            menuClassName="min-w-[140px]"
-          />
-        </div>
-
-        <PrimaryButton className="w-full sm:w-auto" onClick={onNew} disabled={!tarifaId}>
+    <FicherosCrudToolbarRow>
+      <SelectMenu
+        value={tarifaId != null ? String(tarifaId) : ""}
+        onChange={(v) => onTarifaChange(v ? Number(v) : null)}
+        options={tarifaOptions}
+        ariaLabel="Tarifario"
+        disabled={tarifasLoading}
+        buttonClassName={`${ficherosToolbarSelectMdClass} min-w-[220px] shrink-0 basis-full sm:basis-auto`}
+        menuClassName="min-w-[220px]"
+      />
+      <FicherosCrudToolbarActions>
+        <SelectMenu
+          value={String(statusFilter)}
+          onChange={(v) => onStatusChange(v as StatusFilter)}
+          options={statusOptions}
+          ariaLabel="Estado"
+          buttonClassName={ficherosToolbarSelectStatusClass}
+          menuClassName="min-w-[120px]"
+        />
+        <PrimaryButton className="w-full shrink-0 sm:w-auto" onClick={onNew} disabled={!tarifaId}>
           Nuevo
         </PrimaryButton>
-      </div>
-    </div>
+      </FicherosCrudToolbarActions>
+    </FicherosCrudToolbarRow>
   );
 }
