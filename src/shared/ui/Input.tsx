@@ -29,7 +29,7 @@ export default function Input({
     type: inputType,
     disabled,
     className: [
-      "w-full rounded-md border px-3 py-2 text-sm",
+      "w-full rounded border px-3 py-2 text-sm",
       "bg-(--color-surface)",
       "text-(--color-text-primary)",
       "border-(--color-border)",

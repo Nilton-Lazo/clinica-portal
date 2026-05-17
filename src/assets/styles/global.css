@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.25rem;
+  --radius-3xl: 0.25rem;
+  --radius-4xl: 0.25rem;
+}
+
 /* =========================
    Poppins – Normal
    ========================= */
@@ -244,6 +255,7 @@ body,
   --color-panel-options-bg: #E8F0FE;
   --color-app-bg: #F5F7FB;
   --border-color-default: #D9D9D9;
+  --radius-ui: 0.25rem;
 
   --toastify-color-light: var(--color-surface);
   --toastify-color-dark: #121212;
@@ -314,7 +326,7 @@ html, body {
 }
 
 .Toastify__toast {
-  border-radius: 0.4375rem;
+  border-radius: var(--radius-ui);
   font-size: 0.8125rem;
   min-height: 3rem;
   padding: 0.5rem 0.75rem;

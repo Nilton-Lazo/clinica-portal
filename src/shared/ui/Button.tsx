@@ -18,7 +18,7 @@ export default function Button({
   ...props
 }: Props) {
   const base =
-    "inline-flex w-full items-center justify-center rounded-md font-semibold transition-colors focus:outline-none";
+    "inline-flex w-full items-center justify-center rounded font-semibold transition-colors focus:outline-none";
 
   const variants: Record<ButtonVariant, string> = {
     primary:

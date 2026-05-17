@@ -258,7 +258,7 @@ export function SelectMenu(props: {
           }
         }}
         className={[
-          "h-10 rounded-md border border-(--border-color-default) bg-(--color-surface)",
+          "h-10 rounded border border-(--border-color-default) bg-(--color-surface)",
           "px-3 text-sm text-(--color-text-primary)",
           "outline-none focus:ring-0 focus:border-(--color-primary)",
           "flex items-center justify-between gap-2",
@@ -273,7 +273,7 @@ export function SelectMenu(props: {
 
       <div
         className={[
-          "z-200 flex max-w-none min-w-0 flex-col rounded-md border border-(--border-color-default) bg-(--color-surface) shadow-lg",
+          "z-200 flex max-w-none min-w-0 flex-col rounded border border-(--border-color-default) bg-(--color-surface) shadow-lg",
           "transition-opacity duration-150",
           open && menuBox ? "fixed opacity-100" : "pointer-events-none fixed opacity-0",
           menuPopoverClassName,

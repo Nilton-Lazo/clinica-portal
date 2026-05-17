@@ -11,7 +11,7 @@ export const ficherosToolbarSelectPerPageClass = `h-10 min-w-[80px] w-full sm:w-
 export const ficherosToolbarSelectMdClass = `h-10 min-w-[160px] w-full sm:w-auto ${ficherosToolbarSelectBase}`;
 
 export const ficherosToolbarBackLinkClass =
-  "inline-flex h-10 shrink-0 w-full items-center justify-center rounded-lg border border-(--border-color-default) bg-(--color-surface) px-4 text-sm font-medium text-(--color-text-primary) shadow-sm transition-colors hover:border-(--color-primary)/50 sm:w-auto";
+  "inline-flex h-10 shrink-0 w-full items-center justify-center rounded border border-(--border-color-default) bg-(--color-surface) px-4 text-sm font-medium text-(--color-text-primary) shadow-sm transition-colors hover:border-(--color-primary)/50 sm:w-auto";
 
 export function FicherosCrudToolbarRow(props: { children: React.ReactNode }) {
   return (
