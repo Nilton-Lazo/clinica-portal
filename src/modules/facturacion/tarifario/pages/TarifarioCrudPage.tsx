@@ -1556,9 +1556,9 @@ export function TarifarioCategoriasCrudView({
             value={tarifaMenuValue}
             onChange={onTarifaMenuChange}
             options={tarifaMenuOptions}
-            ariaLabel="Tarifa"
+            ariaLabel="Seleccione una tarifa para cargar el listado de categorías."
             disabled={tarifaMenuLoading}
-            buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${inputBase}`}
+            buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${tarifaReady ? `w-full sm:w-auto ${inputBase}` : `w-full sm:w-auto ${tarifaEmptyHighlightTriggerCls}`}`}
             menuClassName="min-w-[220px]"
           />
           <input
@@ -1852,9 +1852,9 @@ export function TarifarioSubcategoriasCrudView({
             value={tarifaMenuValue}
             onChange={onTarifaMenuChange}
             options={tarifaMenuOptions}
-            ariaLabel="Tarifa"
+            ariaLabel="Seleccione una tarifa para cargar el listado de subcategorías."
             disabled={tarifaMenuLoading}
-            buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${inputBase}`}
+            buttonClassName={`h-10 min-w-[220px] shrink-0 basis-full sm:basis-auto ${tarifaReady ? `w-full sm:w-auto ${inputBase}` : `w-full sm:w-auto ${tarifaEmptyHighlightTriggerCls}`}`}
             menuClassName="min-w-[220px]"
           />
           <input
@@ -2273,7 +2273,7 @@ export function TarifarioServiciosCrudView({
                 </span>
                 Filtrar por
               </span>
-              <div className="w-full min-w-[12rem] shrink-0 sm:w-auto sm:min-w-[11rem]">
+              <div className="w-full min-w-48 shrink-0 sm:w-auto sm:min-w-44">
                 <SelectMenu
                   value={vm.filterCategoriaId ? String(vm.filterCategoriaId) : ""}
                   onChange={(v) => vm.setFilterCategoriaId(v ? Number(v) : null)}
@@ -2290,7 +2290,7 @@ export function TarifarioServiciosCrudView({
                   menuClassName="w-full sm:min-w-[16rem]"
                 />
               </div>
-              <div className="w-full min-w-[12rem] shrink-0 sm:w-auto sm:min-w-[11rem]">
+              <div className="w-full min-w-48 shrink-0 sm:w-auto sm:min-w-44">
                 <SelectMenu
                   value={vm.filterSubcategoriaId ? String(vm.filterSubcategoriaId) : ""}
                   onChange={(v) => vm.setFilterSubcategoriaId(v ? Number(v) : null)}
@@ -2307,7 +2307,7 @@ export function TarifarioServiciosCrudView({
                   menuClassName="w-full sm:min-w-[16rem]"
                 />
               </div>
-              <div className="w-full min-w-[12rem] shrink-0 sm:w-auto sm:min-w-[11rem]">
+              <div className="w-full min-w-48 shrink-0 sm:w-auto sm:min-w-44">
                 <SelectMenu
                   value={vm.filterGrupoCodigo ?? ""}
                   onChange={(v) => vm.setFilterGrupoCodigo(v ? v : null)}
