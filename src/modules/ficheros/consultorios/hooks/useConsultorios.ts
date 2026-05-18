@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Consultorio, PaginatedResponse, RecordStatus } from "../../types/consultorios.types";
+import { useCrudListQuery } from "../../../../shared/crud/useCrudListQuery";
+import type { DataGridFetchParams } from "../../../../shared/datagrid";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { Consultorio, RecordStatus } from "../../types/consultorios.types";
 
 import {
   createConsultorio,
@@ -8,7 +10,6 @@ import {
   updateConsultorio,
 } from "../../services/consultorios.service";
 
-import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
@@ -16,11 +17,6 @@ export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
 
-function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
 
 function normalizeAbreviaturaInput(raw: string, prev: string): string {
   const upper = raw.toUpperCase().replace(/\s+/g, "");
@@ -48,22 +44,43 @@ function isAbreviaturaComplete(a: string): boolean {
 }
 
 export function useConsultorios() {
-  const [data, setData] = useState<PaginatedResponse<Consultorio>>({
-    data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  const list = useCrudListQuery<Consultorio>({
+    listFn: useCallback(
+      (params: DataGridFetchParams) =>
+        listConsultorios({
+          page: params.page,
+          per_page: params.per_page,
+          q: params.q,
+          status: params.status as RecordStatus | undefined,
+          sort: params.sort,
+          sort_dir: params.sort_dir,
+        }),
+      []
+    ),
+    errorMessage: "No se pudo cargar la lista de consultorios.",
+    initialSort: "abreviatura",
   });
 
-  const [loading, setLoading] = useState(false);
+  const {
+    data,
+    loading,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
+  } = list;
+
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
-
-  const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
-
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<Consultorio | null>(null);
@@ -194,52 +211,6 @@ export function useConsultorios() {
     setNotice(null);
   }, [mode, resetToNew, selected]);
 
-  const refresh = useCallback(
-    async (next?: { page?: number; perPage?: number }) => {
-      setLoading(true);
-      setNotice(null);
-
-      const targetPage = next?.page ?? page;
-      const targetPerPage = next?.perPage ?? perPage;
-
-      try {
-        const res = await listConsultorios({
-          page: targetPage,
-          per_page: targetPerPage,
-          q: qDebounced.trim() ? qDebounced.trim() : undefined,
-          status: statusFilter === "ALL" ? undefined : statusFilter,
-        });
-        setData(res);
-      } catch (e) {
-        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de consultorios.");
-        setNotice({ type: "error", text: msg });
-        toastService.showError(msg);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, perPage, qDebounced, statusFilter]
-  );
-
-  const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
-
-  useEffect(() => {
-    const prev = prevFiltersRef.current;
-    const next = { q: qDebounced, status: statusFilter, perPage };
-
-    const filtersChanged =
-      !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
-
-    prevFiltersRef.current = next;
-
-    if (filtersChanged && page !== 1) {
-      setPage(1);
-      return;
-    }
-
-    void refresh();
-  }, [page, perPage, qDebounced, statusFilter, refresh]);
-
   const onSave = useCallback(async () => {
     setNotice(null);
 
@@ -358,11 +329,14 @@ export function useConsultorios() {
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    setPerPage,
     q,
     setQ,
     statusFilter,
     setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
 
     mode,
     selected,

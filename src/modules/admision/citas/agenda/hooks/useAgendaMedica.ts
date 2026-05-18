@@ -1,4 +1,5 @@
 import * as React from "react";
+import { nextGridSort } from "../../../../../shared/datagrid/gridSortCycle";
 import type { SelectOption } from "../../../../../shared/ui/SelectMenu";
 import type {
   AgendaCita,
@@ -82,6 +83,11 @@ export function useAgendaMedica() {
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(25);
   const [estadoAtencionFilter, setEstadoAtencionFilter] = React.useState<"ALL" | CitaAtencionEstado>("ALL");
+  const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
+    sort: null,
+    sortDir: "asc",
+  });
+  const { sort, sortDir } = sortState;
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [hora, setHora] = React.useState("");
@@ -331,6 +337,8 @@ export function useAgendaMedica() {
       estado_atencion: estadoAtencionFilter === "ALL" ? undefined : estadoAtencionFilter,
       page,
       per_page: perPage,
+      sort: sort ?? undefined,
+      sort_dir: sortDir,
     })
       .then((res) => {
         setData(res.data);
@@ -340,13 +348,21 @@ export function useAgendaMedica() {
         toast.error(toUserFriendlyMessage(e, "No se pudieron cargar las citas del médico seleccionado."));
       })
       .finally(() => setLoading(false));
-  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, initLoading, toast]);
+  }, [selectedDateStr, especialidadId, medicoId, estadoAtencionFilter, page, perPage, sort, sortDir, reloadFlag, initLoading, toast]);
+
+  const toggleSort = React.useCallback((columnId: string) => {
+    setSortState((prev) => nextGridSort(prev, columnId, { column: "hora", direction: "asc" }));
+  }, []);
+
+  const reloadCitas = React.useCallback(() => {
+    setReloadFlag((f) => f + 1);
+  }, []);
 
   React.useEffect(() => {
     if (!initLoading) {
       setPage(1);
     }
-  }, [selectedDateStr, especialidadId, medicoId, perPage, estadoAtencionFilter, initLoading]);
+  }, [selectedDateStr, especialidadId, medicoId, perPage, estadoAtencionFilter, sort, sortDir, initLoading]);
 
   const resetForm = React.useCallback(() => {
     setHora("");
@@ -583,6 +599,10 @@ export function useAgendaMedica() {
     setPerPage,
     estadoAtencionFilter,
     setEstadoAtencionFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    reloadCitas,
     programacion,
     formOpen,
     openForm,

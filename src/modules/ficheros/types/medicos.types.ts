@@ -8,8 +8,9 @@ export type EspecialidadLookup = {
   id: number;
   codigo: string;
   descripcion: string;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
-
 export type Medico = {
   id: number;
 
@@ -59,4 +60,6 @@ export type MedicosQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };

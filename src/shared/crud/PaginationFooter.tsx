@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { PaginationMeta } from "../types/pagination";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
@@ -15,8 +16,10 @@ export function PaginationFooter(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  leadingActions?: ReactNode;
+  hidePagination?: boolean;
 }) {
-  const { variant, onPrev, onNext, onFirst, onLast } = props;
+  const { variant, onPrev, onNext, onFirst, onLast, leadingActions, hidePagination = false } = props;
   const meta = props.meta ?? defaultMeta;
 
   const page = meta.current_page;
@@ -38,8 +41,11 @@ export function PaginationFooter(props: {
       ].join(" ")}
     >
       {variant === "desktop" ? (
-        <div className="min-w-0">
-          Mostrando {start} – {end} de {meta.total}
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <span>
+            Mostrando {start} – {end} de {meta.total}
+          </span>
+          {leadingActions}
         </div>
       ) : (
         <div className="text-xs tabular-nums">
@@ -47,6 +53,7 @@ export function PaginationFooter(props: {
         </div>
       )}
 
+      {!hidePagination ? (
       <div className="flex items-center gap-1 sm:gap-2">
         {showFirstLast && onFirst != null ? (
           <button
@@ -102,6 +109,7 @@ export function PaginationFooter(props: {
           </button>
         ) : null}
       </div>
+      ) : null}
     </div>
   );
 }

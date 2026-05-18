@@ -9,6 +9,7 @@ type RequestOptions = {
   method: HttpMethod;
   path: string;
   body?: unknown;
+  signal?: AbortSignal;
 };
 
 type ErrorResponseShape = {
@@ -72,6 +73,25 @@ export class HttpClient {
     const ac = new AbortController();
     const timeoutId = setTimeout(() => ac.abort(), timeoutMs);
 
+    let externallyAborted = false;
+    const onExternalAbort = () => {
+      externallyAborted = true;
+      ac.abort();
+    };
+
+    if (opts.signal) {
+      if (opts.signal.aborted) {
+        clearTimeout(timeoutId);
+        throw {
+          kind: "network",
+          status: 0,
+          message: "Petición cancelada.",
+          aborted: true,
+        } as ApiError;
+      }
+      opts.signal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+
     let response: Response;
     try {
       response = await fetch(buildUrl(this.baseUrl, opts.path), {
@@ -84,7 +104,16 @@ export class HttpClient {
       });
     } catch (err) {
       clearTimeout(timeoutId);
+      opts.signal?.removeEventListener("abort", onExternalAbort);
       if (err instanceof Error && err.name === "AbortError") {
+        if (externallyAborted) {
+          throw {
+            kind: "network",
+            status: 0,
+            message: "Petición cancelada.",
+            aborted: true,
+          } as ApiError;
+        }
         throw {
           kind: "network",
           status: 0,
@@ -98,6 +127,7 @@ export class HttpClient {
       } as ApiError;
     } finally {
       clearTimeout(timeoutId);
+      opts.signal?.removeEventListener("abort", onExternalAbort);
     }
 
     const contentType = response.headers.get("content-type") ?? "";
@@ -153,23 +183,23 @@ export class HttpClient {
     } as ApiError;
   }
 
-  get<T>(path: string): Promise<T> {
-    return this.request<T>({ method: "GET", path });
+  get<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
+    return this.request<T>({ method: "GET", path, signal: options?.signal });
   }
 
-  post<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>({ method: "POST", path, body });
+  post<T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> {
+    return this.request<T>({ method: "POST", path, body, signal: options?.signal });
   }
 
-  put<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>({ method: "PUT", path, body });
+  put<T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> {
+    return this.request<T>({ method: "PUT", path, body, signal: options?.signal });
   }
 
-  patch<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>({ method: "PATCH", path, body });
+  patch<T>(path: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<T> {
+    return this.request<T>({ method: "PATCH", path, body, signal: options?.signal });
   }
 
-  delete<T>(path: string): Promise<T> {
-    return this.request<T>({ method: "DELETE", path });
+  delete<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
+    return this.request<T>({ method: "DELETE", path, signal: options?.signal });
   }
 }

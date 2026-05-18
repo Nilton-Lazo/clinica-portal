@@ -3,6 +3,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { FicherosCrudPageLayout } from "../components/FicherosCrudPageLayout";
 import { useConsultorios } from "../consultorios/hooks/useConsultorios";
+import type { StatusFilter } from "../consultorios/hooks/useConsultorios";
 import ConsultoriosToolbar from "../consultorios/components/ConsultoriosToolbar";
 import ConsultoriosTable from "../consultorios/components/ConsultoriosTable";
 import ConsultoriosMobileList from "../consultorios/components/ConsultoriosMobileList";
@@ -53,7 +54,7 @@ export default function ConsultoriosPage() {
           <ConsultoriosToolbar
             q={vm.q}
             onQChange={vm.setQ}
-            statusFilter={vm.statusFilter}
+            statusFilter={vm.statusFilter as StatusFilter}
             onStatusChange={vm.setStatusFilter}
             perPage={vm.perPage}
             onPerPageChange={(n) => vm.setPerPage(n)}
@@ -71,13 +72,16 @@ export default function ConsultoriosPage() {
                 loading={vm.loading}
                 selectedId={vm.selected?.id ?? null}
                 onSelect={vm.loadForEdit}
-                page={vm.page}
                 onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
                 onNext={() =>
                   vm.setPage((p) => Math.min(vm.data.meta.last_page, p + 1))
                 }
                 onFirst={() => vm.setPage(1)}
                 onLast={() => vm.setPage(vm.data.meta.last_page)}
+                onRefresh={() => void vm.refresh()}
+                sort={vm.sort}
+                sortDir={vm.sortDir}
+                onToggleSort={vm.toggleSort}
               />
 
               <ConsultoriosMobileList

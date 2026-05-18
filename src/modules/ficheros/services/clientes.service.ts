@@ -1,5 +1,6 @@
 import type { Cliente, ClienteTipo, ClientesQuery, PaginatedResponse, RecordStatus } from "../types/clientes.types";
 import { api } from "../../../shared/api";
+import { buildListQuery } from "../../../shared/datagrid";
 
 export type ClienteCreatePayload = {
   tipo: ClienteTipo;
@@ -74,17 +75,14 @@ function normalizeCliente(x: ClienteApi): Cliente {
 }
 
 function buildQuery(query: ClientesQuery): string {
-  const params = new URLSearchParams();
-  params.set("page", String(query.page ?? 1));
-  params.set("per_page", String(query.per_page ?? 50));
-
-  const q = (query.q ?? "").trim();
-  if (q) params.set("q", q);
-
-  if (query.status) params.set("status", query.status);
-
-  const s = params.toString();
-  return s ? `?${s}` : "";
+  return buildListQuery({
+    page: query.page ?? 1,
+    per_page: query.per_page ?? 50,
+    q: query.q,
+    status: query.status,
+    sort: query.sort,
+    sort_dir: query.sort_dir,
+  });
 }
 
 export async function getNextClienteCodigo(): Promise<{ codigo: string }> {

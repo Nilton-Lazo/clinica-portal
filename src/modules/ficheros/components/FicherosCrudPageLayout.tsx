@@ -14,7 +14,7 @@ export function FicherosCrudPageLayout(props: {
       <div className={ficherosCrudToolbarShellClass}>
         {props.toolbar}
       </div>
-      {props.children}
+      <div className="flex w-full flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden">{props.children}</div>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import * as React from "react";
 import { SecondaryButton } from "../../../../shared/ui/buttons";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
 import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
 import { listCuentasCita } from "../services/cuentaCita.service";
 import type { CuentaCitaListItem, PaginatedResponse } from "../types/cuentaCita.types";
@@ -110,55 +111,57 @@ export function CuentaCitaPicker(props: Props) {
   const onFirst = React.useCallback(() => setPage(1), []);
   const onLast = React.useCallback(() => setPage(data.meta.last_page), [data.meta.last_page]);
 
-  const columns: DataTableColumn<CuentaCitaListItem>[] = [
+  const columns: DataGridColumnDef<CuentaCitaListItem>[] = [
     {
-      key: "nro_cuenta",
+      id: "nro_cuenta",
       header: "N° cuenta",
-      headerClassName: "text-center w-32",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.nro_cuenta || "—",
+      align: "center",
+      size: 110,
+      cell: (x) => <span className="tabular-nums">{x.nro_cuenta || "—"}</span>,
     },
     {
-      key: "origen",
+      id: "origen",
       header: "Origen cuenta",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center text-xs text-(--color-text-secondary) tabular-nums",
-      render: (x) => x.origen_sigla || "—",
+      align: "center",
+      size: 100,
+      cell: (x) => <span className="text-xs text-(--color-text-secondary) tabular-nums">{x.origen_sigla || "—"}</span>,
     },
     {
-      key: "nr",
+      id: "nr",
       header: "N° Referencia",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => (x.nr ? x.nr : "—"),
+      align: "center",
+      size: 120,
+      cell: (x) => <span className="tabular-nums">{x.nr ? x.nr : "—"}</span>,
     },
     {
-      key: "hc",
+      id: "hc",
       header: "N° Historia",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => (x.hc ? x.hc : "—"),
+      align: "center",
+      size: 120,
+      cell: (x) => <span className="tabular-nums">{x.hc ? x.hc : "—"}</span>,
     },
     {
-      key: "apellidos_nombres",
+      id: "apellidos_nombres",
       header: "Apellidos y Nombres",
-      headerClassName: "text-left min-w-[200px]",
-      cellClassName: "px-3 py-2",
-      render: (x) => (x.apellidos_nombres?.trim() ? x.apellidos_nombres : "—"),
+      align: "left",
+      grow: true,
+      cell: (x) => (
+        <span className="whitespace-normal wrap-anywhere">{x.apellidos_nombres?.trim() ? x.apellidos_nombres : "—"}</span>
+      ),
     },
     {
-      key: "fecha",
+      id: "fecha",
       header: "Fecha",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => <span className="whitespace-nowrap">{formatDMY(x.fecha)}</span>,
+      align: "center",
+      size: 120,
+      cell: (x) => <span className="tabular-nums whitespace-nowrap">{formatDMY(x.fecha)}</span>,
     },
     {
-      key: "estado",
+      id: "estado",
       header: "Estado",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
+      align: "center",
+      size: 120,
+      cell: (x) => (
         <div className="flex justify-center">
           <AtencionEstadoBadge value={x.estado} />
         </div>
@@ -192,20 +195,25 @@ export function CuentaCitaPicker(props: Props) {
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain">
         <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <DataTable
-              rows={data.data}
-              columns={columns}
-              loading={loading}
-              selectedId={selectedNro}
-              getRowId={(x) => x.nro_cuenta}
-              onSelect={handleRowSelect}
-              emptyText="No hay cuentas para mostrar."
-            />
-          </div>
-          <div className="shrink-0">
-            <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-          </div>
+          <CrudListGrid
+            rows={data.data}
+            columns={columns}
+            loading={loading}
+            meta={data.meta}
+            selectedId={selectedNro}
+            getRowId={(x) => x.nro_cuenta}
+            onSelect={handleRowSelect}
+            emptyText="No hay cuentas para mostrar."
+            onPrev={onPrev}
+            onNext={onNext}
+            onFirst={onFirst}
+            onLast={onLast}
+            heightMode="hug"
+            exportFilename="cuentas-cita"
+            enableExport
+            enableColumnPicker
+            className="min-h-0 flex-1"
+          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden">

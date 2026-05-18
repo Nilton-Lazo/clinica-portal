@@ -1,5 +1,7 @@
+import { useCrudListQuery } from "../../../../../../shared/crud/useCrudListQuery";
+import type { DataGridFetchParams } from "../../../../../../shared/datagrid";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ParamOption, PaginatedResponse, RecordStatus, StatusFilter } from "../../../emergencia/types/paramOption.types";
+import type { ParamOption, RecordStatus, StatusFilter } from "../../../emergencia/types/paramOption.types";
 import {
   createAreaJefatura,
   deactivateAreaJefatura,
@@ -7,32 +9,50 @@ import {
   listAreaJefatura,
   updateAreaJefatura,
 } from "../../services/areaJefatura.service";
-import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 import { prepareFormText } from "../../../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type { StatusFilter };
 
-function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
 
 export function useAreaJefatura() {
   const toast = useToast();
-  const [data, setData] = useState<PaginatedResponse<ParamOption>>({
-    data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  const list = useCrudListQuery<ParamOption>({
+    listFn: useCallback(
+      (params: DataGridFetchParams) =>
+        listAreaJefatura({
+          page: params.page,
+          per_page: params.per_page,
+          q: params.q,
+          status: params.status as RecordStatus | undefined,
+          sort: params.sort,
+          sort_dir: params.sort_dir,
+        }),
+      []
+    ),
+    errorMessage: "No se pudo cargar la lista de áreas de jefatura.",
+    initialSort: "codigo",
   });
-  const [loading, setLoading] = useState(false);
+
+  const {
+    data,
+    loading,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
+  } = list;
+
   const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
-  const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<ParamOption | null>(null);
   const [codigo, setCodigo] = useState("");
@@ -40,7 +60,6 @@ export function useAreaJefatura() {
   const [estado, setEstado] = useState<RecordStatus>("ACTIVO");
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
   const originalRef = useRef<{ codigo: string; descripcion: string; estado: RecordStatus } | null>(null);
-  const lastToastedErrorRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (mode !== "new" || codigo.trim()) return;
@@ -96,40 +115,6 @@ export function useAreaJefatura() {
     setEstado(o.estado);
     toast.success("Cambios cancelados.");
   }, [mode, resetToNew, selected, toast]);
-
-  const refresh = useCallback(async (next?: { page?: number; perPage?: number }) => {
-    setLoading(true);
-    const targetPage = next?.page ?? page;
-    const targetPerPage = next?.perPage ?? perPage;
-    try {
-      const res = await listAreaJefatura({
-        page: targetPage,
-        per_page: targetPerPage,
-        q: qDebounced.trim() || undefined,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-      });
-      lastToastedErrorRef.current = null;
-      setData(res);
-    } catch (e) {
-      const msg = getApiErrorMessage(e, "No se pudo cargar la lista de áreas y jefaturas.");
-      if (lastToastedErrorRef.current !== msg) {
-        lastToastedErrorRef.current = msg;
-        toast.error(msg);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [page, perPage, qDebounced, statusFilter, toast]);
-
-  const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
-  useEffect(() => {
-    const prev = prevFiltersRef.current;
-    const next = { q: qDebounced, status: statusFilter, perPage };
-    const changed = !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
-    prevFiltersRef.current = next;
-    if (changed && page !== 1) { setPage(1); return; }
-    void refresh();
-  }, [page, perPage, qDebounced, statusFilter, refresh]);
 
   const onSave = useCallback(async () => {
     const c = codigo.trim();
@@ -189,12 +174,15 @@ export function useAreaJefatura() {
     refresh,
     page,
     setPage,
-    perPage: perPage,
-    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    perPage,
+    setPerPage,
     q,
     setQ,
     statusFilter,
     setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
     mode,
     selected,
     codigo,

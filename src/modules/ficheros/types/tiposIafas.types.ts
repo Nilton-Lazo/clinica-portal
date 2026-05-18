@@ -17,4 +17,6 @@ export type TiposIafasQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };

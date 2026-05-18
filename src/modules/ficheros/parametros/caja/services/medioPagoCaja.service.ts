@@ -1,4 +1,5 @@
 import { api } from "../../../../../shared/api";
+import { buildListQuery } from "../../../../../shared/datagrid";
 import type { RecordStatus, PaginationMeta } from "../../emergencia/types/paramOption.types";
 
 export type FormaPagoCajaOption = {
@@ -27,6 +28,8 @@ export type MedioPagoCajaQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type MedioPagoCajaCreatePayload = {
@@ -47,14 +50,14 @@ const BASE = "/ficheros/parametros/caja/medio-pago";
 const FORMAS_BASE = "/ficheros/parametros/caja/forma-pago";
 
 function buildQuery(query: MedioPagoCajaQuery): string {
-  const params = new URLSearchParams();
-  params.set("page", String(query.page ?? 1));
-  params.set("per_page", String(query.per_page ?? 50));
-  const q = (query.q ?? "").trim();
-  if (q) params.set("q", q);
-  if (query.status) params.set("status", query.status);
-  const s = params.toString();
-  return s ? `?${s}` : "";
+  return buildListQuery({
+    page: query.page ?? 1,
+    per_page: query.per_page ?? 50,
+    q: query.q,
+    status: query.status,
+    sort: query.sort,
+    sort_dir: query.sort_dir,
+  });
 }
 
 export async function getNextMedioPagoCajaCodigo(): Promise<{ codigo: string }> {

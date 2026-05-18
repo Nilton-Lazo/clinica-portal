@@ -1,6 +1,10 @@
-import { StatusBadge } from "../../../components/StatusBadge";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../../shared/datagrid";
+import {
+  ficherosCodigoColumn,
+  ficherosDescripcionColumn,
+  ficherosEstadoColumn,
+} from "../../../utils/ficherosGridColumns";
 import type { MedioPagoCajaItem, MedioPagoCajaListResponse } from "../services/medioPagoCaja.service";
 
 export default function MedioPagoTable(props: {
@@ -12,54 +16,59 @@ export default function MedioPagoTable(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
-  const columns: DataTableColumn<MedioPagoCajaItem>[] = [
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
+
+  const columns: DataGridColumnDef<MedioPagoCajaItem>[] = [
+    ficherosCodigoColumn<MedioPagoCajaItem>(),
     {
-      key: "codigo",
-      header: "Código",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.codigo,
-    },
-    {
-      key: "formas",
+      id: "formas",
       header: "Forma de pago",
-      headerClassName: "text-left w-[300px]",
-      cellClassName: "px-3 py-2",
-      render: (x) => x.forma_pago_labels.join(", "),
+      sortable: true,
+      align: "left",
+      size: 300,
+      exportValue: (x) => x.forma_pago_labels.join(", "),
+      cell: (x) => x.forma_pago_labels.join(", "),
     },
-    {
-      key: "descripcion",
-      header: "Descripción",
-      headerClassName: "text-left w-[300px]",
-      cellClassName: "px-3 py-2",
-      render: (x) => x.descripcion,
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    ficherosDescripcionColumn<MedioPagoCajaItem>(),
+    ficherosEstadoColumn<MedioPagoCajaItem>(),
   ];
 
   return (
-    <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-      />
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="medios-pago-caja"
+    />
   );
 }

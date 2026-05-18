@@ -21,6 +21,8 @@ export type PresupuestoListaQuery = {
   vigencia_desde?: string;
   vigencia_hasta?: string;
   estado?: PresupuestoDocumentoEstado;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type PresupuestoListaResponse = PaginatedResponse<PresupuestoListItem>;

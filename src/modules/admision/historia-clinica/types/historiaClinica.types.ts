@@ -92,6 +92,8 @@ export type PacientesQuery = {
   status?: RecordStatus;
   filiacion_from?: string;
   filiacion_to?: string;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type SelectOption = { value: string; label: string };

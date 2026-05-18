@@ -1,7 +1,7 @@
 import type { Medico, PaginatedResponse } from "../../types/medicos.types";
-import { StatusBadge } from "../../components/StatusBadge";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
+import { ficherosEstadoColumn, ficherosMainColumn } from "../../utils/ficherosGridColumns";
 
 function fullName(x: Medico): string {
   const ap = (x.apellido_paterno ?? "").trim();
@@ -15,28 +15,45 @@ export default function MedicosTable(props: {
   loading: boolean;
   selectedId: number | null;
   onSelect: (x: Medico) => void;
-  page: number;
   onPrev: () => void;
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns: DataTableColumn<Medico>[] = [
+  const columns: DataGridColumnDef<Medico>[] = [
     {
-      key: "cmp",
+      id: "cmp",
       header: "CMP",
-      headerClassName: "text-center w-25",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.cmp ?? "—",
+      sortable: true,
+      align: "center",
+      size: 100,
+      exportValue: (x) => x.cmp ?? "",
+      cell: (x) => x.cmp ?? "—",
     },
-    {
-      key: "nombre",
+    ficherosMainColumn<Medico>({
+      id: "nombre",
       header: "Apellidos y nombres",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2",
-      render: (x) => (
+      exportValue: fullName,
+      cell: (x) => (
         <div className="min-w-0">
           <div className="truncate">{fullName(x)}</div>
           {x.tipo_profesional_clinica === "EXTERNO" ? (
@@ -44,32 +61,28 @@ export default function MedicosTable(props: {
           ) : null}
         </div>
       ),
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    }),
+    ficherosEstadoColumn<Medico>(),
   ];
 
   return (
-    <div className="hidden h-full min-h-0 flex-col lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-      />
-
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="medicos"
+    />
   );
 }

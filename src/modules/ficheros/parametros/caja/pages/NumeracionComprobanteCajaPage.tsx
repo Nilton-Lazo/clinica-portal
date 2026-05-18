@@ -4,6 +4,7 @@ import { CrudSplitLayout } from "../../../components/CrudSplitLayout";
 import { FicherosCrudPageLayout } from "../../../components/FicherosCrudPageLayout";
 import ParamOptionToolbar from "../../emergencia/components/ParamOptionToolbar";
 import { useNumeracionComprobanteCaja } from "../numeracion-comprobante/hooks/useNumeracionComprobanteCaja";
+import type { StatusFilter } from "../../emergencia/types/paramOption.types";
 import NumeracionComprobanteTable from "../components/NumeracionComprobanteTable";
 import NumeracionComprobanteMobileList from "../components/NumeracionComprobanteMobileList";
 import NumeracionComprobanteFormCard from "../components/NumeracionComprobanteFormCard";
@@ -53,7 +54,7 @@ export default function NumeracionComprobanteCajaPage() {
           <ParamOptionToolbar
             q={vm.q}
             onQChange={vm.setQ}
-            statusFilter={vm.statusFilter}
+            statusFilter={vm.statusFilter as StatusFilter}
             onStatusChange={vm.setStatusFilter}
             perPage={vm.perPage}
             onPerPageChange={(n) => vm.setPerPage(n)}
@@ -78,6 +79,10 @@ export default function NumeracionComprobanteCajaPage() {
                 }
                 onFirst={() => vm.setPage(1)}
                 onLast={() => vm.setPage(vm.data.meta.last_page)}
+                onRefresh={() => void vm.refresh()}
+                sort={vm.sort}
+                sortDir={vm.sortDir}
+                onToggleSort={vm.toggleSort}
               />
               <NumeracionComprobanteMobileList
                 data={vm.data}

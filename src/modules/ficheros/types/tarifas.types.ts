@@ -7,8 +7,9 @@ export type TipoIafaLookup = {
   id: number;
   codigo: string;
   descripcion: string;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
-
 export type IafaLookup = {
   id: number;
   codigo: string;
@@ -65,4 +66,6 @@ export type TarifasQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };

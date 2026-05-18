@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
+import { SelectAllCheckbox } from "../../../../../shared/crud/SelectAllCheckbox";
+import { GridCellText } from "../../../../../shared/datagrid";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
@@ -209,6 +211,18 @@ export default function BuscarServiciosPage() {
     });
   }, []);
 
+  const selectAllOnPage = React.useCallback(() => {
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
+      data.forEach((r) => next.set(r.id, r));
+      return next;
+    });
+  }, [data]);
+
+  const clearSelection = React.useCallback(() => {
+    setSelectedItems(new Map());
+  }, []);
+
   const handleRowSelect = React.useCallback(
     (row: TarifaServicioBusqueda) => {
       if (multiSelect) toggleSelect(row);
@@ -228,12 +242,11 @@ export default function BuscarServiciosPage() {
       {
         key: "descripcion",
         header: "Descripción de servicio",
+        grow: true,
         headerClassName: "text-left align-middle",
-        cellClassName: "px-3 py-2 max-w-[280px] align-middle",
+        cellClassName: "px-3 py-2 align-middle",
         render: (x) => (
-          <span className="block wrap-break-word whitespace-normal text-left leading-snug">
-            {x.descripcion ?? "—"}
-          </span>
+          <GridCellText value={x.descripcion ?? "—"} title={x.descripcion ?? undefined} />
         ),
       },
       {
@@ -302,22 +315,30 @@ export default function BuscarServiciosPage() {
     if (multiSelect) {
       base.unshift({
         key: "check",
-        header: "",
-        headerClassName: "w-12 text-center",
-        cellClassName: "px-2 py-2 text-center",
+        header: (
+          <SelectAllCheckbox
+            rows={data}
+            selectedIds={selectedItems}
+            onSelectAll={selectAllOnPage}
+            onClear={clearSelection}
+          />
+        ),
+        headerClassName: "w-11 text-center align-middle",
+        cellClassName: "px-0 text-center align-middle",
         render: (x) => (
           <input
             type="checkbox"
             checked={selectedItems.has(x.id)}
             onChange={() => toggleSelect(x)}
-            className="h-4 w-4 rounded border border-(--border-color-default)"
+            className="h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
             onClick={(e) => e.stopPropagation()}
+            aria-label={`Seleccionar ${x.codigo}`}
           />
         ),
       });
     }
     return base;
-  }, [multiSelect, selectedItems, toggleSelect, igvPct]);
+  }, [multiSelect, selectedItems, toggleSelect, igvPct, data, selectAllOnPage, clearSelection]);
 
   const rowsWithCheck = React.useMemo(
     () => data.map((r) => ({ ...r, _checked: selectedItems.has(r.id) })),
@@ -405,28 +426,26 @@ export default function BuscarServiciosPage() {
       </div>
 
       {isLgUp ? (
-        <>
-          <DataTable
-            rows={rowsWithCheck}
-            columns={columns}
-            loading={loading}
-            selectedId={null}
-            getRowId={(r) => r.id}
-            onSelect={handleRowSelect}
-            onDoubleClick={handleDoubleClick}
-            emptyText="No hay servicios activos."
-          />
-          {meta && (
-            <PaginationFooter
-              meta={meta}
-              variant="desktop"
-              onPrev={() => setPage((p) => Math.max(1, p - 1))}
-              onNext={() => setPage((p) => Math.min(meta.last_page, p + 1))}
-              onFirst={() => setPage(1)}
-              onLast={() => setPage(meta.last_page)}
-            />
-          )}
-        </>
+        <DataTable
+          rows={rowsWithCheck}
+          columns={columns}
+          loading={loading}
+          selectedId={null}
+          getRowId={(r) => r.id}
+          onSelect={handleRowSelect}
+          onDoubleClick={handleDoubleClick}
+          emptyText="No hay servicios activos."
+          heightMode="hug"
+          meta={meta ?? undefined}
+          paginationVariant="desktop"
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(meta?.last_page ?? 1, p + 1))}
+          onFirst={() => setPage(1)}
+          onLast={() => setPage(meta?.last_page ?? 1)}
+          exportFilename="buscar-servicios"
+          enableColumnPicker
+          enableExport
+        />
       ) : (
         <>
           <MobileEntityList

@@ -1,6 +1,8 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
+import { SelectAllCheckbox } from "../../../../../shared/crud/SelectAllCheckbox";
+import { GridCellText } from "../../../../../shared/datagrid";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
@@ -64,37 +66,6 @@ const PER_PAGE_OPTIONS: SelectOption[] = [
 
 function clampPerPage(n: number): number {
   return n <= 25 ? 25 : n <= 50 ? 50 : 100;
-}
-
-function SelectAllCheckbox({
-  data,
-  selectedItems,
-  onSelectAll,
-  onClear,
-}: {
-  data: TarifaServicioBusqueda[];
-  selectedItems: Map<number, TarifaServicioBusqueda>;
-  onSelectAll: () => void;
-  onClear: () => void;
-}) {
-  const ref = React.useRef<HTMLInputElement>(null);
-  const allSelected = data.length > 0 && data.every((r) => selectedItems.has(r.id));
-  const someSelected = data.length > 0 && data.some((r) => selectedItems.has(r.id));
-  const indeterminate = someSelected && !allSelected;
-  React.useEffect(() => {
-    if (ref.current) ref.current.indeterminate = indeterminate;
-  }, [indeterminate]);
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      checked={allSelected}
-      onChange={() => (allSelected ? onClear() : onSelectAll())}
-      className="h-4 w-4 rounded border border-(--border-color-default)"
-      onClick={(e) => e.stopPropagation()}
-      aria-label="Seleccionar todos en esta página"
-    />
-  );
 }
 
 function useIsLgUp(): boolean {
@@ -250,28 +221,24 @@ export function ServicioPicker(props: ServicioPickerProps) {
       {
         key: "check",
         header: (
-          <div className="flex min-h-9 items-center justify-center">
-            <SelectAllCheckbox
-              data={data}
-              selectedItems={selectedItems}
-              onSelectAll={selectAllOnPage}
-              onClear={clearSelection}
-            />
-          </div>
+          <SelectAllCheckbox
+            rows={data}
+            selectedIds={selectedItems}
+            onSelectAll={selectAllOnPage}
+            onClear={clearSelection}
+          />
         ),
-        headerClassName: "w-12 align-middle",
-        cellClassName: "px-2 py-2 align-middle",
+        headerClassName: "w-11 text-center align-middle",
+        cellClassName: "px-0 text-center align-middle",
         render: (x) => (
-          <div className="flex min-h-10 items-center justify-center">
-            <input
-              type="checkbox"
-              checked={selectedItems.has(x.id)}
-              onChange={() => toggleSelect(x)}
-              className="h-4 w-4 rounded border border-(--border-color-default)"
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Seleccionar ${x.codigo}`}
-            />
-          </div>
+          <input
+            type="checkbox"
+            checked={selectedItems.has(x.id)}
+            onChange={() => toggleSelect(x)}
+            className="h-4 w-4 shrink-0 rounded border border-(--border-color-default)"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Seleccionar ${x.codigo}`}
+          />
         ),
       },
       {
@@ -284,12 +251,11 @@ export function ServicioPicker(props: ServicioPickerProps) {
       {
         key: "descripcion",
         header: "Descripción",
+        grow: true,
         headerClassName: "text-left align-middle",
-        cellClassName: "px-3 py-2 max-w-[260px] align-middle",
+        cellClassName: "px-3 py-2 align-middle",
         render: (x) => (
-          <span className="block wrap-break-word whitespace-normal text-left leading-snug text-sm">
-            {x.descripcion ?? "—"}
-          </span>
+          <GridCellText value={x.descripcion ?? "—"} title={x.descripcion ?? undefined} />
         ),
       },
       {
@@ -400,29 +366,26 @@ export function ServicioPicker(props: ServicioPickerProps) {
             </p>
           </div>
         ) : isLgUp ? (
-          <>
-            <div className="flex-1 overflow-auto">
-              <DataTable
-                rows={rowsWithCheck}
-                columns={columns}
-                loading={loading}
-                selectedId={null}
-                getRowId={(r) => r.id}
-                onSelect={handleRowSelect}
-                emptyText="No hay servicios activos para esta tarifa."
-              />
-            </div>
-            {meta && meta.last_page > 0 && (
-              <PaginationFooter
-                meta={meta}
-                variant="desktop"
-                onPrev={() => setPage((p) => Math.max(1, p - 1))}
-                onNext={() => setPage((p) => Math.min(meta.last_page, p + 1))}
-                onFirst={() => setPage(1)}
-                onLast={() => setPage(meta.last_page)}
-              />
-            )}
-          </>
+          <DataTable
+            rows={rowsWithCheck}
+            columns={columns}
+            loading={loading}
+            selectedId={null}
+            getRowId={(r) => r.id}
+            onSelect={handleRowSelect}
+            emptyText="No hay servicios activos para esta tarifa."
+            heightMode="fill"
+            shellClassName="min-h-0 flex-1"
+            meta={meta ?? undefined}
+            paginationVariant="desktop"
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(meta?.last_page ?? 1, p + 1))}
+            onFirst={() => setPage(1)}
+            onLast={() => setPage(meta?.last_page ?? 1)}
+            exportFilename="servicios-tarifa"
+            enableColumnPicker
+            enableExport
+          />
         ) : (
           <>
             <div className="flex-1 overflow-auto">

@@ -8,8 +8,9 @@ export type TarifaLookup = {
   codigo: string;
   descripcion_tarifa: string;
   iafa_id: number;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
-
 export type ContratanteLookup = {
   id: number;
   codigo: string;
@@ -44,4 +45,6 @@ export type TiposClientesQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };

@@ -2,6 +2,7 @@ import * as React from "react";
 import { SecondaryButton } from "../../../../../shared/ui/buttons";
 import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
+import { GridCellText } from "../../../../../shared/datagrid";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
 import type { PaqueteLookup } from "../../../../ficheros/types/paqueteServicios.types";
 import { listPaquetesByTarifa } from "../../../../ficheros/services/paqueteServicios.service";
@@ -117,10 +118,11 @@ export default function PaquetePicker(props: Props) {
       {
         key: "descripcion",
         header: "Descripción",
-        headerClassName: "text-left min-w-0 align-middle",
-        cellClassName: "px-3 py-2 max-w-[280px] align-middle",
+        grow: true,
+        headerClassName: "text-left align-middle",
+        cellClassName: "px-3 py-2 align-middle",
         render: (x) => (
-          <span className="block wrap-break-word whitespace-normal text-left leading-snug">{x.descripcion || "—"}</span>
+          <GridCellText value={x.descripcion || "—"} title={x.descripcion ?? undefined} />
         ),
       },
       {
@@ -198,6 +200,9 @@ export default function PaquetePicker(props: Props) {
             getRowId={(x) => String(x.id)}
             onSelect={handleRowSelect}
             emptyText={emptyText}
+            exportFilename="paquetes-tarifa"
+            enableColumnPicker
+            enableExport
           />
         ) : (
           <MobileEntityList

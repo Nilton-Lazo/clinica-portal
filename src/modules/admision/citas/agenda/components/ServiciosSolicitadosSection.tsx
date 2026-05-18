@@ -571,7 +571,8 @@ export function ServiciosSolicitadosSection({
     },
     {
       key: "precio_con_igv",
-      header: <span className="whitespace-nowrap">Precio con IGV</span>,
+      header: "Precio con IGV",
+      columnLabel: "Precio con IGV",
       headerClassName: "text-xs py-1.5 text-center w-28 min-w-[6rem] align-middle",
       cellClassName: "text-xs px-2 py-1.5 text-center whitespace-nowrap align-middle",
       render: (x) =>
@@ -653,6 +654,7 @@ export function ServiciosSolicitadosSection({
           {
             key: "actions",
             header: "",
+            enableHiding: false,
             headerClassName: "text-xs py-1.5 w-12 text-center align-middle",
             cellClassName: "text-xs px-1.5 py-1.5 text-center align-middle",
             render: (x: AtencionServicioLineaDisplay & { _idx: number }) => (
@@ -660,9 +662,9 @@ export function ServiciosSolicitadosSection({
                 <DangerButton
                   type="button"
                   onClick={() => handleRemoveLinea(x._idx)}
-                  className="h-6! min-h-6! min-w-6! w-6! p-0! flex items-center justify-center shrink-0 rounded"
+                  className="h-7! min-h-7! min-w-7! w-7! p-0! flex items-center justify-center shrink-0"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </DangerButton>
               </div>
             ),
@@ -1028,6 +1030,10 @@ export function ServiciosSolicitadosSection({
               getRowId={(x) => `f-${x._idx}`}
               onSelect={readOnly ? () => {} : (x) => setSelectedLineaIdx(x._idx)}
               emptyText={emptyFinalServiciosText}
+              exportFilename="servicios-solicitados"
+              enableColumnPicker
+              enableExport
+              enableClientSort={false}
             />
           </div>
           <div className="lg:hidden">
@@ -1060,9 +1066,9 @@ export function ServiciosSolicitadosSection({
                               <DangerButton
                                 type="button"
                                 onClick={() => handleRemoveLinea(item._idx)}
-                                className="h-9 min-w-9 px-2 flex items-center justify-center shrink-0"
+                                className="h-8 min-w-8 px-1.5 flex items-center justify-center shrink-0"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </DangerButton>
                             </div>
                           )}

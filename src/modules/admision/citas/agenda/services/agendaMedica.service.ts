@@ -1,4 +1,5 @@
 import { api } from "../../../../../shared/api";
+import { buildListQuery } from "../../../../../shared/datagrid";
 import type {
   AgendaCita,
   AgendaCitaPayload,
@@ -35,6 +36,21 @@ function qs(params: Record<string, string | number | null | undefined>): string 
   return s ? `?${s}` : "";
 }
 
+function listQuery(query: AgendaCitasQuery): string {
+  const sp = new URLSearchParams(buildListQuery({
+    page: query.page ?? 1,
+    per_page: query.per_page ?? 25,
+    sort: query.sort,
+    sort_dir: query.sort_dir,
+  }).replace(/^\?/, ""));
+  if (query.fecha) sp.set("fecha", String(query.fecha));
+  if (query.especialidad_id != null) sp.set("especialidad_id", String(query.especialidad_id));
+  if (query.medico_id != null) sp.set("medico_id", String(query.medico_id));
+  if (query.estado_atencion) sp.set("estado_atencion", String(query.estado_atencion));
+  const s = sp.toString();
+  return s ? `?${s}` : "";
+}
+
 export async function getAgendaOpciones(payload: {
   fecha: string;
   especialidad_id?: number | null;
@@ -61,7 +77,7 @@ export async function listAgendaCitas(
   query: AgendaCitasQuery
 ): Promise<{ data: AgendaCitasPaginated; programacion: AgendaSlotsResponse["programacion"] | null }> {
   const res = await api.get<unknown>(
-    `/admision/citas/agenda-medica${qs(query)}`
+    `/admision/citas/agenda-medica${listQuery(query)}`
   );
   const o: ApiDataShape = isObject(res) ? (res as ApiDataShape) : {};
   const rows = Array.isArray(o.data) ? o.data : [];

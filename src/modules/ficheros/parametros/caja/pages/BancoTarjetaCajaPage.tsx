@@ -4,6 +4,7 @@ import { CrudSplitLayout } from "../../../components/CrudSplitLayout";
 import { FicherosCrudPageLayout } from "../../../components/FicherosCrudPageLayout";
 import ParamOptionToolbar from "../../emergencia/components/ParamOptionToolbar";
 import { useBancoTarjetaCaja } from "../banco-tarjeta/hooks/useBancoTarjetaCaja";
+import type { StatusFilter } from "../../emergencia/types/paramOption.types";
 import BancoTarjetaTable from "../components/BancoTarjetaTable";
 import BancoTarjetaMobileList from "../components/BancoTarjetaMobileList";
 import BancoTarjetaFormCard from "../components/BancoTarjetaFormCard";
@@ -53,7 +54,7 @@ export default function BancoTarjetaCajaPage() {
           <ParamOptionToolbar
             q={vm.q}
             onQChange={vm.setQ}
-            statusFilter={vm.statusFilter}
+            statusFilter={vm.statusFilter as StatusFilter}
             onStatusChange={vm.setStatusFilter}
             perPage={vm.perPage}
             onPerPageChange={(n) => vm.setPerPage(n)}
@@ -78,6 +79,10 @@ export default function BancoTarjetaCajaPage() {
                 }
                 onFirst={() => vm.setPage(1)}
                 onLast={() => vm.setPage(vm.data.meta.last_page)}
+                onRefresh={() => void vm.refresh()}
+                sort={vm.sort}
+                sortDir={vm.sortDir}
+                onToggleSort={vm.toggleSort}
               />
               <BancoTarjetaMobileList
                 data={vm.data}

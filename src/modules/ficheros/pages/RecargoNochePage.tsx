@@ -3,6 +3,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CrudSplitLayout } from "../components/CrudSplitLayout";
 import { FicherosCrudPageLayout } from "../components/FicherosCrudPageLayout";
 import { useRecargoNoche } from "../recargo-noche/hooks/useRecargoNoche";
+import type { StatusFilter } from "../recargo-noche/hooks/useRecargoNoche";
 import RecargoNocheToolbar from "../recargo-noche/components/RecargoNocheToolbar";
 import RecargoNocheTable from "../recargo-noche/components/RecargoNocheTable";
 import RecargoNocheMobileList from "../recargo-noche/components/RecargoNocheMobileList";
@@ -69,7 +70,7 @@ export default function RecargoNochePage() {
             tarifasLoading={vm.tarifasLoading}
             tarifaId={vm.tarifaId}
             onTarifaChange={vm.setTarifaId}
-            statusFilter={vm.statusFilter}
+            statusFilter={vm.statusFilter as StatusFilter}
             onStatusChange={vm.setStatusFilter}
             onNew={handleNew}
           />

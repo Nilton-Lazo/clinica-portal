@@ -81,11 +81,17 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object";
 }
 
-export async function fetchReporteIngresosBootstrap(params?: { aperturasPage?: number }): Promise<ReporteIngresosBootstrap> {
+export async function fetchReporteIngresosBootstrap(params?: {
+  aperturasPage?: number;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
+}): Promise<ReporteIngresosBootstrap> {
   const q = new URLSearchParams();
   if (params?.aperturasPage != null && params.aperturasPage > 0) {
     q.set("aperturas_page", String(params.aperturasPage));
   }
+  if (params?.sort) q.set("sort", params.sort);
+  if (params?.sort_dir) q.set("sort_dir", params.sort_dir);
   const suffix = q.toString() ? `?${q.toString()}` : "";
   return api.get<ReporteIngresosBootstrap>(`/caja/reporte-ingresos/bootstrap${suffix}`);
 }
@@ -95,12 +101,16 @@ export async function fetchReporteIngresosMovimientos(params: {
   numeracionId?: string;
   page?: number;
   perPage?: number;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 }): Promise<ReporteIngresosMovimientosPayload> {
   const q = new URLSearchParams();
   q.set("caja_apertura_id", String(params.cajaAperturaId));
   if (params.numeracionId) q.set("numeracion_id", params.numeracionId);
   if (params.page != null && params.page > 0) q.set("page", String(params.page));
   if (params.perPage != null && params.perPage > 0) q.set("per_page", String(params.perPage));
+  if (params.sort) q.set("sort", params.sort);
+  if (params.sort_dir) q.set("sort_dir", params.sort_dir);
   const res = await api.get<unknown>(`/caja/reporte-ingresos/movimientos?${q.toString()}`);
   if (isObject(res) && "data" in res) {
     return (res as { data: ReporteIngresosMovimientosPayload }).data;

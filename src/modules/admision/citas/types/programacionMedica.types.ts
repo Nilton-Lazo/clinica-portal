@@ -68,6 +68,8 @@ export type ProgramacionMedicaListFilters = {
   q?: string;
   per_page?: number;
   page?: number;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type CuposResponse = {

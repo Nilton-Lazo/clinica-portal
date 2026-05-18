@@ -1,8 +1,16 @@
 ﻿import * as React from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
+import { nextGridSort } from "../../../../shared/datagrid/gridSortCycle";
+import {
+  ficherosCodigoColumn,
+  ficherosDescripcionColumn,
+  ficherosEstadoColumn,
+  ficherosCodigoDescripcionEstadoColumns,
+} from "../../../ficheros/utils/ficherosGridColumns";
 import { MobileEntityList } from "../../../../shared/crud/MobileEntityList";
 import { ConfirmDialog } from "../../../ficheros/components/ConfirmDialog";
 import { ficherosCrudToolbarShellClass } from "../../../ficheros/components/FicherosCrudPageLayout";
@@ -153,6 +161,11 @@ function useCategoriasCrud(tarifaId: number | null) {
   const [perPage, setPerPageState] = React.useState(50);
   const [q, setQ] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
+  const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
+    sort: null,
+    sortDir: "asc",
+  });
+  const { sort, sortDir } = sortState;
   const qDebounced = useDebouncedValue(q, 350);
   const qNormalized = React.useMemo(
     () => normalizeCodigoQuery(qDebounced),
@@ -216,6 +229,8 @@ function useCategoriasCrud(tarifaId: number | null) {
           per_page: next?.perPage ?? perPage,
           q: qNormalized.trim() ? qNormalized.trim() : undefined,
           status: statusFilter === "ALL" ? undefined : statusFilter,
+          sort: sort ?? undefined,
+          sort_dir: sortDir,
         });
         setData(res);
         return res;
@@ -228,24 +243,28 @@ function useCategoriasCrud(tarifaId: number | null) {
         setLoading(false);
       }
     },
-    [tarifaId, page, perPage, qNormalized, statusFilter]
+    [tarifaId, page, perPage, qNormalized, statusFilter, sort, sortDir]
   );
 
-  const prevFiltersRef = React.useRef<{ q: string; status: StatusFilter; perPage: number } | null>(
+  const toggleSort = React.useCallback((columnId: string) => {
+    setSortState((prev) => nextGridSort(prev, columnId, { column: "codigo", direction: "asc" }));
+  }, []);
+
+  const prevFiltersRef = React.useRef<{ q: string; status: StatusFilter; perPage: number; sort: string | null; sortDir: "asc" | "desc" } | null>(
     null
   );
   React.useEffect(() => {
     const prev = prevFiltersRef.current;
-    const next = { q: qNormalized, status: statusFilter, perPage };
+    const next = { q: qNormalized, status: statusFilter, perPage, sort, sortDir };
     const changed =
-      !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
+      !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage || prev.sort !== next.sort || prev.sortDir !== next.sortDir;
     prevFiltersRef.current = next;
     if (changed && page !== 1) {
       setPage(1);
       return;
     }
     void refresh();
-  }, [page, perPage, qNormalized, statusFilter, refresh]);
+  }, [page, perPage, qNormalized, statusFilter, sort, sortDir, refresh]);
 
   const resetToNew = React.useCallback(() => {
     setMode("new");
@@ -467,6 +486,9 @@ function useCategoriasCrud(tarifaId: number | null) {
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,
     refresh,
+    sort,
+    sortDir,
+    toggleSort,
   };
 }
 
@@ -878,6 +900,11 @@ function useServiciosCrud(tarifaId: number | null) {
   const [filterCategoriaId, setFilterCategoriaId] = React.useState<number | null>(null);
   const [filterSubcategoriaId, setFilterSubcategoriaId] = React.useState<number | null>(null);
   const [filterGrupoCodigo, setFilterGrupoCodigo] = React.useState<string | null>(null);
+  const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
+    sort: null,
+    sortDir: "asc",
+  });
+  const { sort, sortDir } = sortState;
   const qDebounced = useDebouncedValue(q, 350);
   const qNormalized = React.useMemo(
     () => normalizeCodigoQuery(qDebounced),
@@ -1109,6 +1136,8 @@ function useServiciosCrud(tarifaId: number | null) {
           categoria_id: filterCategoriaId ?? undefined,
           subcategoria_id: filterSubcategoriaId ?? undefined,
           grupo_codigo: filterGrupoCodigo ?? undefined,
+          sort: sort ?? undefined,
+          sort_dir: sortDir,
         });
         setData(res);
         return res;
@@ -1121,8 +1150,12 @@ function useServiciosCrud(tarifaId: number | null) {
         setLoading(false);
       }
     },
-    [tarifaId, page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, filterGrupoCodigo]
+    [tarifaId, page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, filterGrupoCodigo, sort, sortDir]
   );
+
+  const toggleSort = React.useCallback((columnId: string) => {
+    setSortState((prev) => nextGridSort(prev, columnId, { column: "codigo", direction: "asc" }));
+  }, []);
 
   const prevFiltersRef = React.useRef<
     {
@@ -1132,6 +1165,8 @@ function useServiciosCrud(tarifaId: number | null) {
       categoriaId: number | null;
       subcategoriaId: number | null;
       grupoCodigo: string | null;
+      sort: string | null;
+      sortDir: "asc" | "desc";
     } | null
   >(null);
   React.useEffect(() => {
@@ -1143,6 +1178,8 @@ function useServiciosCrud(tarifaId: number | null) {
       categoriaId: filterCategoriaId,
       subcategoriaId: filterSubcategoriaId,
       grupoCodigo: filterGrupoCodigo,
+      sort,
+      sortDir,
     };
     const changed =
       !prev ||
@@ -1151,14 +1188,16 @@ function useServiciosCrud(tarifaId: number | null) {
       prev.perPage !== next.perPage ||
       prev.categoriaId !== next.categoriaId ||
       prev.subcategoriaId !== next.subcategoriaId ||
-      prev.grupoCodigo !== next.grupoCodigo;
+      prev.grupoCodigo !== next.grupoCodigo ||
+      prev.sort !== next.sort ||
+      prev.sortDir !== next.sortDir;
     prevFiltersRef.current = next;
     if (changed && page !== 1) {
       setPage(1);
       return;
     }
     void refresh();
-  }, [page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, filterGrupoCodigo, refresh]);
+  }, [page, perPage, qNormalized, statusFilter, filterCategoriaId, filterSubcategoriaId, filterGrupoCodigo, sort, sortDir, refresh]);
 
   const resetToNew = React.useCallback(() => {
     setMode("new");
@@ -1480,6 +1519,9 @@ function useServiciosCrud(tarifaId: number | null) {
     setConfirmDeactivateOpen,
     onDeactivateConfirmed,
     refresh,
+    sort,
+    sortDir,
+    toggleSort,
   };
 }
 
@@ -1524,27 +1566,7 @@ export function TarifarioCategoriasCrudView({
     });
   }, [vm, isLgUp, tarifaReady]);
 
-  const columns: DataTableColumn<TarifaCategoria>[] = [
-    {
-      key: "codigo",
-      header: "Código",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.codigo,
-    },
-    { key: "descripcion", header: "Descripción", render: (x) => x.descripcion },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
-  ];
+  const columns = ficherosCodigoDescripcionEstadoColumns<TarifaCategoria>();
 
   return (
     <div className="flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:gap-2">
@@ -1597,20 +1619,21 @@ export function TarifarioCategoriasCrudView({
       </div>
 
       <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_var(--form-panel-width)] lg:gap-2 lg:items-stretch">
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
-          <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-            <DataTable
+        <div className="flex min-w-0 flex-col lg:h-full lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden max-lg:hidden lg:flex">
+            <CrudListGrid
               rows={vm.data.data}
               columns={columns}
               loading={vm.loading}
+              meta={vm.data.meta}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
               onSelect={tarifaReady ? vm.loadForEdit : () => {}}
               emptyText={tarifaReady ? undefined : ""}
-            />
-            <PaginationFooter
-              meta={vm.data.meta}
-              variant="desktop"
+              onRefresh={() => void vm.refresh()}
+              sort={vm.sort}
+              sortDir={vm.sortDir}
+              onToggleSort={vm.toggleSort}
               onPrev={() => {
                 if (!tarifaReady) return;
                 vm.setPage((p) => Math.max(1, p - 1));
@@ -1668,7 +1691,7 @@ export function TarifarioCategoriasCrudView({
           </div>
         </div>
 
-        <div ref={formRef} className="min-w-0 shrink-0">
+        <div ref={formRef} className="min-w-0 shrink-0 max-lg:mb-4 lg:mb-0">
           <div
             className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
             onKeyDown={makeEnterKeySaveHandler(
@@ -1817,29 +1840,20 @@ export function TarifarioSubcategoriasCrudView({
     });
   }, [vm, isLgUp, tarifaReady]);
 
-  const columns: DataTableColumn<TarifaSubcategoria>[] = [
+  const columns: DataGridColumnDef<TarifaSubcategoria>[] = [
     {
-      key: "codigo",
-      header: "Código",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => {
+      ...ficherosCodigoColumn<TarifaSubcategoria>(),
+      cell: (x) => {
+        const catCode = categoriaCodigoById.get(x.categoria_id);
+        return catCode ? `${catCode}.${x.codigo}` : x.codigo;
+      },
+      exportValue: (x) => {
         const catCode = categoriaCodigoById.get(x.categoria_id);
         return catCode ? `${catCode}.${x.codigo}` : x.codigo;
       },
     },
-    { key: "descripcion", header: "Descripción", render: (x) => x.descripcion },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    ficherosDescripcionColumn<TarifaSubcategoria>(),
+    ficherosEstadoColumn<TarifaSubcategoria>(),
   ];
 
   return (
@@ -1908,20 +1922,19 @@ export function TarifarioSubcategoriasCrudView({
       </div>
 
       <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_var(--form-panel-width)] lg:gap-2 lg:items-stretch">
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:flex-1">
-          <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-            <DataTable
+        <div className="flex min-w-0 flex-col lg:h-full lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden max-lg:hidden lg:flex">
+            <CrudListGrid
               rows={vm.data.data}
               columns={columns}
               loading={vm.loading}
+              meta={vm.data.meta}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
               onSelect={tarifaReady ? vm.loadForEdit : () => {}}
               emptyText={tarifaReady ? undefined : ""}
-            />
-            <PaginationFooter
-              meta={vm.data.meta}
-              variant="desktop"
+              onRefresh={() => void vm.refresh()}
+              exportFilename="tarifario-categorias"
               onPrev={() => {
                 if (!tarifaReady) return;
                 vm.setPage((p) => Math.max(1, p - 1));
@@ -1983,7 +1996,7 @@ export function TarifarioSubcategoriasCrudView({
           </div>
         </div>
 
-        <div ref={formRef} className="min-w-0 shrink-0">
+        <div ref={formRef} className="min-w-0 shrink-0 max-lg:mb-4 lg:mb-0">
           <div
             className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
             onKeyDown={makeEnterKeySaveHandler(
@@ -2165,53 +2178,33 @@ export function TarifarioServiciosCrudView({
     });
   }, [vm, isLgUp, tarifaReady]);
 
-  const columns: DataTableColumn<TarifaServicioCrud>[] = [
+  const columns: DataGridColumnDef<TarifaServicioCrud>[] = [
+    ficherosCodigoColumn<TarifaServicioCrud>(),
+    { ...ficherosDescripcionColumn<TarifaServicioCrud>(), grow: true },
     {
-      key: "codigo",
-      header: "Código",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.codigo,
-    },
-    {
-      key: "descripcion",
-      header: "Descripción",
-      headerClassName: "min-w-[200px]",
-      cellClassName: "px-3 py-2 min-w-[200px]",
-      render: (x) => x.descripcion,
-    },
-    {
-      key: "precio_con_igv",
+      id: "precio_con_igv",
       header: "Precio",
-      headerClassName: "text-center min-w-[8.5rem]",
-      cellClassName: "px-3 py-2 align-middle text-sm",
-      render: (x) => (
+      align: "center",
+      size: 136,
+      sortable: true,
+      sortValue: (x) => parseFloat(String(x.precio_sin_igv ?? x.precio_con_igv).replace(",", ".")) || 0,
+      exportValue: (x) => x.precio_con_igv,
+      cell: (x) => (
         <div className="flex w-full justify-center">
-          <ReporteSolesAmount
-            boldAmount={false}
-            value={String(x.precio_con_igv ?? "").trim()}
-          />
+          <ReporteSolesAmount boldAmount={false} value={String(x.precio_con_igv ?? "").trim()} />
         </div>
       ),
     },
     {
-      key: "unidad",
+      id: "unidad",
       header: "Unidad",
-      headerClassName: "text-center w-24",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => String(x.unidad ?? "").trim(),
+      align: "center",
+      size: 96,
+      sortable: true,
+      accessor: "unidad",
+      exportValue: (x) => x.unidad,
     },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    ficherosEstadoColumn<TarifaServicioCrud>(),
   ];
 
   return (
@@ -2328,20 +2321,19 @@ export function TarifarioServiciosCrudView({
       </div>
 
       <div className="flex min-w-0 w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_520px] lg:grid-rows-[minmax(0,1fr)] lg:gap-2 lg:items-stretch">
-        <div className="flex min-h-0 min-w-0 flex-col overflow-hidden max-lg:flex-1 lg:h-full lg:min-h-0">
-          <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-            <DataTable
+        <div className="flex min-w-0 flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden max-lg:hidden lg:flex">
+            <CrudListGrid
               rows={vm.data.data}
               columns={columns}
               loading={vm.loading}
+              meta={vm.data.meta}
               selectedId={vm.selected?.id ?? null}
               getRowId={(x) => x.id}
               onSelect={tarifaReady ? vm.loadForEdit : () => {}}
               emptyText={tarifaReady ? undefined : ""}
-            />
-            <PaginationFooter
-              meta={vm.data.meta}
-              variant="desktop"
+              onRefresh={() => void vm.refresh()}
+              exportFilename="tarifario-servicios"
               onPrev={() => {
                 if (!tarifaReady) return;
                 vm.setPage((p) => Math.max(1, p - 1));
@@ -2358,6 +2350,9 @@ export function TarifarioServiciosCrudView({
                 if (!tarifaReady) return;
                 vm.setPage(vm.data.meta.last_page);
               }}
+              sort={vm.sort}
+              sortDir={vm.sortDir}
+              onToggleSort={vm.toggleSort}
             />
           </div>
 
@@ -2401,7 +2396,7 @@ export function TarifarioServiciosCrudView({
 
         <div
           ref={formRef}
-          className="min-h-0 min-w-0 w-full shrink-0 lg:flex lg:min-h-0 lg:h-full lg:flex-col lg:self-stretch"
+          className="min-h-0 min-w-0 w-full shrink-0 max-lg:mb-4 lg:flex lg:min-h-0 lg:h-full lg:flex-col lg:self-stretch lg:mb-0"
         >
           <div
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded border border-(--border-color-default) bg-(--color-surface)"

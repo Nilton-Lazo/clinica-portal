@@ -1,69 +1,74 @@
 import type { Iafa, PaginatedResponse } from "../../types/iafas.types";
-import { StatusBadge } from "../../components/StatusBadge";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
+import { ficherosCodigoColumn, ficherosEstadoColumn, ficherosMainColumn } from "../../utils/ficherosGridColumns";
 
 export default function IafasTable(props: {
   data: PaginatedResponse<Iafa>;
   loading: boolean;
   selectedId: number | null;
   onSelect: (x: Iafa) => void;
-  page: number;
   onPrev: () => void;
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns: DataTableColumn<Iafa>[] = [
-    {
-      key: "codigo",
-      header: "Código",
-      headerClassName: "text-center w-25",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.codigo || "—",
-    },
-    {
-      key: "razon_social",
+  const columns: DataGridColumnDef<Iafa>[] = [
+    ficherosCodigoColumn<Iafa>(),
+    ficherosMainColumn<Iafa>({
+      id: "razon_social",
       header: "Razón social IAFAS",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2",
-      render: (x) => (
+      exportValue: (x) => x.razon_social,
+      cell: (x) => (
         <div className="min-w-0">
           <div className="truncate">{x.razon_social || "—"}</div>
-          <div className="mt-0.5 text-xs text-(--color-text-secondary) truncate">
+          <div className="mt-0.5 truncate text-xs text-(--color-text-secondary)">
             {x.descripcion_corta ? `${x.descripcion_corta} · ` : ""}
             {x.ruc ? `RUC ${x.ruc}` : ""}
           </div>
         </div>
       ),
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    }),
+    ficherosEstadoColumn<Iafa>(),
   ];
 
   return (
-    <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-      />
-
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="iafas"
+    />
   );
 }

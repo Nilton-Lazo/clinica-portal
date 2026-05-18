@@ -9,35 +9,53 @@ import {
   updateMedioPagoCaja,
   type FormaPagoCajaOption,
   type MedioPagoCajaItem,
-  type MedioPagoCajaListResponse,
 } from "../../services/medioPagoCaja.service";
-import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
+import { useCrudListQuery } from "../../../../../../shared/crud/useCrudListQuery";
+import type { DataGridFetchParams } from "../../../../../../shared/datagrid";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 import { prepareFormText } from "../../../../../../shared/textInput/uppercaseTextInput";
 export type Mode = "new" | "edit";
 export type { StatusFilter };
 
-function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
-
 export function useMedioPagoCaja() {
   const toast = useToast();
-  const [data, setData] = useState<MedioPagoCajaListResponse>({
-    data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  const list = useCrudListQuery<MedioPagoCajaItem>({
+    listFn: useCallback(
+      (params: DataGridFetchParams) =>
+        listMedioPagoCaja({
+          page: params.page,
+          per_page: params.per_page,
+          q: params.q,
+          status: params.status as RecordStatus | undefined,
+          sort: params.sort,
+          sort_dir: params.sort_dir,
+        }),
+      []
+    ),
+    errorMessage: "No se pudo cargar la lista de medios de pago.",
+    initialSort: "codigo",
   });
+
+  const {
+    data,
+    loading,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
+  } = list;
+
   const [formasPago, setFormasPago] = useState<FormaPagoCajaOption[]>([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
-  const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<MedioPagoCajaItem | null>(null);
   const [codigo, setCodigo] = useState("");
@@ -46,7 +64,6 @@ export function useMedioPagoCaja() {
   const [formaPagoId, setFormaPagoId] = useState("");
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
   const originalRef = useRef<{ codigo: string; descripcion: string; estado: RecordStatus; forma_pago_id: string } | null>(null);
-  const lastToastedErrorRef = useRef<string | null>(null);
 
   const loadFormasPago = useCallback(async () => {
     try {
@@ -134,43 +151,6 @@ export function useMedioPagoCaja() {
     toast.success("Cambios cancelados.");
   }, [mode, resetToNew, selected, toast]);
 
-  const refresh = useCallback(async (next?: { page?: number; perPage?: number }) => {
-    setLoading(true);
-    const targetPage = next?.page ?? page;
-    const targetPerPage = next?.perPage ?? perPage;
-    try {
-      const res = await listMedioPagoCaja({
-        page: targetPage,
-        per_page: targetPerPage,
-        q: qDebounced.trim() || undefined,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-      });
-      lastToastedErrorRef.current = null;
-      setData(res);
-    } catch (e) {
-      const msg = getApiErrorMessage(e, "No se pudo cargar la lista de medios de pago.");
-      if (lastToastedErrorRef.current !== msg) {
-        lastToastedErrorRef.current = msg;
-        toast.error(msg);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [page, perPage, qDebounced, statusFilter, toast]);
-
-  const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
-  useEffect(() => {
-    const prev = prevFiltersRef.current;
-    const next = { q: qDebounced, status: statusFilter, perPage };
-    const changed = !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
-    prevFiltersRef.current = next;
-    if (changed && page !== 1) {
-      setPage(1);
-      return;
-    }
-    void refresh();
-  }, [page, perPage, qDebounced, statusFilter, refresh]);
-
   const onSave = useCallback(async () => {
     const c = codigo.trim();
     const d = prepareFormText(descripcion);
@@ -245,11 +225,14 @@ export function useMedioPagoCaja() {
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    setPerPage,
     q,
     setQ,
     statusFilter,
     setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
     mode,
     selected,
     codigo,

@@ -9,25 +9,23 @@ import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeMo
 import {
   fetchReporteIngresosBootstrap,
   fetchReporteIngresosMovimientos,
-  type ReporteIngresosApertura,
   type ReporteIngresosBootstrap,
   type ReporteIngresosMedio,
   type ReporteIngresosMovimiento,
 } from "../services/reporteIngresosCaja.service";
 import { ReporteIngresoMediosResumen } from "../components/ReporteIngresoMediosResumen";
 import { ReporteIngresosAperturasMobileList } from "../components/ReporteIngresosAperturasMobileList";
+import { ReporteIngresosAperturasTable } from "../components/ReporteIngresosAperturasTable";
 import { ReporteIngresosMovimientosTable } from "../components/ReporteIngresosMovimientosTable";
 import { ReporteIngresosMovimientosMobileList } from "../components/ReporteIngresosMovimientosMobileList";
 import { ReporteFraccionarPagoModal } from "../components/ReporteFraccionarPagoModal";
 import { PaginationFooter } from "../../../shared/crud/PaginationFooter";
 import type { PaginationMeta } from "../../../shared/types/pagination";
-import { AtencionEstadoBadge } from "../../../shared/ui/AtencionEstadoBadge";
-import { CajaAperturaTipoBadge } from "../components/CajaAperturaTipoBadge";
-import { ReporteSolesAmount } from "../components/ReporteSolesAmount";
-import { codigoAperturaIdColumna } from "../utils/codigoAperturaIdColumna";
 import { closeAperturaCaja } from "../services/aperturaCaja.service";
 import type { CajaAperturaTipo } from "../types/aperturaCaja.types";
 import { ConfirmDialog } from "../../ficheros/components/ConfirmDialog";
+import { nextGridSort } from "../../../shared/datagrid/gridSortCycle";
+import type { SortDirection } from "../../../shared/datagrid/types";
 
 const pageWrap = "flex w-full min-h-0 flex-1 flex-col gap-4 lg:gap-2";
 
@@ -48,65 +46,6 @@ const readoutInline =
 
 const menuWide = "min-w-full max-w-[calc(100vw-2rem)]";
 
-const tableShellAperturas =
-  "relative flex w-full min-w-0 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)";
-
-const tableScrollAperturas = "w-full overflow-x-auto app-scrollbar app-scrollbar-no-gutter";
-
-const thAperturaTight =
-  "px-1 py-2 text-center align-middle text-sm font-semibold tracking-normal bg-(--color-primary) text-(--color-text-inverse)";
-
-const thAperturaEstado =
-  "px-1 py-2 pr-2 text-center align-middle text-sm font-semibold tracking-normal bg-(--color-primary) text-(--color-text-inverse)";
-
-const thAperturaTipo =
-  "pl-2 pr-1 py-2 text-center align-middle text-sm font-semibold tracking-normal bg-(--color-primary) text-(--color-text-inverse)";
-
-const tdAperturaTight = "px-1 py-2 text-center align-middle text-sm text-(--color-text-primary)";
-
-const tdAperturaEstado = "px-1 py-2 pr-2 text-center align-middle text-sm text-(--color-text-primary)";
-
-const tdAperturaTipo = "pl-2 pr-1 py-2 text-center align-middle text-sm text-(--color-text-primary)";
-
-function AperturaColumnTitle({ label }: { label: string }) {
-  const parts = label.trim().split(/\s+/).filter(Boolean);
-  const stack = "inline-flex min-h-11 w-full flex-col items-center justify-center gap-0 text-center leading-[1.15]";
-
-  if (parts.length === 0) {
-    return (
-      <span className="inline-flex min-h-11 w-full items-center justify-center">
-        <span>—</span>
-      </span>
-    );
-  }
-
-  if (parts.length === 1) {
-    return (
-      <span className="inline-flex min-h-11 w-full items-center justify-center">
-        <span className="whitespace-nowrap">{parts[0]}</span>
-      </span>
-    );
-  }
-
-  if (parts.length === 2) {
-    return (
-      <span className="inline-flex min-h-11 w-full items-center justify-center">
-        <span className="whitespace-nowrap">{parts.join(" ")}</span>
-      </span>
-    );
-  }
-
-  const mid = Math.ceil(parts.length / 2);
-  const line1 = parts.slice(0, mid).join(" ");
-  const line2 = parts.slice(mid).join(" ");
-
-  return (
-    <span className={stack}>
-      <span className="block max-w-44 px-0.5 whitespace-normal">{line1}</span>
-      <span className="block max-w-44 px-0.5 whitespace-normal">{line2}</span>
-    </span>
-  );
-}
 const CAJA_REPORTE_ENTITIES = ["caja_apertura", "emision_comprobante"];
 const FICHEROS_CAJA_ENTITIES = [
   "caja_medio_pago",
@@ -188,6 +127,16 @@ export default function ReporteIngresosCajaPage() {
   const [movLoading, setMovLoading] = React.useState(false);
   const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
   const [aperturasPage, setAperturasPage] = React.useState<number | undefined>(undefined);
+  const [aperturasSortState, setAperturasSortState] = React.useState<{
+    sort: string | null;
+    sortDir: SortDirection;
+  }>({ sort: null, sortDir: "desc" });
+  const [movSortState, setMovSortState] = React.useState<{
+    sort: string | null;
+    sortDir: SortDirection;
+  }>({ sort: null, sortDir: "asc" });
+  const { sort: aperturasSort, sortDir: aperturasSortDir } = aperturasSortState;
+  const { sort: movSort, sortDir: movSortDir } = movSortState;
   const [aperturasBusy, setAperturasBusy] = React.useState(false);
   const [codigoAperturaReadout, setCodigoAperturaReadout] = React.useState<string | null>(null);
   const [movSelectedId, setMovSelectedId] = React.useState<string | null>(null);
@@ -231,6 +180,16 @@ export default function ReporteIngresosCajaPage() {
     setMovSelectedId((prev) => (prev === row.id ? null : row.id));
   }, []);
 
+  const toggleAperturasSort = React.useCallback((columnId: string) => {
+    setAperturasSortState((prev) => nextGridSort(prev, columnId, { column: "fecha", direction: "desc" }));
+    setAperturasPage(1);
+  }, []);
+
+  const toggleMovSort = React.useCallback((columnId: string) => {
+    setMovSortState((prev) => nextGridSort(prev, columnId, { column: "nro_cuenta", direction: "asc" }));
+    setMovPage(1);
+  }, []);
+
   useRealtimeModuleRefresh({
     module: "caja",
     entities: CAJA_REPORTE_ENTITIES,
@@ -264,7 +223,11 @@ export default function ReporteIngresosCajaPage() {
       setAperturasBusy(true);
     }
     setBootErr(false);
-    fetchReporteIngresosBootstrap(aperturasPage !== undefined ? { aperturasPage } : {})
+    fetchReporteIngresosBootstrap({
+      ...(aperturasPage !== undefined ? { aperturasPage } : {}),
+      sort: aperturasSort ?? undefined,
+      sort_dir: aperturasSortDir,
+    })
       .then((b) => {
         if (c) return;
         setBoot(b);
@@ -304,7 +267,7 @@ export default function ReporteIngresosCajaPage() {
     return () => {
       c = true;
     };
-  }, [realtimeReloadKey, aperturasPage]);
+  }, [realtimeReloadKey, aperturasPage, aperturasSort, aperturasSortDir]);
 
   React.useEffect(() => {
     if (!aperturaId) {
@@ -340,6 +303,8 @@ export default function ReporteIngresosCajaPage() {
       numeracionId: numeracionId.trim() || undefined,
       page: movPage,
       perPage: movPerPage,
+      sort: movSort ?? undefined,
+      sort_dir: movSortDir,
     })
       .then((d) => {
         if (c) return;
@@ -361,7 +326,7 @@ export default function ReporteIngresosCajaPage() {
     return () => {
       c = true;
     };
-  }, [aperturaId, numeracionId, movPage, movPerPage, realtimeReloadKey]);
+  }, [aperturaId, numeracionId, movPage, movPerPage, movSort, movSortDir, realtimeReloadKey]);
 
   const serieOpts: SelectOption[] = React.useMemo(() => {
     const rows = boot?.series ?? [];
@@ -522,116 +487,44 @@ export default function ReporteIngresosCajaPage() {
             </div>
 
             <section className={`${sectionCardFlush} h-full`}>
-            <div className="px-0 pt-0 pb-2">
+            <div className="px-0 pt-0 pb-6">
               <h2 className={sectionTitle}>Aperturas y cierres</h2>
             </div>
             <div className="px-0 pb-0">
-            <div className="hidden lg:block">
-              <div className={tableShellAperturas}>
-                {aperturasBusy ? (
-                  <div
-                    className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] bg-(--color-surface)/75 backdrop-blur-[1px]"
-                    aria-hidden
-                  >
-                    <div className="h-7 w-7 animate-spin rounded-full border-2 border-(--color-primary) border-t-transparent" />
-                  </div>
-                ) : null}
-                <div className={tableScrollAperturas}>
-                  <table className="w-full min-w-full table-fixed border-collapse text-sm">
-                    <colgroup>
-                      <col style={{ width: "6%" }} />
-                      <col style={{ width: "14%" }} />
-                      <col style={{ width: "12%" }} />
-                      <col style={{ width: "18%" }} />
-                      <col style={{ width: "18%" }} />
-                      <col style={{ width: "16%" }} />
-                      <col style={{ width: "16%" }} />
-                    </colgroup>
-                    <thead className="sticky top-0 z-1 bg-(--color-primary) text-(--color-text-inverse)">
-                      <tr>
-                        <th className={thAperturaTight}>
-                          <AperturaColumnTitle label="ID" />
-                        </th>
-                        <th className={thAperturaTight}>
-                          <AperturaColumnTitle label="Usuario" />
-                        </th>
-                        <th className={thAperturaTight}>
-                          <AperturaColumnTitle label="Fecha" />
-                        </th>
-                        <th className={thAperturaTight}>
-                          <AperturaColumnTitle label="Monto de apertura" />
-                        </th>
-                        <th className={thAperturaTight}>
-                          <AperturaColumnTitle label="Monto de cierre" />
-                        </th>
-                        <th className={thAperturaEstado}>
-                          <AperturaColumnTitle label="Estado" />
-                        </th>
-                        <th className={thAperturaTipo}>
-                          <AperturaColumnTitle label="Tipo" />
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {boot.aperturas.length === 0 ? (
-                        <tr className="border-t border-(--border-color-default) bg-(--color-surface)">
-                          <td className={`${tdAperturaTight} text-(--color-text-secondary)`} colSpan={7}>
-                            No hay aperturas registradas para tu usuario.
-                          </td>
-                        </tr>
-                      ) : (
-                        boot.aperturas.map((r: ReporteIngresosApertura) => (
-                          <tr
-                            key={r.id}
-                            onClick={() => setAperturaId(r.id)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                setAperturaId(r.id);
-                              }
-                            }}
-                            className={[
-                              "cursor-pointer border-t border-(--border-color-default) transition-colors",
-                              aperturaId === r.id ? "bg-(--color-surface-hover)" : "bg-(--color-surface)",
-                              "hover:bg-(--color-surface-hover)",
-                            ].join(" ")}
-                          >
-                            <td className={`${tdAperturaTight} whitespace-nowrap tabular-nums`}>
-                              {codigoAperturaIdColumna(r.codigo)}
-                            </td>
-                            <td className={`${tdAperturaTight} min-w-0`} title={r.usuario}>
-                              <span className="block w-full truncate text-center">{r.usuario}</span>
-                            </td>
-                            <td className={`${tdAperturaTight} whitespace-nowrap text-(--color-text-secondary)`}>{r.fecha}</td>
-                            <td className={tdAperturaTight}>
-                              <div className="flex justify-center">
-                                <ReporteSolesAmount value={r.monto_apertura} />
-                              </div>
-                            </td>
-                            <td className={tdAperturaTight}>
-                              <div className="flex justify-center">
-                                <ReporteSolesAmount value={r.monto_cierre} muted />
-                              </div>
-                            </td>
-                            <td className={tdAperturaEstado}>
-                              <div className="flex justify-center">
-                                <AtencionEstadoBadge value={r.estado} />
-                              </div>
-                            </td>
-                            <td className={tdAperturaTipo}>
-                              <div className="flex justify-center">
-                                <CajaAperturaTipoBadge value={r.tipo} />
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+            <div className="relative hidden lg:block">
+              {aperturasBusy ? (
+                <div
+                  className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md bg-(--color-surface)/75 backdrop-blur-[1px]"
+                  aria-hidden
+                >
+                  <div className="h-7 w-7 animate-spin rounded-full border-2 border-(--color-primary) border-t-transparent" />
                 </div>
-              </div>
+              ) : null}
+              <ReporteIngresosAperturasTable
+                rows={boot.aperturas}
+                loading={aperturasBusy}
+                selectedId={aperturaId}
+                meta={boot.aperturas_meta}
+                sort={aperturasSort}
+                sortDir={aperturasSortDir}
+                onToggleSort={toggleAperturasSort}
+                onSelect={(row) => setAperturaId(row.id)}
+                onPrev={() =>
+                  setAperturasPage((prev) => {
+                    const cur = prev ?? boot.aperturas_meta.current_page;
+                    return Math.max(1, cur - 1);
+                  })
+                }
+                onNext={() =>
+                  setAperturasPage((prev) => {
+                    const cur = prev ?? boot.aperturas_meta.current_page;
+                    return Math.min(boot.aperturas_meta.last_page, cur + 1);
+                  })
+                }
+                onFirst={() => setAperturasPage(1)}
+                onLast={() => setAperturasPage(boot.aperturas_meta.last_page)}
+                onRefresh={() => setRealtimeReloadKey((k) => k + 1)}
+              />
             </div>
             <div className="lg:hidden">
               <ReporteIngresosAperturasMobileList
@@ -640,51 +533,27 @@ export default function ReporteIngresosCajaPage() {
                 selectedId={aperturaId}
                 onSelect={(row) => setAperturaId(row.id)}
               />
+              {boot.aperturas_meta.total > 0 ? (
+                <PaginationFooter
+                  meta={boot.aperturas_meta}
+                  variant="mobile"
+                  onPrev={() =>
+                    setAperturasPage((prev) => {
+                      const cur = prev ?? boot.aperturas_meta.current_page;
+                      return Math.max(1, cur - 1);
+                    })
+                  }
+                  onNext={() =>
+                    setAperturasPage((prev) => {
+                      const cur = prev ?? boot.aperturas_meta.current_page;
+                      return Math.min(boot.aperturas_meta.last_page, cur + 1);
+                    })
+                  }
+                  onFirst={() => setAperturasPage(1)}
+                  onLast={() => setAperturasPage(boot.aperturas_meta.last_page)}
+                />
+              ) : null}
             </div>
-            {boot.aperturas_meta.total > 0 ? (
-              <>
-                <div className="hidden lg:block">
-                  <PaginationFooter
-                    meta={boot.aperturas_meta}
-                    variant="desktop"
-                    onPrev={() =>
-                      setAperturasPage((prev) => {
-                        const cur = prev ?? boot.aperturas_meta.current_page;
-                        return Math.max(1, cur - 1);
-                      })
-                    }
-                    onNext={() =>
-                      setAperturasPage((prev) => {
-                        const cur = prev ?? boot.aperturas_meta.current_page;
-                        return Math.min(boot.aperturas_meta.last_page, cur + 1);
-                      })
-                    }
-                    onFirst={() => setAperturasPage(1)}
-                    onLast={() => setAperturasPage(boot.aperturas_meta.last_page)}
-                  />
-                </div>
-                <div className="lg:hidden">
-                  <PaginationFooter
-                    meta={boot.aperturas_meta}
-                    variant="mobile"
-                    onPrev={() =>
-                      setAperturasPage((prev) => {
-                        const cur = prev ?? boot.aperturas_meta.current_page;
-                        return Math.max(1, cur - 1);
-                      })
-                    }
-                    onNext={() =>
-                      setAperturasPage((prev) => {
-                        const cur = prev ?? boot.aperturas_meta.current_page;
-                        return Math.min(boot.aperturas_meta.last_page, cur + 1);
-                      })
-                    }
-                    onFirst={() => setAperturasPage(1)}
-                    onLast={() => setAperturasPage(boot.aperturas_meta.last_page)}
-                  />
-                </div>
-              </>
-            ) : null}
             </div>
             </section>
           </div>
@@ -755,10 +624,19 @@ export default function ReporteIngresosCajaPage() {
         <div className="hidden min-w-0 lg:block">
           <ReporteIngresosMovimientosTable
             rows={movs}
-            loading={movLoading && movs.length === 0}
+            loading={movLoading}
             sinApertura={!aperturaId}
             selectedId={movSelectedId}
+            meta={movMeta}
+            sort={movSort}
+            sortDir={movSortDir}
+            onToggleSort={toggleMovSort}
             onSelectRow={onSelectMovimiento}
+            onPrev={() => setMovPage((p) => Math.max(1, p - 1))}
+            onNext={() => setMovPage((p) => Math.min(movMeta.last_page, p + 1))}
+            onFirst={() => setMovPage(1)}
+            onLast={() => setMovPage(movMeta.last_page)}
+            onRefresh={() => setRealtimeReloadKey((k) => k + 1)}
           />
         </div>
         <div className="min-w-0 lg:hidden">
@@ -769,31 +647,17 @@ export default function ReporteIngresosCajaPage() {
             selectedId={movSelectedId}
             onSelectRow={onSelectMovimiento}
           />
+          {aperturaId ? (
+            <PaginationFooter
+              meta={movMeta}
+              variant="mobile"
+              onPrev={() => setMovPage((p) => Math.max(1, p - 1))}
+              onNext={() => setMovPage((p) => Math.min(movMeta.last_page, p + 1))}
+              onFirst={() => setMovPage(1)}
+              onLast={() => setMovPage(movMeta.last_page)}
+            />
+          ) : null}
         </div>
-        {aperturaId ? (
-          <>
-            <div className="hidden lg:block">
-              <PaginationFooter
-                meta={movMeta}
-                variant="desktop"
-                onPrev={() => setMovPage((p) => Math.max(1, p - 1))}
-                onNext={() => setMovPage((p) => Math.min(movMeta.last_page, p + 1))}
-                onFirst={() => setMovPage(1)}
-                onLast={() => setMovPage(movMeta.last_page)}
-              />
-            </div>
-            <div className="lg:hidden">
-              <PaginationFooter
-                meta={movMeta}
-                variant="mobile"
-                onPrev={() => setMovPage((p) => Math.max(1, p - 1))}
-                onNext={() => setMovPage((p) => Math.min(movMeta.last_page, p + 1))}
-                onFirst={() => setMovPage(1)}
-                onLast={() => setMovPage(movMeta.last_page)}
-              />
-            </div>
-          </>
-        ) : null}
       </section>
 
       <div className={mainSheet}>

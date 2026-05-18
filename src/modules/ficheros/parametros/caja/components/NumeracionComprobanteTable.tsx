@@ -1,7 +1,10 @@
-import { StatusBadge } from "../../../components/StatusBadge";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
-import type { NumeracionComprobanteCajaItem, NumeracionComprobanteCajaListResponse } from "../services/numeracionComprobanteCaja.service";
+import { CrudListGrid } from "../../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../../shared/datagrid";
+import { ficherosEstadoColumn } from "../../../utils/ficherosGridColumns";
+import type {
+  NumeracionComprobanteCajaItem,
+  NumeracionComprobanteCajaListResponse,
+} from "../services/numeracionComprobanteCaja.service";
 
 export default function NumeracionComprobanteTable(props: {
   data: NumeracionComprobanteCajaListResponse;
@@ -12,54 +15,75 @@ export default function NumeracionComprobanteTable(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
-  const columns: DataTableColumn<NumeracionComprobanteCajaItem>[] = [
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
+
+  const columns: DataGridColumnDef<NumeracionComprobanteCajaItem>[] = [
     {
-      key: "tipo_documento_descripcion",
+      id: "tipo_documento_descripcion",
       header: "Tipo documento",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2",
-      render: (x) => `${x.tipo_documento_codigo} · ${x.tipo_documento_descripcion}`,
+      sortable: true,
+      align: "left",
+      grow: true,
+      exportValue: (x) => `${x.tipo_documento_codigo} · ${x.tipo_documento_descripcion}`,
+      cell: (x) => `${x.tipo_documento_codigo} · ${x.tipo_documento_descripcion}`,
     },
     {
-      key: "serie",
+      id: "serie",
       header: "Serie",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.serie,
+      sortable: true,
+      align: "center",
+      size: 112,
+      exportValue: (x) => x.serie,
+      cell: (x) => x.serie,
     },
     {
-      key: "numero_formateado",
+      id: "numero_formateado",
       header: "Número",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.numero_formateado,
+      sortable: true,
+      align: "center",
+      size: 112,
+      exportValue: (x) => x.numero_formateado,
+      cell: (x) => x.numero_formateado,
     },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    ficherosEstadoColumn<NumeracionComprobanteCajaItem>(),
   ];
 
   return (
-    <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-      />
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="numeracion-comprobante-caja"
+    />
   );
 }

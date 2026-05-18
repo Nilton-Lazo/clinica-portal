@@ -1,4 +1,5 @@
 import { api } from "../../../../../shared/api";
+import { buildListQuery } from "../../../../../shared/datagrid";
 import type { RecordStatus, PaginationMeta } from "../../emergencia/types/paramOption.types";
 
 export type TipoDocumentoCajaOption = {
@@ -31,6 +32,8 @@ export type NumeracionComprobanteCajaQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type NumeracionComprobanteCajaCreatePayload = {
@@ -51,14 +54,14 @@ const BASE = "/ficheros/parametros/caja/numeracion-comprobante";
 const TIPOS_BASE = "/ficheros/parametros/caja/tipo-documento";
 
 function buildQuery(query: NumeracionComprobanteCajaQuery): string {
-  const params = new URLSearchParams();
-  params.set("page", String(query.page ?? 1));
-  params.set("per_page", String(query.per_page ?? 50));
-  const q = (query.q ?? "").trim();
-  if (q) params.set("q", q);
-  if (query.status) params.set("status", query.status);
-  const s = params.toString();
-  return s ? `?${s}` : "";
+  return buildListQuery({
+    page: query.page ?? 1,
+    per_page: query.per_page ?? 50,
+    q: query.q,
+    status: query.status,
+    sort: query.sort,
+    sort_dir: query.sort_dir,
+  });
 }
 
 export function listNumeracionComprobanteCaja(query: NumeracionComprobanteCajaQuery): Promise<NumeracionComprobanteCajaListResponse> {

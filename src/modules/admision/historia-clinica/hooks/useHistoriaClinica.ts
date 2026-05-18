@@ -1,18 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
-import { toUserFriendlyMessage } from "../utils/userFriendlyError";
-
-import type { PacienteListItem, PaginatedResponse, RecordStatus } from "../types/historiaClinica.types";
+import { useCrudListQuery } from "../../../../shared/crud/useCrudListQuery";
+import type { DataGridFetchParams } from "../../../../shared/datagrid";
+import type { PacienteListItem, RecordStatus } from "../types/historiaClinica.types";
 import { listPacientes } from "../services/historiaClinica.service";
 
 export type Notice = { type: "success" | "error"; text: string } | null;
 export type StatusFilter = "ALL" | RecordStatus;
-
-function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
 
 function toIsoDateOrNull(v: string): string | null {
   const s = v.trim();
@@ -22,24 +15,58 @@ function toIsoDateOrNull(v: string): string | null {
 }
 
 export function useHistoriaClinica() {
-  const [data, setData] = useState<PaginatedResponse<PacienteListItem>>({
-    data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
-
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
-
-  const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
-
   const [filiacionFrom, setFiliacionFrom] = useState<string>("");
   const [filiacionTo, setFiliacionTo] = useState<string>("");
+  const filiacionFromRef = useRef(filiacionFrom);
+  const filiacionToRef = useRef(filiacionTo);
+  filiacionFromRef.current = filiacionFrom;
+  filiacionToRef.current = filiacionTo;
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const list = useCrudListQuery<PacienteListItem>({
+    listFn: useCallback((params: DataGridFetchParams) => {
+      const fromIso = toIsoDateOrNull(filiacionFromRef.current);
+      const toIso = toIsoDateOrNull(filiacionToRef.current);
+      return listPacientes({
+        page: params.page,
+        per_page: params.per_page,
+        q: params.q,
+        status: params.status as RecordStatus | undefined,
+        sort: params.sort,
+        sort_dir: params.sort_dir,
+        filiacion_from: fromIso ?? undefined,
+        filiacion_to: toIso ?? undefined,
+      });
+    }, []),
+    errorMessage: "No se pudo cargar la lista de historias clínicas.",
+    initialSort: "created_at",
+    initialSortDir: "desc",
+  });
+
+  const {
+    data,
+    loading,
+    listError,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
+  } = list;
+
+  const [notice, setNotice] = useState<Notice>(null);
+
+  useEffect(() => {
+    if (listError) {
+      setNotice({ type: "error", text: listError });
+    }
+  }, [listError]);
 
   const [selected, setSelected] = useState<PacienteListItem | null>(null);
   const selectedId = selected?.id ?? null;
@@ -87,75 +114,19 @@ export function useHistoriaClinica() {
     [filiacionFrom]
   );
 
-  const refresh = useCallback(
-    async (next?: { page?: number; perPage?: number }) => {
-      setLoading(true);
-      setNotice(null);
-
-      const targetPage = next?.page ?? page;
-      const targetPerPage = next?.perPage ?? perPage;
-
-      const fromIso = toIsoDateOrNull(filiacionFrom);
-      const toIso = toIsoDateOrNull(filiacionTo);
-
-      try {
-        const res = await listPacientes({
-          page: targetPage,
-          per_page: targetPerPage,
-          q: qDebounced.trim() ? qDebounced.trim() : undefined,
-          status: statusFilter === "ALL" ? undefined : statusFilter,
-          filiacion_from: fromIso ?? undefined,
-          filiacion_to: toIso ?? undefined,
-        });
-
-        const sorted = [...res.data].sort((a, b) => {
-          const ax = a.created_at ?? "";
-          const bx = b.created_at ?? "";
-          return bx.localeCompare(ax);
-        });
-
-        setData({ ...res, data: sorted });
-      } catch (e) {
-        setNotice({
-          type: "error",
-          text: toUserFriendlyMessage(e, "No se pudo cargar la lista de historias clínicas."),
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [filiacionFrom, filiacionTo, page, perPage, qDebounced, statusFilter]
-  );
-
-  const prevFiltersRef = useRef<{
-    q: string;
-    status: StatusFilter;
-    perPage: number;
-    from: string;
-    to: string;
-  } | null>(null);
-
+  const prevFiliacionRef = useRef<{ from: string; to: string } | null>(null);
   useEffect(() => {
-    const prev = prevFiltersRef.current;
-    const next = { q: qDebounced, status: statusFilter, perPage, from: filiacionFrom, to: filiacionTo };
-
-    const filtersChanged =
-      !prev ||
-      prev.q !== next.q ||
-      prev.status !== next.status ||
-      prev.perPage !== next.perPage ||
-      prev.from !== next.from ||
-      prev.to !== next.to;
-
-    prevFiltersRef.current = next;
-
-    if (filtersChanged && page !== 1) {
-      setPage(1);
-      return;
+    const prev = prevFiliacionRef.current;
+    const next = { from: filiacionFrom, to: filiacionTo };
+    if (prev && (prev.from !== next.from || prev.to !== next.to)) {
+      if (page !== 1) {
+        setPage(1);
+      } else {
+        void refresh();
+      }
     }
-
-    void refresh();
-  }, [page, perPage, qDebounced, statusFilter, filiacionFrom, filiacionTo, refresh]);
+    prevFiliacionRef.current = next;
+  }, [filiacionFrom, filiacionTo, page, refresh, setPage]);
 
   return {
     data,
@@ -165,7 +136,7 @@ export function useHistoriaClinica() {
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    setPerPage,
 
     q,
     setQ,
@@ -175,8 +146,13 @@ export function useHistoriaClinica() {
     setFrom,
     setTo,
 
-    statusFilter,
-    setStatusFilter,
+    statusFilter: statusFilter as StatusFilter,
+    setStatusFilter: setStatusFilter as (v: StatusFilter) => void,
+
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
 
     selected,
     selectedId,
@@ -185,7 +161,5 @@ export function useHistoriaClinica() {
 
     canCreate,
     canEdit,
-
-    refresh,
   };
 }

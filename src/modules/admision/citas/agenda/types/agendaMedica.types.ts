@@ -71,6 +71,8 @@ export type AgendaCitasQuery = {
   estado_atencion?: CitaAtencionEstado | "" | null;
   per_page?: number;
   page?: number;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type AgendaCitaPayload = {

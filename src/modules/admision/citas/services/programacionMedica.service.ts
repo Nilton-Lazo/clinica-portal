@@ -1,6 +1,7 @@
 import type { PaginatedResponse } from "../../../../shared/types/pagination";
 import type { RecordStatus } from "../../../../shared/types/recordStatus";
 import { api } from "../../../../shared/api";
+import { buildListQuery } from "../../../../shared/datagrid";
 
 import type {
   ConsultorioLookup,
@@ -48,15 +49,16 @@ function coerceTipo(x: unknown): "NORMAL" | "EXTRAORDINARIA" {
 }
 
 function buildQuery(filters: ProgramacionMedicaListFilters): string {
-  const p = new URLSearchParams();
-  if (filters.page != null) p.set("page", String(filters.page));
-  if (filters.per_page != null) p.set("per_page", String(filters.per_page));
-  if (filters.status) p.set("status", String(filters.status));
-  if (filters.from) p.set("from", String(filters.from));
-  if (filters.to) p.set("to", String(filters.to));
-  if (filters.q) p.set("q", String(filters.q));
-  const s = p.toString();
-  return s ? `?${s}` : "";
+  return buildListQuery({
+    page: filters.page ?? 1,
+    per_page: filters.per_page ?? 50,
+    q: filters.q,
+    status: filters.status,
+    sort: filters.sort,
+    sort_dir: filters.sort_dir,
+    from: filters.from,
+    to: filters.to,
+  });
 }
 
 function normalizeEspecialidad(x: unknown): EspecialidadLookup | null {

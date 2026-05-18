@@ -1,6 +1,6 @@
 import type { PresupuestoListItem, PresupuestoListaResponse } from "../types/presupuestoLista.types";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../../shared/datagrid";
 import { EstadoFacturacionBadge } from "../../agenda/components/EstadoFacturacionBadge";
 
 function formatDMY(iso?: string | null): string {
@@ -20,58 +20,89 @@ export default function PresupuestosTable(props: {
   onNext: () => void;
   onFirst: () => void;
   onLast: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, onOpenRow, onPrefetchRow, onPrev, onNext, onFirst, onLast } = props;
+  const {
+    data,
+    loading,
+    onOpenRow,
+    onPrefetchRow,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns: DataTableColumn<PresupuestoListItem>[] = [
+  const columns: DataGridColumnDef<PresupuestoListItem>[] = [
     {
-      key: "codigo",
+      id: "codigo",
       header: "Código",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => (x.codigo?.trim() ? x.codigo : "—"),
+      sortable: true,
+      align: "center",
+      size: 120,
+      exportValue: (x) => x.codigo ?? "",
+      cell: (x) => <span className="tabular-nums">{x.codigo?.trim() ? x.codigo : "—"}</span>,
     },
     {
-      key: "hc",
+      id: "hc",
       header: "N° Historia",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => (x.hc?.trim() ? x.hc : "—"),
+      sortable: true,
+      align: "center",
+      size: 130,
+      exportValue: (x) => x.hc ?? "",
+      cell: (x) => <span className="tabular-nums">{x.hc?.trim() ? x.hc : "—"}</span>,
     },
     {
-      key: "nr",
+      id: "nr",
       header: "N° Referencia",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => (x.nr ? x.nr : "—"),
+      align: "center",
+      size: 130,
+      exportValue: (x) => (x.nr ? String(x.nr) : ""),
+      cell: (x) => <span className="tabular-nums">{x.nr ? x.nr : "—"}</span>,
     },
     {
-      key: "nombre_completo",
+      id: "nombre_completo",
       header: "Apellidos y nombres",
-      headerClassName: "text-left min-w-[260px]",
-      cellClassName: "px-3 py-2",
-      render: (x) => (x.nombre_completo?.trim() ? x.nombre_completo : "—"),
+      sortable: true,
+      align: "left",
+      grow: true,
+      exportValue: (x) => x.nombre_completo ?? "",
+      cell: (x) => (
+        <span className="whitespace-normal wrap-anywhere">{x.nombre_completo?.trim() ? x.nombre_completo : "—"}</span>
+      ),
     },
     {
-      key: "plan",
+      id: "plan",
       header: "Plan",
-      headerClassName: "text-center min-w-[140px]",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (x.plan?.trim() ? x.plan : "—"),
+      align: "center",
+      size: 150,
+      exportValue: (x) => x.plan ?? "",
+      cell: (x) => (x.plan?.trim() ? x.plan : "—"),
     },
     {
-      key: "vigencia_hasta",
+      id: "vigencia_hasta",
       header: "Vencimiento",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => formatDMY(x.vigencia_hasta),
+      sortable: true,
+      align: "center",
+      size: 130,
+      exportValue: (x) => formatDMY(x.vigencia_hasta),
+      cell: (x) => <span className="tabular-nums">{formatDMY(x.vigencia_hasta)}</span>,
     },
     {
-      key: "estado",
+      id: "estado",
       header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
+      sortable: true,
+      align: "center",
+      size: 140,
+      exportValue: (x) => x.estado,
+      cell: (x) => (
         <div className="flex justify-center">
           <EstadoFacturacionBadge estado={x.estado} mode="presupuesto" />
         </div>
@@ -80,17 +111,24 @@ export default function PresupuestosTable(props: {
   ];
 
   return (
-    <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={null}
-        getRowId={(x) => x.id}
-        onSelect={(row) => onOpenRow(row.id)}
-        onRowPointerEnter={onPrefetchRow ? (row) => onPrefetchRow(row.id) : undefined}
-      />
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={null}
+      getRowId={(x) => x.id}
+      onSelect={(row) => onOpenRow(row.id)}
+      onRowPointerEnter={onPrefetchRow ? (row) => onPrefetchRow(row.id) : undefined}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="presupuestos-admision"
+    />
   );
 }

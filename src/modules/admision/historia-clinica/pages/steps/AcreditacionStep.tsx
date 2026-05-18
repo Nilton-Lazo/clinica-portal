@@ -99,7 +99,6 @@ export function AcreditacionStep() {
                 loading={vm.loading}
                 selectedId={vm.selected?.id ?? null}
                 onSelect={vm.loadForEdit}
-                page={vm.page}
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onFirst={handleFirst}

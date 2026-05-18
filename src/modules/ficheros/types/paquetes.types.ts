@@ -7,8 +7,9 @@ export type TarifaPaqueteResumen = {
   id: number;
   codigo: string;
   descripcion_tarifa: string;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
-
 export type Paquete = {
   id: number;
   codigo: string;
@@ -29,6 +30,8 @@ export type PaquetesQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type TarifaLookupPaquete = {

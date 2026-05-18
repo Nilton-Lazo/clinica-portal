@@ -1,5 +1,6 @@
 import type { Iafa, IafasQuery, PaginatedResponse, RecordStatus, TipoIafaLookup } from "../types/iafas.types";
 import { api } from "../../../shared/api";
+import { buildListQuery } from "../../../shared/datagrid";
 
 export type IafaCreatePayload = {
   tipo_iafa_id: number;
@@ -75,18 +76,14 @@ export async function getNextIafaCodigo(): Promise<{ codigo: string }> {
 }
 
 function buildQuery(query: IafasQuery): string {
-  const params = new URLSearchParams();
-
-  params.set("page", String(query.page ?? 1));
-  params.set("per_page", String(query.per_page ?? 50));
-
-  const q = (query.q ?? "").trim();
-  if (q) params.set("q", q);
-
-  if (query.status) params.set("status", query.status);
-
-  const s = params.toString();
-  return s ? `?${s}` : "";
+  return buildListQuery({
+    page: query.page ?? 1,
+    per_page: query.per_page ?? 50,
+    q: query.q,
+    status: query.status,
+    sort: query.sort,
+    sort_dir: query.sort_dir,
+  });
 }
 
 function toStrOrNull(v: unknown): string | null {

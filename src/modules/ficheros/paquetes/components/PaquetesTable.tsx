@@ -1,7 +1,7 @@
 import type { Paquete, PaginatedResponse } from "../../types/paquetes.types";
-import { StatusBadge } from "../../components/StatusBadge";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
+import { ficherosCodigoColumn, ficherosEstadoColumn, ficherosMainColumn } from "../../utils/ficherosGridColumns";
 import { formatDecimalDisplay } from "../../../../shared/constants/decimalPrecision";
 
 function vigenciaDisplay(iso: string): string {
@@ -21,28 +21,37 @@ export default function PaquetesTable(props: {
   loading: boolean;
   selectedId: number | null;
   onSelect: (x: Paquete) => void;
-  page: number;
   onPrev: () => void;
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns: DataTableColumn<Paquete>[] = [
-    {
-      key: "codigo",
-      header: "Código",
-      headerClassName: "text-center w-24 shrink-0",
-      cellClassName: "px-3 py-2 text-center tabular-nums align-middle whitespace-nowrap w-24 max-w-24",
-      render: (x) => x.codigo || "—",
-    },
-    {
-      key: "descripcion",
+  const columns: DataGridColumnDef<Paquete>[] = [
+    ficherosCodigoColumn<Paquete>(),
+    ficherosMainColumn<Paquete>({
+      id: "descripcion",
       header: "Paquete",
-      headerClassName: "text-left min-w-0 w-[50%]",
-      cellClassName: "px-3 py-2 align-top min-w-0",
-      render: (x) => {
+      exportValue: (x) => x.descripcion,
+      cell: (x) => {
         const tc = (x.tarifa?.codigo ?? "").trim();
         const td = (x.tarifa?.descripcion_tarifa ?? "").trim();
         const tarifaLine = tc && td ? `${tc} · ${td}` : tc || td || "—";
@@ -56,33 +65,28 @@ export default function PaquetesTable(props: {
           </div>
         );
       },
-    },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-44 shrink-0",
-      cellClassName: "px-3 py-2 text-center align-middle whitespace-nowrap w-44",
-      render: (x) => (
-        <div className="flex justify-center">
-          <StatusBadge status={x.estado} />
-        </div>
-      ),
-    },
+    }),
+    ficherosEstadoColumn<Paquete>(),
   ];
 
   return (
-    <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-        tableClassName="table-fixed w-full max-w-full"
-      />
-
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="paquetes"
+    />
   );
 }

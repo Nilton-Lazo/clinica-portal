@@ -1,8 +1,8 @@
 import type { RecargoNocheRegla } from "../../services/recargoNoche.service";
 import type { PaginationMeta } from "../../../../shared/types/pagination";
-import { StatusBadge } from "../../components/StatusBadge";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
+import { ficherosEstadoColumn } from "../../utils/ficherosGridColumns";
 
 export default function RecargoNocheTable(props: {
   reglas: RecargoNocheRegla[];
@@ -14,78 +14,102 @@ export default function RecargoNocheTable(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { reglas, loading, selectedId, onSelect, paginationMeta, onPrev, onNext, onFirst, onLast } = props;
+  const {
+    reglas,
+    loading,
+    selectedId,
+    onSelect,
+    paginationMeta,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns: DataTableColumn<RecargoNocheRegla>[] = [
+  const columns: DataGridColumnDef<RecargoNocheRegla>[] = [
     {
-      key: "codigo",
+      id: "codigo",
       header: "Código",
-      headerClassName: "text-center w-20",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (r) => r.categoria_codigo ?? "—",
+      sortable: true,
+      align: "center",
+      size: 80,
+      exportValue: (r) => r.categoria_codigo ?? "",
+      cell: (r) => r.categoria_codigo ?? "—",
     },
     {
-      key: "categoria",
+      id: "categoria",
       header: "Categoría",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2 min-w-0",
-      render: (r) => r.categoria_nombre ?? `Categoría ${r.tarifa_categoria_id}`,
+      sortable: true,
+      align: "left",
+      grow: true,
+      exportValue: (r) => r.categoria_nombre ?? "",
+      cell: (r) => r.categoria_nombre ?? `Categoría ${r.tarifa_categoria_id}`,
     },
     {
-      key: "porcentaje",
+      id: "porcentaje",
       header: "%",
-      headerClassName: "text-center w-24",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (r) => r.porcentaje,
+      sortable: true,
+      align: "center",
+      size: 96,
+      exportValue: (r) => String(r.porcentaje),
+      cell: (r) => r.porcentaje,
     },
     {
-      key: "hora_desde",
+      id: "hora_desde",
       header: "H. desde",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (r) => r.hora_desde?.slice(0, 5) ?? "—",
+      sortable: true,
+      align: "center",
+      size: 112,
+      exportValue: (r) => r.hora_desde?.slice(0, 5) ?? "",
+      cell: (r) => r.hora_desde?.slice(0, 5) ?? "—",
     },
     {
-      key: "hora_hasta",
+      id: "hora_hasta",
       header: "H. hasta",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (r) => r.hora_hasta?.slice(0, 5) ?? "—",
+      sortable: true,
+      align: "center",
+      size: 112,
+      exportValue: (r) => r.hora_hasta?.slice(0, 5) ?? "",
+      cell: (r) => r.hora_hasta?.slice(0, 5) ?? "—",
     },
-    {
-      key: "estado",
-      header: "Estado",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center",
-      render: (r) => (
-        <div className="flex justify-center">
-          <StatusBadge status={r.estado} />
-        </div>
-      ),
-    },
+    ficherosEstadoColumn<RecargoNocheRegla>(),
   ];
 
-  return (
-    <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
-        rows={reglas}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(r) => r.id}
-        onSelect={onSelect}
-        emptyText="No hay registros."
-      />
+  const meta: PaginationMeta = paginationMeta ?? {
+    current_page: 1,
+    per_page: reglas.length || 50,
+    total: reglas.length,
+    last_page: 1,
+  };
 
-      <PaginationFooter
-        meta={paginationMeta}
-        variant="desktop"
-        onPrev={onPrev}
-        onNext={onNext}
-        onFirst={onFirst}
-        onLast={onLast}
-      />
-    </div>
+  return (
+    <CrudListGrid
+      rows={reglas}
+      columns={columns}
+      loading={loading}
+      meta={meta}
+      selectedId={selectedId}
+      getRowId={(r) => r.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      emptyText="No hay registros."
+      exportFilename="recargo-noche"
+    />
   );
 }

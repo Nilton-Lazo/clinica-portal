@@ -1,4 +1,5 @@
 import * as React from "react";
+import { nextGridSort } from "../../../../../shared/datagrid/gridSortCycle";
 import type { RecordStatus } from "../../../../../shared/types/recordStatus";
 import type {
   ConsultorioLookup,
@@ -127,6 +128,11 @@ export function useProgramacionMedica() {
   const [to, setTo] = React.useState<string>("");
 
   const [q, setQ] = React.useState<string>("");
+  const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
+    sort: null,
+    sortDir: "asc",
+  });
+  const { sort, sortDir } = sortState;
 
   const [mode, setMode] = React.useState<Mode>("new");
   const [selected, setSelected] = React.useState<ProgramacionMedica | null>(null);
@@ -202,6 +208,8 @@ export function useProgramacionMedica() {
         from: fromClean !== "" ? fromClean : undefined,
         to: toClean !== "" ? toClean : undefined,
         q: qClean !== "" ? qClean : undefined,
+        sort: sort ?? undefined,
+        sort_dir: sortDir,
       });
 
       setData(res);
@@ -210,11 +218,15 @@ export function useProgramacionMedica() {
     } finally {
       setLoading(false);
     }
-  }, [svc, page, perPage, statusFilter, from, to, q, toast]);
+  }, [svc, page, perPage, statusFilter, from, to, q, sort, sortDir, toast]);
+
+  const toggleSort = React.useCallback((columnId: string) => {
+    setSortState((prev) => nextGridSort(prev, columnId, { column: "fecha", direction: "asc" }));
+  }, []);
 
   const lastFiltersRef = React.useRef<string>("");
   React.useEffect(() => {
-    const key = `${clampPerPage(perPage)}|${statusFilter}|${from}|${to}|${q}`;
+    const key = `${clampPerPage(perPage)}|${statusFilter}|${from}|${to}|${q}|${sort}|${sortDir}`;
     const prev = lastFiltersRef.current;
     lastFiltersRef.current = key;
 
@@ -223,7 +235,7 @@ export function useProgramacionMedica() {
       return;
     }
     refresh();
-  }, [perPage, statusFilter, from, to, q, page, refresh]);
+  }, [perPage, statusFilter, from, to, q, sort, sortDir, page, refresh]);
 
   React.useEffect(() => {
     let alive = true;
@@ -757,6 +769,9 @@ export function useProgramacionMedica() {
 
     q,
     setQ,
+    sort,
+    sortDir,
+    toggleSort,
     refresh,
 
     mode,

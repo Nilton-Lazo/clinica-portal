@@ -28,10 +28,11 @@ export function CrudSplitLayout({
         {
           ["--form-width" as string]: formWidth,
           gridTemplateColumns: "minmax(0, 1fr) var(--form-width)",
+          gridTemplateRows: "minmax(0, 1fr)",
         } as React.CSSProperties
       }
     >
-      <div className="flex min-h-0 min-w-0 flex-col lg:overflow-hidden">
+      <div className="flex min-w-0 flex-col lg:h-full lg:min-h-0 lg:overflow-hidden">
         {left}
       </div>
       <div

@@ -1,12 +1,12 @@
+import { useCrudListQuery } from "../../../../shared/crud/useCrudListQuery";
+import type { DataGridFetchParams } from "../../../../shared/datagrid";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ContratanteLookup,
   IafaLookup,
-  PaginatedResponse,
   RecordStatus,
   TarifaLookup,
   TipoCliente,
-  TiposClientesQuery,
 } from "../../types/tiposClientes.types";
 
 import {
@@ -20,7 +20,6 @@ import {
   updateTipoCliente,
 } from "../../services/tiposClientes.service";
 
-import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
@@ -28,29 +27,45 @@ export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
 
-function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
 
 export function useTiposClientes() {
-  const [data, setData] = useState<PaginatedResponse<TipoCliente>>({
-    data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  const list = useCrudListQuery<TipoCliente>({
+    listFn: useCallback(
+      (params: DataGridFetchParams) =>
+        listTiposClientes({
+          page: params.page,
+          per_page: params.per_page,
+          q: params.q,
+          status: params.status as RecordStatus | undefined,
+          sort: params.sort,
+          sort_dir: params.sort_dir,
+        }),
+      []
+    ),
+    errorMessage: "No se pudo cargar la lista de tipos de cliente.",
+    initialSort: "codigo",
   });
 
-  const [loading, setLoading] = useState(false);
+  const {
+    data,
+    loading,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
+  } = list;
+
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
-
-  const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
-
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
   const [tarifas, setTarifas] = useState<TarifaLookup[]>([]);
   const [contratantes, setContratantes] = useState<ContratanteLookup[]>([]);
@@ -217,52 +232,6 @@ export function useTiposClientes() {
     setNotice(null);
   }, [mode, resetToNew, selected]);
 
-  const refresh = useCallback(
-    async (next?: { page?: number; perPage?: number }) => {
-      setLoading(true);
-      setNotice(null);
-
-      const targetPage = next?.page ?? page;
-      const targetPerPage = next?.perPage ?? perPage;
-
-      const query: TiposClientesQuery = {
-        page: targetPage,
-        per_page: targetPerPage,
-        q: qDebounced.trim() ? qDebounced.trim() : undefined,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-      };
-
-      try {
-        const res = await listTiposClientes(query);
-        setData(res);
-      } catch (e) {
-        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de tipos de clientes.");
-        setNotice({ type: "error", text: msg });
-        toastService.showError(msg);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, perPage, qDebounced, statusFilter]
-  );
-
-  const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
-
-  useEffect(() => {
-    const prev = prevFiltersRef.current;
-    const next = { q: qDebounced, status: statusFilter, perPage };
-
-    const filtersChanged = !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
-    prevFiltersRef.current = next;
-
-    if (filtersChanged && page !== 1) {
-      setPage(1);
-      return;
-    }
-
-    void refresh();
-  }, [page, perPage, qDebounced, statusFilter, refresh]);
-
   const onSave = useCallback(async () => {
     setNotice(null);
 
@@ -371,11 +340,14 @@ export function useTiposClientes() {
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    setPerPage,
     q,
     setQ,
     statusFilter,
     setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
 
     tarifas,
     contratantes,

@@ -4,6 +4,7 @@ import type {
   RegistroEmergenciaQuery,
 } from "../types/registroEmergencia.types";
 import { api } from "../../../shared/api";
+import { buildListQuery } from "../../../shared/datagrid";
 
 const CACHE_TTL_MS = 60_000;
 const CACHE_MAX_ENTRIES = 50;
@@ -36,15 +37,15 @@ function pruneCache() {
 }
 
 function buildQuery(query: RegistroEmergenciaQuery): string {
-  const params = new URLSearchParams();
-  params.set("page", String(query.page ?? 1));
-  params.set("per_page", String(query.per_page ?? 50));
-  const q = (query.q ?? "").trim();
-  if (q) params.set("q", q);
-  if (query.fecha_desde) params.set("fecha_desde", query.fecha_desde);
-  if (query.fecha_hasta) params.set("fecha_hasta", query.fecha_hasta);
-  const s = params.toString();
-  return s ? `?${s}` : "";
+  return buildListQuery({
+    page: query.page ?? 1,
+    per_page: query.per_page ?? 50,
+    q: query.q,
+    sort: query.sort,
+    sort_dir: query.sort_dir,
+    fecha_desde: query.fecha_desde,
+    fecha_hasta: query.fecha_hasta,
+  });
 }
 
 export function listRegistroEmergencia(

@@ -5,7 +5,15 @@ export type ApiError =
   | { kind: "unauthorized"; status: 401; message: string; code?: string }
   | { kind: "forbidden"; status: 403; message: string }
   | { kind: "server"; status: number; message: string }
-  | { kind: "network"; status: 0; message: string };
+  | { kind: "network"; status: 0; message: string; aborted?: boolean };
+
+export function isAbortedRequest(input: unknown): boolean {
+  return (
+    isApiError(input) &&
+    input.kind === "network" &&
+    (input as { aborted?: boolean }).aborted === true
+  );
+}
 
 export function isApiError(input: unknown): input is ApiError {
   if (!input || typeof input !== "object") return false;

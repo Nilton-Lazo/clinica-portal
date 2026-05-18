@@ -205,14 +205,17 @@ export default function MedicoPicker(props: Props) {
             getRowId={(x) => x.id}
             onSelect={handleRowSelect}
             emptyText="No hay registros."
-          />
-          <PaginationFooter
+            heightMode="fill"
+            shellClassName="min-h-0 flex-1"
             meta={data.meta}
-            variant="desktop"
+            paginationVariant="desktop"
             onPrev={onPrev}
             onNext={onNext}
             onFirst={onFirst}
             onLast={onLast}
+            exportFilename="medicos-picker"
+            enableColumnPicker
+            enableExport
           />
         </div>
         <div className="min-h-0 min-w-0 flex-1 lg:hidden">

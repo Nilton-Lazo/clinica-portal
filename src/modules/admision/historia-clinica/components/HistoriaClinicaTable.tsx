@@ -1,6 +1,6 @@
 import type { PacienteListItem, PaginatedResponse } from "../types/historiaClinica.types";
-import { DataTable, type DataTableColumn } from "../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../shared/datagrid";
 import { StatusBadge } from "../../../ficheros/components/StatusBadge";
 
 function formatDMY(iso?: string | null): string {
@@ -22,78 +22,114 @@ export default function HistoriaClinicaTable(props: {
   loading: boolean;
   selectedId: number | null;
   onSelect: (x: PacienteListItem) => void;
-  page: number;
   onPrev: () => void;
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
   pickerMode?: boolean;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast, pickerMode } = props;
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+    pickerMode,
+  } = props;
 
-  const columnsFull: DataTableColumn<PacienteListItem>[] = [
+  const columnsFull: DataGridColumnDef<PacienteListItem>[] = [
     {
-      key: "hc",
+      id: "hc",
       header: "N° Historia",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.hc || "—",
+      sortable: true,
+      align: "center",
+      size: 140,
+      exportValue: (x) => x.hc || "",
+      cell: (x) => <span className="tabular-nums">{x.hc || "—"}</span>,
     },
     {
-      key: "nombre_completo",
+      id: "nombre_completo",
       header: "Apellidos y nombres",
-      headerClassName: "text-left min-w-[260px]",
-      cellClassName: "px-3 py-2",
-      render: (x) => (x.nombre_completo?.trim() ? x.nombre_completo : "—"),
+      sortable: true,
+      align: "left",
+      grow: true,
+      exportValue: (x) => x.nombre_completo ?? "",
+      cell: (x) => (
+        <span className="whitespace-normal wrap-anywhere">{x.nombre_completo?.trim() ? x.nombre_completo : "—"}</span>
+      ),
     },
     {
-      key: "condicion",
+      id: "condicion",
       header: "Condición",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => labelize(x.parentesco_seguro),
+      align: "center",
+      size: 150,
+      exportValue: (x) => labelize(x.parentesco_seguro),
+      cell: (x) => labelize(x.parentesco_seguro),
     },
     {
-      key: "nr",
+      id: "nr",
       header: "N° Referencia",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => (x.nr ? x.nr : "—"),
+      sortable: true,
+      align: "center",
+      size: 130,
+      exportValue: (x) => (x.nr ? String(x.nr) : ""),
+      cell: (x) => <span className="tabular-nums">{x.nr ? x.nr : "—"}</span>,
     },
     {
-      key: "sexo",
+      id: "sexo",
       header: "Sexo",
-      headerClassName: "text-center w-32",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => labelize(x.sexo),
+      sortable: true,
+      align: "center",
+      size: 100,
+      exportValue: (x) => labelize(x.sexo),
+      cell: (x) => labelize(x.sexo),
     },
     {
-      key: "fecha_nacimiento",
+      id: "fecha_nacimiento",
       header: "F. nacimiento",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => formatDMY(x.fecha_nacimiento),
+      sortable: true,
+      align: "center",
+      size: 130,
+      exportValue: (x) => formatDMY(x.fecha_nacimiento),
+      cell: (x) => <span className="tabular-nums">{formatDMY(x.fecha_nacimiento)}</span>,
     },
     {
-      key: "created_at",
+      id: "created_at",
       header: "F. filiación",
-      headerClassName: "text-center w-40",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => formatDMY(x.created_at),
+      sortable: true,
+      align: "center",
+      size: 130,
+      exportValue: (x) => formatDMY(x.created_at),
+      cell: (x) => <span className="tabular-nums">{formatDMY(x.created_at)}</span>,
     },
     {
-      key: "updated_at",
+      id: "updated_at",
       header: "F. actualización",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => formatDMY(x.updated_at),
+      sortable: true,
+      align: "center",
+      size: 140,
+      exportValue: (x) => formatDMY(x.updated_at),
+      cell: (x) => <span className="tabular-nums">{formatDMY(x.updated_at)}</span>,
     },
     {
-      key: "estado",
+      id: "estado",
       header: "Estado",
-      headerClassName: "text-center w-44",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
+      sortable: true,
+      align: "center",
+      size: 140,
+      exportValue: (x) => x.estado,
+      cell: (x) => (
         <div className="flex justify-center">
           <StatusBadge status={x.estado} />
         </div>
@@ -101,27 +137,67 @@ export default function HistoriaClinicaTable(props: {
     },
   ];
 
-  const columnsPicker: DataTableColumn<PacienteListItem>[] = [
-    { key: "hc", header: "N° Historia", headerClassName: "text-center w-36", cellClassName: "px-3 py-2 text-center tabular-nums", render: (x) => x.hc || "—" },
-    { key: "nombre_completo", header: "Apellidos y Nombres", headerClassName: "text-left min-w-0", cellClassName: "px-3 py-2", render: (x) => (x.nombre_completo?.trim() ? x.nombre_completo : "—") },
-    { key: "condicion", header: "Condición", headerClassName: "text-center w-36", cellClassName: "px-3 py-2 text-center", render: (x) => labelize(x.parentesco_seguro) },
-    { key: "estado", header: "Estado", headerClassName: "text-center w-32", cellClassName: "px-3 py-2 text-center", render: (x) => <div className="flex justify-center"><StatusBadge status={x.estado} /></div> },
+  const columnsPicker: DataGridColumnDef<PacienteListItem>[] = [
+    {
+      id: "hc",
+      header: "N° Historia",
+      sortable: true,
+      align: "center",
+      size: 130,
+      cell: (x) => <span className="tabular-nums">{x.hc || "—"}</span>,
+    },
+    {
+      id: "nombre_completo",
+      header: "Apellidos y Nombres",
+      sortable: true,
+      align: "left",
+      grow: true,
+      cell: (x) => (
+        <span className="whitespace-normal wrap-anywhere">{x.nombre_completo?.trim() ? x.nombre_completo : "—"}</span>
+      ),
+    },
+    {
+      id: "condicion",
+      header: "Condición",
+      align: "center",
+      size: 130,
+      cell: (x) => labelize(x.parentesco_seguro),
+    },
+    {
+      id: "estado",
+      header: "Estado",
+      sortable: true,
+      align: "center",
+      size: 120,
+      cell: (x) => (
+        <div className="flex justify-center">
+          <StatusBadge status={x.estado} />
+        </div>
+      ),
+    },
   ];
 
   const columns = pickerMode ? columnsPicker : columnsFull;
 
   return (
-    <div className="hidden min-h-0 flex-1 flex-col lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-      />
-
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename={pickerMode ? undefined : "historias-clinicas"}
+      enableExport={!pickerMode}
+    />
   );
 }

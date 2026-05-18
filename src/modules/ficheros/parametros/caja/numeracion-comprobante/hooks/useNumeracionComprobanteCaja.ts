@@ -7,10 +7,10 @@ import {
   listTiposDocumentoCajaActivos,
   updateNumeracionComprobanteCaja,
   type NumeracionComprobanteCajaItem,
-  type NumeracionComprobanteCajaListResponse,
   type TipoDocumentoCajaOption,
 } from "../../services/numeracionComprobanteCaja.service";
-import { useDebouncedValue } from "../../../../../../shared/hooks/useDebouncedValue";
+import { useCrudListQuery } from "../../../../../../shared/crud/useCrudListQuery";
+import type { DataGridFetchParams } from "../../../../../../shared/datagrid";
 import { useToast } from "../../../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../../../shared/api/apiError";
 import {
@@ -22,12 +22,6 @@ import {
 
 export type Mode = "new" | "edit";
 export type { StatusFilter };
-
-function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
 
 function formatNumero(n: number): string {
   const safe = Math.max(1, Math.min(9999999, Number.isFinite(n) ? Math.trunc(n) : 1));
@@ -44,18 +38,42 @@ function parseNumero(v: string): number {
 
 export function useNumeracionComprobanteCaja() {
   const toast = useToast();
-  const [data, setData] = useState<NumeracionComprobanteCajaListResponse>({
-    data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+  const list = useCrudListQuery<NumeracionComprobanteCajaItem>({
+    listFn: useCallback(
+      (params: DataGridFetchParams) =>
+        listNumeracionComprobanteCaja({
+          page: params.page,
+          per_page: params.per_page,
+          q: params.q,
+          status: params.status as RecordStatus | undefined,
+          sort: params.sort,
+          sort_dir: params.sort_dir,
+        }),
+      []
+    ),
+    errorMessage: "No se pudo cargar la lista de numeraciones de comprobante.",
+    initialSort: "codigo",
   });
+
+  const {
+    data,
+    loading,
+    page,
+    setPage,
+    perPage,
+    setPerPage,
+    q,
+    setQ,
+    statusFilter,
+    setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
+    refresh,
+  } = list;
+
   const [tiposDocumento, setTiposDocumento] = useState<TipoDocumentoCajaOption[]>([]);
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
-  const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [mode, setMode] = useState<Mode>("new");
   const [selected, setSelected] = useState<NumeracionComprobanteCajaItem | null>(null);
   const [tipoDocumentoId, setTipoDocumentoId] = useState("");
@@ -69,8 +87,6 @@ export function useNumeracionComprobanteCaja() {
     numero: number;
     estado: RecordStatus;
   } | null>(null);
-  const lastToastedErrorRef = useRef<string | null>(null);
-
   const loadTiposDocumento = useCallback(async () => {
     try {
       const items = await listTiposDocumentoCajaActivos();
@@ -146,46 +162,6 @@ export function useNumeracionComprobanteCaja() {
     toast.success("Cambios cancelados.");
   }, [mode, resetToNew, selected, toast]);
 
-  const refresh = useCallback(
-    async (next?: { page?: number; perPage?: number }) => {
-      setLoading(true);
-      const targetPage = next?.page ?? page;
-      const targetPerPage = next?.perPage ?? perPage;
-      try {
-        const res = await listNumeracionComprobanteCaja({
-          page: targetPage,
-          per_page: targetPerPage,
-          q: qDebounced.trim() || undefined,
-          status: statusFilter === "ALL" ? undefined : statusFilter,
-        });
-        lastToastedErrorRef.current = null;
-        setData(res);
-      } catch (e) {
-        const msg = getApiErrorMessage(e, "No se pudo cargar la lista de numeraciones de comprobante.");
-        if (lastToastedErrorRef.current !== msg) {
-          lastToastedErrorRef.current = msg;
-          toast.error(msg);
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [page, perPage, qDebounced, statusFilter, toast]
-  );
-
-  const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
-  useEffect(() => {
-    const prev = prevFiltersRef.current;
-    const next = { q: qDebounced, status: statusFilter, perPage };
-    const changed = !prev || prev.q !== next.q || prev.status !== next.status || prev.perPage !== next.perPage;
-    prevFiltersRef.current = next;
-    if (changed && page !== 1) {
-      setPage(1);
-      return;
-    }
-    void refresh();
-  }, [page, perPage, qDebounced, statusFilter, refresh]);
-
   const onNumeroBlur = useCallback(() => {
     setNumeroText(formatNumero(parseNumero(numeroText)));
   }, [numeroText]);
@@ -226,7 +202,7 @@ export function useNumeracionComprobanteCaja() {
         });
         toast.success("Numeración de comprobante creada.");
         setPage(1);
-        await refresh({ page: 1 });
+        await refresh();
         resetToNew();
       } else {
         const res = await updateNumeracionComprobanteCaja(selected!.id, {
@@ -281,11 +257,14 @@ export function useNumeracionComprobanteCaja() {
     page,
     setPage,
     perPage,
-    setPerPage: (n: number) => setPerPageState(clampPerPage(n)),
+    setPerPage,
     q,
     setQ,
     statusFilter,
     setStatusFilter,
+    sort,
+    sortDir,
+    toggleSort,
     mode,
     selected,
     tipoDocumentoId,

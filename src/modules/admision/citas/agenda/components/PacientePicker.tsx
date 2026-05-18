@@ -177,7 +177,6 @@ export function PacientePicker(props: Props) {
           loading={loading}
           selectedId={selected?.id ?? null}
           onSelect={handleRowSelect}
-          page={page}
           onPrev={onPrev}
           onNext={onNext}
           onFirst={onFirst}

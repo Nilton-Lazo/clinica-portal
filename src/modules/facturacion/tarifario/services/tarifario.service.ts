@@ -98,7 +98,14 @@ export async function lookupGruposServicio(): Promise<GrupoServicioLookup[]> {
 
 export async function listCategorias(
   tarifaId: number,
-  query: { page?: number; per_page?: number; q?: string; status?: RecordStatus }
+  query: {
+    page?: number;
+    per_page?: number;
+    q?: string;
+    status?: RecordStatus;
+    sort?: string;
+    sort_dir?: "asc" | "desc";
+  }
 ): Promise<PaginatedResponse<TarifaCategoria>> {
   const res = await api.get<PaginatedResponse<TarifaCategoria>>(
     `/facturacion/tarifario/tarifas/${tarifaId}/categorias${qs({
@@ -106,6 +113,8 @@ export async function listCategorias(
       per_page: query.per_page,
       q: query.q,
       status: query.status,
+      sort: query.sort,
+      sort_dir: query.sort_dir,
     })}`
   );
   return res;
@@ -255,6 +264,8 @@ export async function listServiciosCrud(
     categoria_id?: number;
     subcategoria_id?: number;
     grupo_codigo?: string | null;
+    sort?: string;
+    sort_dir?: "asc" | "desc";
   }
 ): Promise<TarifarioServiciosCrudListResponse> {
   const res = await api.get<TarifarioServiciosCrudListResponse>(
@@ -266,6 +277,8 @@ export async function listServiciosCrud(
       categoria_id: query.categoria_id,
       subcategoria_id: query.subcategoria_id,
       grupo_codigo: query.grupo_codigo ?? undefined,
+      sort: query.sort,
+      sort_dir: query.sort_dir,
     })}`
   );
   return res;

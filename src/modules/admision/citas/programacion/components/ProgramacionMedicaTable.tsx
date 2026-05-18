@@ -1,6 +1,6 @@
 import type { ProgramacionMedica, ProgramacionMedicaPaginated } from "../../types/programacionMedica.types";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../../shared/datagrid";
 import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
 import { dmyFromYmdString } from "../../utils/programacionMedica.utils";
 
@@ -44,65 +44,94 @@ export default function ProgramacionMedicaTable(props: {
   onNext: () => void;
   onFirst?: () => void;
   onLast?: () => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast } = props;
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns: DataTableColumn<ProgramacionMedica>[] = [
+  const columns: DataGridColumnDef<ProgramacionMedica>[] = [
     {
-      key: "codigo",
+      id: "codigo",
       header: "Código",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => x.codigo,
+      sortable: true,
+      align: "center",
+      size: 100,
+      exportValue: (x) => x.codigo,
+      cell: (x) => <span className="tabular-nums">{x.codigo}</span>,
     },
     {
-      key: "fecha",
+      id: "fecha",
       header: "Fecha",
-      headerClassName: "text-center w-36",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => dmyFromYmdString(x.fecha),
+      sortable: true,
+      align: "center",
+      size: 120,
+      exportValue: (x) => dmyFromYmdString(x.fecha),
+      cell: (x) => <span className="tabular-nums">{dmyFromYmdString(x.fecha)}</span>,
     },
     {
-      key: "medico",
+      id: "medico",
       header: "Médico",
-      headerClassName: "text-center",
-      cellClassName: "px-3 py-2",
-      render: (x) => medicoText(x),
+      align: "left",
+      grow: true,
+      exportValue: (x) => medicoText(x),
+      cell: (x) => <span className="whitespace-normal wrap-anywhere">{medicoText(x)}</span>,
     },
     {
-      key: "especialidad",
+      id: "especialidad",
       header: "Especialidad",
-      headerClassName: "text-center",
-      cellClassName: "px-3 py-2",
-      render: (x) => especialidadText(x),
+      align: "left",
+      grow: true,
+      exportValue: (x) => especialidadText(x),
+      cell: (x) => <span className="whitespace-normal wrap-anywhere">{especialidadText(x)}</span>,
     },
     {
-      key: "consultorio",
+      id: "consultorio",
       header: "Consultorio",
-      headerClassName: "text-center w-64",
-      cellClassName: "px-3 py-2",
-      render: (x) => consultorioText(x),
+      align: "left",
+      size: 200,
+      exportValue: (x) => consultorioText(x),
+      cell: (x) => consultorioText(x),
     },
     {
-      key: "turno",
+      id: "turno",
       header: "Turno",
-      headerClassName: "text-center w-72",
-      cellClassName: "px-3 py-2",
-      render: (x) => turnoText(x),
+      align: "left",
+      size: 180,
+      exportValue: (x) => turnoText(x),
+      cell: (x) => turnoText(x),
     },
     {
-      key: "cupos",
+      id: "cupos",
       header: "Cupos",
-      headerClassName: "text-center w-24",
-      cellClassName: "px-3 py-2 text-center tabular-nums",
-      render: (x) => String(x.cupos ?? 0),
+      sortable: true,
+      align: "center",
+      size: 80,
+      exportValue: (x) => String(x.cupos ?? 0),
+      cell: (x) => <span className="tabular-nums">{String(x.cupos ?? 0)}</span>,
     },
     {
-      key: "estado",
+      id: "estado",
       header: "Estado",
-      headerClassName: "text-center w-28",
-      cellClassName: "px-3 py-2 text-center",
-      render: (x) => (
+      sortable: true,
+      align: "center",
+      size: 120,
+      exportValue: (x) => x.estado,
+      cell: (x) => (
         <div className="flex justify-center">
           <StatusBadge status={x.estado} />
         </div>
@@ -111,17 +140,24 @@ export default function ProgramacionMedicaTable(props: {
   ];
 
   return (
-    <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-        emptyText="No hay programaciones."
-      />
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      exportFilename="programacion-medica"
+      emptyText="No hay programaciones."
+    />
   );
 }

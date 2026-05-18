@@ -320,6 +320,13 @@ html, body {
   scrollbar-gutter: auto;
 }
 
+/* Tablas DataGrid: scroll real solo cuando hay overflow (sin hueco vacío fijo) */
+.datagrid-scroll {
+  overflow: auto;
+  scrollbar-gutter: auto;
+  overscroll-behavior: contain;
+}
+
 .Toastify__toast-container {
   z-index: 9999;
   font-family: var(--toastify-font-family);
@@ -337,6 +344,15 @@ html, body {
 .Toastify__toast--error { background: var(--toastify-color-error); color: var(--color-text-inverse); }
 .Toastify__toast--warning { background: var(--toastify-color-warning); color: var(--color-text-inverse); }
 .Toastify__toast--info { background: var(--toastify-color-info); color: var(--color-text-inverse); }
+
+@keyframes datagrid-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
 
 textarea:not([data-preserve-case]):not([readonly]):not(:disabled),
 input:not([data-preserve-case]):not([readonly]):not(:disabled):not([type="password"]):not([type="email"]):not([type="url"]):not([type="tel"]):not([type="number"]):not([type="date"]):not([type="datetime-local"]):not([type="time"]):not([type="month"]):not([type="week"]):not([type="color"]):not([type="file"]):not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]) {

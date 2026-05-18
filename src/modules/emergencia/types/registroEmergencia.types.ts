@@ -58,4 +58,6 @@ export type RegistroEmergenciaQuery = {
   q?: string;
   fecha_desde?: string;
   fecha_hasta?: string;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };

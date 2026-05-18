@@ -127,16 +127,25 @@ export default function AppShell() {
       >
         <AppHeader onOpenMenu={() => setDrawerOpen(true)} onLogout={onLogout} />
 
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto min-w-0">
+        <main
+          className={[
+            "flex min-h-0 flex-1 flex-col min-w-0 overflow-y-auto",
+            isTarifario ? "lg:overflow-hidden" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <div
             className={[
-              "mx-auto flex w-full flex-col p-4 lg:p-2",
+              "mx-auto flex w-full min-h-0 flex-col p-4 lg:h-full lg:p-2",
               isScrollableContent
                 ? isTarifario
-                  ? "min-h-0 flex-1"
+                  ? "lg:flex-1 lg:overflow-hidden"
                   : ""
-                : "min-h-0 flex-1 overflow-y-auto lg:overflow-hidden",
-            ].join(" ")}
+                : "flex-1 lg:overflow-hidden",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
             <Outlet />
           </div>

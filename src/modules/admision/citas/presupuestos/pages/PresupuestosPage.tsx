@@ -82,6 +82,10 @@ export default function PresupuestosPage() {
           onNext={() => vm.setPage((p) => Math.min(Math.max(1, vm.data.meta.last_page), p + 1))}
           onFirst={() => vm.setPage(1)}
           onLast={() => vm.setPage(Math.max(1, vm.data.meta.last_page))}
+          onRefresh={() => void vm.refresh()}
+          sort={vm.sort}
+          sortDir={vm.sortDir}
+          onToggleSort={vm.toggleSort}
         />
         <PresupuestosMobileList
           data={vm.data}

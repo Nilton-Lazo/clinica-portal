@@ -1,14 +1,14 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import type { AgendaCita, AgendaCitasPaginated, CitaAtencionEstado } from "../types/agendaMedica.types";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../../shared/datagrid";
+import { GridCellText } from "../../../../../shared/datagrid";
 import { CitaAtencionBadge } from "./CitaAtencionBadge";
 
 export default function AgendaMedicaTable(props: {
   data: AgendaCitasPaginated;
   loading: boolean;
-  page: number;
   onPrev: () => void;
   onNext: () => void;
   onFirst?: () => void;
@@ -17,8 +17,27 @@ export default function AgendaMedicaTable(props: {
   onSelect: (row: AgendaCita) => void;
   onDoubleClick?: (row: AgendaCita) => void;
   onRequestEliminar?: (row: AgendaCita) => void;
+  onRefresh?: () => void;
+  sort?: string | null;
+  sortDir?: "asc" | "desc";
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { data, loading, onPrev, onNext, onFirst, onLast, selectedId, onSelect, onDoubleClick, onRequestEliminar } = props;
+  const {
+    data,
+    loading,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    selectedId,
+    onSelect,
+    onDoubleClick,
+    onRequestEliminar,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
   const [contextMenu, setContextMenu] = React.useState<{ row: AgendaCita; x: number; y: number } | null>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -61,115 +80,161 @@ export default function AgendaMedicaTable(props: {
     return value;
   };
 
-  const cellBase = "px-3 py-1.5 text-xs";
-  const columns: DataTableColumn<AgendaCita>[] = [
+  const columns: DataGridColumnDef<AgendaCita>[] = [
     {
-      key: "codigo",
+      id: "codigo",
       header: "Código",
-      headerClassName: "text-center w-28 text-xs",
-      cellClassName: `${cellBase} text-center tabular-nums`,
-      render: (x) => x.codigo || "—",
+      sortable: true,
+      align: "center",
+      size: 90,
+      exportValue: (x) => x.codigo ?? "",
+      cell: (x) => <span className="tabular-nums text-xs">{x.codigo || "—"}</span>,
     },
     {
-      key: "hora",
+      id: "hora",
       header: "Hora",
-      headerClassName: "text-center w-24 text-xs",
-      cellClassName: `${cellBase} text-center tabular-nums`,
-      render: (x) => formatHora(x.hora),
+      sortable: true,
+      align: "center",
+      size: 80,
+      exportValue: (x) => formatHora(x.hora),
+      cell: (x) => <span className="tabular-nums text-xs">{formatHora(x.hora)}</span>,
     },
     {
-      key: "h_ing",
+      id: "h_ing",
       header: "H. Ing.",
-      headerClassName: "text-center w-20 whitespace-nowrap text-xs",
-      cellClassName: `${cellBase} text-center tabular-nums font-semibold`,
-      render: (x) =>
-        x.estado_atencion === "ATENDIDO" && x.hora_ingreso
-          ? formatHora(x.hora_ingreso)
-          : x.estado_atencion === "PENDIENTE"
-            ? "P"
-            : x.estado_atencion === "ATENDIDO"
-              ? "A"
-              : "—",
+      align: "center",
+      size: 70,
+      cell: (x) => (
+        <span className="tabular-nums text-xs font-semibold">
+          {x.estado_atencion === "ATENDIDO" && x.hora_ingreso
+            ? formatHora(x.hora_ingreso)
+            : x.estado_atencion === "PENDIENTE"
+              ? "P"
+              : x.estado_atencion === "ATENDIDO"
+                ? "A"
+                : "—"}
+        </span>
+      ),
     },
     {
-      key: "hc",
+      id: "hc",
       header: "N° Historia",
-      headerClassName: "text-center w-36 text-xs",
-      cellClassName: `${cellBase} text-center tabular-nums`,
-      render: (x) => x.hc || "—",
+      sortable: true,
+      align: "center",
+      size: 110,
+      exportValue: (x) => x.hc ?? "",
+      cell: (x) => <span className="tabular-nums text-xs">{x.hc || "—"}</span>,
     },
     {
-      key: "nr",
+      id: "nr",
       header: "N° Referencia",
-      headerClassName: "text-center w-40 text-xs",
-      cellClassName: `${cellBase} text-center tabular-nums`,
-      render: (x) => x.nr || "—",
+      sortable: true,
+      align: "center",
+      size: 110,
+      exportValue: (x) => x.nr ?? "",
+      cell: (x) => <span className="tabular-nums text-xs">{x.nr || "—"}</span>,
     },
     {
-      key: "paciente_nombre",
+      id: "paciente_nombre",
       header: "Paciente",
-      headerClassName: "text-left min-w-[240px] text-xs",
-      cellClassName: cellBase,
-      render: (x) => x.paciente_nombre || "—",
+      sortable: true,
+      align: "left",
+      size: 150,
+      minSize: 120,
+      exportValue: (x) => x.paciente_nombre ?? "",
+      cell: (x) => (
+        <GridCellText
+          value={x.paciente_nombre || "—"}
+          title={x.paciente_nombre ?? undefined}
+          className="text-xs"
+        />
+      ),
     },
     {
-      key: "cuenta",
+      id: "cuenta",
       header: "Cuenta",
-      headerClassName: "text-center w-32 text-xs",
-      cellClassName: `${cellBase} text-center`,
-      render: (x) => x.cuenta || "—",
+      sortable: true,
+      align: "center",
+      size: 90,
+      exportValue: (x) => x.cuenta ?? "",
+      cell: (x) => <span className="text-xs">{x.cuenta || "—"}</span>,
     },
     {
-      key: "iafa",
+      id: "iafa",
       header: "IAFA",
-      headerClassName: "text-center w-44 text-xs",
-      cellClassName: `${cellBase} text-center`,
-      render: (x) =>
-        x.iafa?.descripcion_corta ||
-        x.iafa?.razon_social ||
-        x.iafa?.codigo ||
-        (x.iafa_id ? String(x.iafa_id) : "—"),
+      align: "center",
+      size: 150,
+      exportValue: (x) =>
+        x.iafa?.descripcion_corta || x.iafa?.razon_social || x.iafa?.codigo || (x.iafa_id ? String(x.iafa_id) : ""),
+      cell: (x) => (
+        <span className="text-xs">
+          {x.iafa?.descripcion_corta ||
+            x.iafa?.razon_social ||
+            x.iafa?.codigo ||
+            (x.iafa_id ? String(x.iafa_id) : "—")}
+        </span>
+      ),
     },
     {
-      key: "motivo",
+      id: "motivo",
       header: "Motivo",
-      headerClassName: "text-left min-w-[180px] text-xs",
-      cellClassName: cellBase,
-      render: (x) => x.motivo || "—",
+      sortable: true,
+      align: "left",
+      size: 130,
+      minSize: 100,
+      exportValue: (x) => x.motivo ?? "",
+      cell: (x) => (
+        <GridCellText value={x.motivo || "—"} title={x.motivo ?? undefined} className="text-xs" />
+      ),
     },
     {
-      key: "estado",
+      id: "estado",
       header: "Estado",
-      headerClassName: "text-center w-32 text-xs",
-      cellClassName: `${cellBase} text-center`,
-      render: (x) => (
+      sortable: true,
+      align: "center",
+      size: 110,
+      exportValue: (x) => x.estado_atencion ?? "",
+      cell: (x) => (
         <div className="flex justify-center">
           <CitaAtencionBadge estado={(x.estado_atencion ?? "PENDIENTE") as CitaAtencionEstado} />
         </div>
       ),
     },
     {
-      key: "observacion",
+      id: "observacion",
       header: "Observación",
-      headerClassName: "text-left min-w-[220px] text-xs",
-      cellClassName: cellBase,
-      render: (x) => x.observacion || "—",
+      align: "left",
+      grow: true,
+      exportValue: (x) => x.observacion ?? "",
+      cell: (x) => (
+        <GridCellText value={x.observacion || "—"} title={x.observacion ?? undefined} className="text-xs" />
+      ),
     },
   ];
 
   return (
-    <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden lg:flex">
-      <DataTable
+    <>
+      <CrudListGrid
         rows={data.data}
         columns={columns}
         loading={loading}
-        getRowId={(x) => x.id}
+        meta={data.meta}
         selectedId={selectedId}
+        getRowId={(x) => x.id}
         onSelect={onSelect}
         onDoubleClick={onDoubleClick}
         onContextMenu={onRequestEliminar ? handleContextMenu : undefined}
+        onPrev={onPrev}
+        onNext={onNext}
+        onFirst={onFirst}
+        onLast={onLast}
+        onRefresh={onRefresh}
+        sort={sort}
+        sortDir={sortDir}
+        onToggleSort={onToggleSort}
+        exportFilename="agenda-medica"
+        className="h-full"
       />
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
       {contextMenu
         ? createPortal(
             <div
@@ -190,6 +255,6 @@ export default function AgendaMedicaTable(props: {
             document.body
           )
         : null}
-    </div>
+    </>
   );
 }

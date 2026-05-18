@@ -8,6 +8,7 @@ import {
   listRegistroEmergencia,
   invalidateRegistroEmergenciaCache,
 } from "../../services/registroEmergencia.service";
+import { nextGridSort } from "../../../../shared/datagrid/gridSortCycle";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { useToast } from "../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
@@ -74,6 +75,11 @@ export function useRegistroEmergencia() {
   const [fechaDesde, setFechaDesde] = useState(() => toYYYYMMDD(new Date()));
   const [fechaHasta, setFechaHasta] = useState(() => toYYYYMMDD(new Date()));
   const [periodPreset, setPeriodPresetState] = useState<PeriodPreset>("hoy");
+  const [sortState, setSortState] = useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
+    sort: null,
+    sortDir: "asc",
+  });
+  const { sort, sortDir } = sortState;
   const [selected, setSelected] = useState<RegistroEmergencia | null>(null);
   const prevFiltersRef = useRef<{
     q: string;
@@ -94,6 +100,8 @@ export function useRegistroEmergencia() {
         q: qDebounced.trim() || undefined,
         fecha_desde: fechaDesde || undefined,
         fecha_hasta: fechaHasta || undefined,
+        sort: sort ?? undefined,
+        sort_dir: sortDir,
       };
       try {
         const res = await listRegistroEmergencia(query);
@@ -118,8 +126,12 @@ export function useRegistroEmergencia() {
         setLoading(false);
       }
     },
-    [page, perPage, qDebounced, fechaDesde, fechaHasta, toast]
+    [page, perPage, qDebounced, fechaDesde, fechaHasta, sort, sortDir, toast]
   );
+
+  const toggleSort = useCallback((columnId: string) => {
+    setSortState((prev) => nextGridSort(prev, columnId, { column: "orden", direction: "asc" }));
+  }, []);
 
   useEffect(() => {
     const prev = prevFiltersRef.current;
@@ -141,7 +153,7 @@ export function useRegistroEmergencia() {
       return;
     }
     void refresh();
-  }, [page, perPage, qDebounced, fechaDesde, fechaHasta, refresh]);
+  }, [page, perPage, qDebounced, fechaDesde, fechaHasta, sort, sortDir, refresh]);
 
   const invalidateCache = useCallback(() => {
     invalidateRegistroEmergenciaCache();
@@ -186,6 +198,9 @@ export function useRegistroEmergencia() {
     setPeriodPreset,
     selected,
     selectRow,
+    sort,
+    sortDir,
+    toggleSort,
     refresh: invalidateCache,
   };
 }

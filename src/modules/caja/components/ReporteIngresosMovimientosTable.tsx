@@ -1,118 +1,155 @@
 ﻿import * as React from "react";
-import { DataTable, type DataTableColumn } from "../../../shared/crud/DataTable";
+import { ListGridWithFooter } from "../../../shared/crud/ListGridWithFooter";
+import { GridCellText, type DataGridColumnDef } from "../../../shared/datagrid";
+import type { PaginationMeta } from "../../../shared/types/pagination";
+import type { SortDirection } from "../../../shared/datagrid/types";
 import { AtencionEstadoBadge } from "../../../shared/ui/AtencionEstadoBadge";
 import type { ReporteIngresosMovimiento } from "../services/reporteIngresosCaja.service";
 import { ReporteSolesAmount } from "./ReporteSolesAmount";
 
-function ThStack({ top, bottom }: { top: string; bottom: string }) {
-  return (
-    <span className="inline-flex flex-col items-center justify-center gap-0 leading-[1.15]">
-      <span className="block whitespace-nowrap">{top}</span>
-      <span className="block whitespace-nowrap">{bottom}</span>
-    </span>
-  );
+function parseSolesSort(value: string | number | null | undefined): number {
+  return parseFloat(String(value ?? "").replace(",", ".")) || 0;
 }
-
-const centerTh = "text-center align-middle";
-const centerTd = "px-3 py-2 align-middle text-center tabular-nums text-sm text-(--color-text-primary)";
-const leftTdPaciente =
-  "px-3 py-2 align-middle text-left text-sm text-(--color-text-primary) max-w-[min(28rem,44vw)]";
-const leftTdMedico =
-  "px-3 py-2 align-middle text-left text-sm text-(--color-text-secondary) max-w-[min(28rem,44vw)]";
 
 export function ReporteIngresosMovimientosTable(props: {
   rows: ReporteIngresosMovimiento[];
   loading: boolean;
   sinApertura: boolean;
   selectedId: string | null;
+  meta: PaginationMeta;
   onSelectRow: (row: ReporteIngresosMovimiento) => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onFirst: () => void;
+  onLast: () => void;
+  onRefresh: () => void;
+  sort?: string | null;
+  sortDir?: SortDirection;
+  onToggleSort?: (columnId: string) => void;
 }) {
-  const { rows, loading, sinApertura, selectedId, onSelectRow } = props;
+  const {
+    rows,
+    loading,
+    sinApertura,
+    selectedId,
+    meta,
+    onSelectRow,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    onRefresh,
+    sort,
+    sortDir,
+    onToggleSort,
+  } = props;
 
-  const columns = React.useMemo<DataTableColumn<ReporteIngresosMovimiento>[]>(
+  const columns = React.useMemo<DataGridColumnDef<ReporteIngresosMovimiento>[]>(
     () => [
       {
-        key: "nro_cuenta",
-        header: <ThStack top="N°" bottom="Cuenta" />,
-        headerClassName: `${centerTh} min-w-[4.25rem] max-w-[5rem]`,
-        cellClassName: centerTd,
-        render: (x) => x.cuenta || "—",
+        id: "nro_cuenta",
+        header: "N° Cuenta",
+        columnLabel: "N° Cuenta",
+        align: "center",
+        size: 90,
+        sortable: true,
+        sortValue: (x) => x.cuenta ?? "",
+        cell: (x) => <span className="tabular-nums text-sm">{x.cuenta || "—"}</span>,
       },
       {
-        key: "paciente",
+        id: "paciente",
         header: "Paciente",
-        headerClassName: `${centerTh} min-w-[200px]`,
-        cellClassName: leftTdPaciente,
-        render: (x) => (
-          <span className="block max-w-full whitespace-normal wrap-break-word leading-snug font-medium text-(--color-text-primary)">
-            {x.paciente?.trim() ? x.paciente : "—"}
-          </span>
+        align: "left",
+        size: 200,
+        minSize: 160,
+        sortable: true,
+        cell: (x) => (
+          <GridCellText
+            value={x.paciente?.trim() ? x.paciente : "—"}
+            title={x.paciente?.trim() ? x.paciente : undefined}
+            className="font-medium text-(--color-text-primary)"
+          />
         ),
       },
       {
-        key: "medico",
-        header: "Medico",
-        headerClassName: `${centerTh} min-w-[200px]`,
-        cellClassName: leftTdMedico,
-        render: (x) => (
-          <span className="block max-w-full whitespace-normal wrap-break-word leading-snug text-(--color-text-secondary)">
-            {x.medico?.trim() ? x.medico : "—"}
-          </span>
+        id: "medico",
+        header: "Médico",
+        align: "left",
+        size: 140,
+        minSize: 110,
+        sortable: true,
+        cell: (x) => (
+          <GridCellText
+            value={x.medico?.trim() ? x.medico : "—"}
+            title={x.medico?.trim() ? x.medico : undefined}
+            className="text-(--color-text-secondary)"
+          />
         ),
       },
       {
-        key: "tipo_origen",
+        id: "tipo_origen",
         header: "Tipo",
-        headerClassName: `${centerTh} w-[4.5rem] min-w-[4rem]`,
-        cellClassName: `${centerTd} text-xs font-semibold text-(--color-text-secondary)`,
-        render: (x) => x.origen_sigla || "—",
+        align: "center",
+        size: 80,
+        sortable: true,
+        sortValue: (x) => x.origen_sigla ?? "",
+        cell: (x) => (
+          <span className="text-xs font-semibold text-(--color-text-secondary)">{x.origen_sigla || "—"}</span>
+        ),
       },
       {
-        key: "tipo_documento",
+        id: "tipo_documento",
         header: "Tipo Comp.",
-        headerClassName: `${centerTh} min-w-[8rem] max-w-[10rem]`,
-        cellClassName: `${centerTd} text-(--color-text-secondary)`,
-        render: (x) => (
-          <span className="inline-block max-w-full whitespace-normal wrap-break-word leading-snug">
-            {x.tipo_comprobante || "—"}
-          </span>
+        columnLabel: "Tipo Comp.",
+        align: "center",
+        size: 120,
+        sortable: true,
+        sortValue: (x) => x.tipo_comprobante ?? "",
+        cell: (x) => (
+          <GridCellText
+            value={x.tipo_comprobante || "—"}
+            title={x.tipo_comprobante || undefined}
+            align="center"
+            className="text-(--color-text-secondary)"
+          />
         ),
       },
       {
-        key: "num_comprobante",
-        header: <ThStack top="N°" bottom="Comp." />,
-        headerClassName: `${centerTh} min-w-[5rem] max-w-[6.5rem]`,
-        cellClassName: `${centerTd} whitespace-nowrap`,
-        render: (x) => x.num_comprobante || "—",
+        id: "num_comprobante",
+        header: "N° Comp.",
+        columnLabel: "N° Comp.",
+        align: "center",
+        size: 100,
+        sortable: true,
+        cell: (x) => <span className="tabular-nums whitespace-nowrap text-sm">{x.num_comprobante || "—"}</span>,
       },
       {
-        key: "medio_pago",
-        header: <ThStack top="Medio de" bottom="pago" />,
-        headerClassName: `${centerTh} min-w-[4.5rem] max-w-[6rem]`,
-        cellClassName: `${centerTd} max-w-[14rem]`,
-        render: (x) => (
-          <span className="inline-block max-w-full whitespace-normal wrap-break-word leading-snug align-middle" title={x.medio_pago}>
-            {x.medio_pago || "—"}
-          </span>
+        id: "medio_pago",
+        header: "Medio de pago",
+        align: "center",
+        size: 110,
+        sortable: true,
+        cell: (x) => (
+          <GridCellText value={x.medio_pago || "—"} title={x.medio_pago || undefined} align="center" />
         ),
       },
       {
-        key: "pago_fracc",
-        header: <ThStack top="Pago" bottom="Frac." />,
-        headerClassName: `${centerTh} min-w-[6.5rem]`,
-        cellClassName: "px-3 py-2 align-middle text-sm",
-        render: (x) => (
-          <div className="flex w-full justify-center">
-            <ReporteSolesAmount value={x.pago_fracc} />
-          </div>
-        ),
+        id: "pago_fracc",
+        header: "Pago Frac.",
+        columnLabel: "Pago Frac.",
+        align: "center",
+        size: 110,
+        sortable: true,
+        sortValue: (x) => parseSolesSort(x.pago_fracc),
+        cell: (x) => <ReporteSolesAmount value={x.pago_fracc} />,
       },
       {
-        key: "adelante",
+        id: "adelanto",
         header: "Adelanto",
-        headerClassName: `${centerTh} w-[6rem]`,
-        cellClassName: `${centerTd} text-(--color-text-secondary)`,
-        render: (x) =>
+        align: "center",
+        size: 100,
+        sortable: true,
+        cell: (x) =>
           x.adelanto === "GARANTIA" ? (
             <span className="inline-flex items-center rounded-full border border-(--color-warning) px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-(--color-warning)">
               Garantía
@@ -122,32 +159,31 @@ export function ReporteIngresosMovimientosTable(props: {
           ),
       },
       {
-        key: "usuario_elimina",
-        header: <ThStack top="U." bottom="Elimina" />,
-        headerClassName: `${centerTh} min-w-[3.25rem]`,
-        cellClassName: `${centerTd} text-(--color-text-secondary)`,
-        render: (x) => x.usuario_elimina,
+        id: "usuario_elimina",
+        header: "U. Elimina",
+        columnLabel: "U. Elimina",
+        align: "center",
+        size: 80,
+        sortable: true,
+        cell: (x) => <span className="text-sm text-(--color-text-secondary)">{x.usuario_elimina}</span>,
       },
       {
-        key: "total",
+        id: "total",
         header: "Total",
-        headerClassName: `${centerTh} w-[8.5rem] min-w-[8rem]`,
-        cellClassName: "px-3 py-2 align-middle text-sm",
-        render: (x) => (
-          <div className="flex w-full justify-center">
-            <ReporteSolesAmount value={x.total} />
-          </div>
-        ),
+        align: "center",
+        size: 120,
+        sortable: true,
+        sortValue: (x) => parseSolesSort(x.total),
+        cell: (x) => <ReporteSolesAmount value={x.total} />,
       },
       {
-        key: "estado",
+        id: "estado",
         header: "Estado",
-        headerClassName: `${centerTh} min-w-[10rem]`,
-        cellClassName: `${centerTd}`,
-        render: (x) => (
-          <div className="flex justify-center">
-            <AtencionEstadoBadge value={x.estado?.trim() && x.estado.trim() !== "—" ? x.estado : null} />
-          </div>
+        align: "center",
+        size: 140,
+        sortable: true,
+        cell: (x) => (
+          <AtencionEstadoBadge value={x.estado?.trim() && x.estado.trim() !== "—" ? x.estado : null} />
         ),
       },
     ],
@@ -159,18 +195,29 @@ export function ReporteIngresosMovimientosTable(props: {
     : "Sin emisiones registradas para esta apertura.";
 
   return (
-    <div className="w-full min-w-0">
-      <DataTable
-        rows={rows}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(r) => r.id}
-        onSelect={(r) => onSelectRow(r)}
-        emptyText={emptyText}
-        tableClassName="min-w-[1100px]"
-        heightMode="hug"
-      />
-    </div>
+    <ListGridWithFooter
+      rows={rows}
+      columns={columns}
+      loading={loading}
+      emptyText={emptyText}
+      getRowId={(r) => r.id}
+      selectedId={selectedId}
+      onRowClick={(r) => onSelectRow(r)}
+      heightMode="hug"
+      meta={meta}
+      paginationVariant="desktop"
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      onRefresh={onRefresh}
+      exportFilename="reporte-ingresos-movimientos"
+      enableColumnPicker
+      enableExport
+      sort={sort}
+      sortDir={sortDir}
+      onToggleSort={onToggleSort}
+      enableClientSort={false}
+    />
   );
 }

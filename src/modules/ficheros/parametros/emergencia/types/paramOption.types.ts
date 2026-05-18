@@ -17,6 +17,8 @@ export type ParamOptionQuery = {
   per_page?: number;
   q?: string;
   status?: RecordStatus;
+  sort?: string;
+  sort_dir?: "asc" | "desc";
 };
 
 export type StatusFilter = "ALL" | RecordStatus;

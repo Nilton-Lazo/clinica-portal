@@ -1,6 +1,7 @@
 import type { AcreditacionPlan, ContratanteLookup, IafaLookup, PaginatedResponse, RecordStatus } from "../acreditacionPlanes.types";
-import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
-import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
+import { CrudListGrid } from "../../../../../shared/crud/CrudListGrid";
+import type { DataGridColumnDef } from "../../../../../shared/datagrid";
+import { GridCellText } from "../../../../../shared/datagrid";
 import { StatusBadge } from "../../../../ficheros/components/StatusBadge";
 
 function planLabel(p: AcreditacionPlan): string {
@@ -50,7 +51,6 @@ export default function AcreditacionPlanesTable(props: {
   loading: boolean;
   selectedId: number | null;
   onSelect: (x: AcreditacionPlan) => void;
-  page: number;
   onPrev: () => void;
   onNext: () => void;
   onFirst?: () => void;
@@ -58,56 +58,75 @@ export default function AcreditacionPlanesTable(props: {
   emptyText?: string;
   iafaById: Record<number, IafaLookup>;
   contratanteById: Record<number, ContratanteLookup>;
+  heightMode?: "fill" | "hug";
 }) {
-  const { data, loading, selectedId, onSelect, onPrev, onNext, onFirst, onLast, emptyText, iafaById, contratanteById } = props;
+  const {
+    data,
+    loading,
+    selectedId,
+    onSelect,
+    onPrev,
+    onNext,
+    onFirst,
+    onLast,
+    emptyText,
+    iafaById,
+    contratanteById,
+    heightMode = "fill",
+  } = props;
 
-  const columns: DataTableColumn<AcreditacionPlan>[] = [
+  const columns: DataGridColumnDef<AcreditacionPlan>[] = [
     {
-      key: "tipo_cliente",
+      id: "tipo_cliente",
       header: "Tipo de cliente",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2",
-      render: (p) => (
-        <div className="min-w-0">
-          <div className="truncate">{planLabel(p)}</div>
-        </div>
-      ),
+      align: "left",
+      grow: true,
+      minSize: 160,
+      sortable: true,
+      exportValue: (p) => planLabel(p),
+      cell: (p) => <GridCellText value={planLabel(p)} title={planLabel(p)} />,
     },
     {
-      key: "iafa",
+      id: "iafa",
       header: "IAFAS",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2",
-      render: (p) => (
-        <div className="min-w-0">
-          <div className="truncate">{iafaLabel(p, iafaById)}</div>
-        </div>
-      ),
+      align: "left",
+      size: 180,
+      sortable: true,
+      exportValue: (p) => iafaLabel(p, iafaById),
+      cell: (p) => {
+        const label = iafaLabel(p, iafaById);
+        return <GridCellText value={label} title={label !== "—" ? label : undefined} />;
+      },
     },
     {
-      key: "contratante",
+      id: "contratante",
       header: "Contratante",
-      headerClassName: "text-left",
-      cellClassName: "px-3 py-2",
-      render: (p) => (
-        <div className="min-w-0">
-          <div className="truncate">{contratanteLabel(p, contratanteById)}</div>
-        </div>
-      ),
+      align: "left",
+      size: 200,
+      sortable: true,
+      exportValue: (p) => contratanteLabel(p, contratanteById),
+      cell: (p) => {
+        const label = contratanteLabel(p, contratanteById);
+        return <GridCellText value={label} title={label !== "—" ? label : undefined} />;
+      },
     },
     {
-      key: "condicion",
+      id: "condicion",
       header: "Condición",
-      headerClassName: "text-left w-44",
-      cellClassName: "px-3 py-2",
-      render: (p) => parentescoLabel(p.parentesco_seguro),
+      align: "left",
+      size: 150,
+      sortable: true,
+      exportValue: (p) => parentescoLabel(p.parentesco_seguro),
+      cell: (p) => parentescoLabel(p.parentesco_seguro),
     },
     {
-      key: "estado",
+      id: "estado",
       header: "Estado",
-      headerClassName: "text-center w-32",
-      cellClassName: "px-3 py-2 text-center",
-      render: (p) => (
+      align: "center",
+      size: 120,
+      sortable: true,
+      exportValue: (p) => p.estado,
+      cell: (p) => (
         <div className="flex justify-center">
           <StatusBadge status={p.estado as RecordStatus} />
         </div>
@@ -116,18 +135,22 @@ export default function AcreditacionPlanesTable(props: {
   ];
 
   return (
-    <div className="hidden h-full min-h-0 flex-col lg:flex">
-      <DataTable
-        rows={data.data}
-        columns={columns}
-        loading={loading}
-        selectedId={selectedId}
-        getRowId={(x) => x.id}
-        onSelect={onSelect}
-        emptyText={emptyText}
-      />
-
-      <PaginationFooter meta={data.meta} variant="desktop" onPrev={onPrev} onNext={onNext} onFirst={onFirst} onLast={onLast} />
-    </div>
+    <CrudListGrid
+      rows={data.data}
+      columns={columns}
+      loading={loading}
+      meta={data.meta}
+      selectedId={selectedId}
+      getRowId={(x) => x.id}
+      onSelect={onSelect}
+      onPrev={onPrev}
+      onNext={onNext}
+      onFirst={onFirst}
+      onLast={onLast}
+      emptyText={emptyText}
+      heightMode={heightMode}
+      enableExport={false}
+      enableColumnPicker={false}
+    />
   );
 }
