@@ -64,6 +64,8 @@ const MOV_PER_PAGE_OPTS: SelectOption[] = [
   { value: "100", label: "100" },
 ];
 
+const APERTURAS_PER_PAGE = 6;
+
 const defaultMovMeta: PaginationMeta = {
   current_page: 1,
   per_page: 25,
@@ -225,6 +227,7 @@ export default function ReporteIngresosCajaPage() {
     setBootErr(false);
     fetchReporteIngresosBootstrap({
       ...(aperturasPage !== undefined ? { aperturasPage } : {}),
+      aperturasPerPage: APERTURAS_PER_PAGE,
       sort: aperturasSort ?? undefined,
       sort_dir: aperturasSortDir,
     })
@@ -454,7 +457,7 @@ export default function ReporteIngresosCajaPage() {
   return (
     <div className={pageWrap}>
       <div className={mainSheet}>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:items-stretch">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[5fr_4fr] xl:items-stretch">
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex flex-wrap items-end justify-start gap-x-4 gap-y-4 pb-2">
               <div className="flex w-fit min-w-0 max-w-full flex-col items-start">
@@ -487,7 +490,7 @@ export default function ReporteIngresosCajaPage() {
             </div>
 
             <section className={`${sectionCardFlush} h-full`}>
-            <div className="px-0 pt-0 pb-6">
+            <div className="px-0 pt-0 pb-2">
               <h2 className={sectionTitle}>Aperturas y cierres</h2>
             </div>
             <div className="px-0 pb-0">

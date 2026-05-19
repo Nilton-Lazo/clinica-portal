@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import type { DataGridColumnDef } from "./types";
-import { getColumnDisplayLabel } from "./gridHeader";
+import { getColumnDisplayLabel } from "./gridHeaderUtils";
 
 const MENU_MIN_WIDTH = 176;
 const VIEWPORT_PAD = 8;

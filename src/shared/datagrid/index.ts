@@ -1,12 +1,11 @@
 export { DataGrid } from "./DataGrid";
 export { GridCellText } from "./GridCellText";
+export { GridHeaderLabel, GridHeaderRenderer } from "./gridHeader";
 export {
-  GridHeaderLabel,
   getColumnDisplayLabel,
   getColumnDisplayLabelFromTable,
   humanizeColumnId,
-  renderGridHeader,
-} from "./gridHeader";
+} from "./gridHeaderUtils";
 export { DataGridFooterActions } from "./DataGridFooterActions";
 export { DataGridSkeleton } from "./DataGridSkeleton";
 export { useDataGridQuery } from "./useDataGridQuery";

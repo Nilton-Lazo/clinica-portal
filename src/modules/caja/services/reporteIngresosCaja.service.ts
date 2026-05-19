@@ -83,12 +83,16 @@ function isObject(v: unknown): v is Record<string, unknown> {
 
 export async function fetchReporteIngresosBootstrap(params?: {
   aperturasPage?: number;
+  aperturasPerPage?: number;
   sort?: string;
   sort_dir?: "asc" | "desc";
 }): Promise<ReporteIngresosBootstrap> {
   const q = new URLSearchParams();
   if (params?.aperturasPage != null && params.aperturasPage > 0) {
     q.set("aperturas_page", String(params.aperturasPage));
+  }
+  if (params?.aperturasPerPage != null && params.aperturasPerPage > 0) {
+    q.set("aperturas_per_page", String(params.aperturasPerPage));
   }
   if (params?.sort) q.set("sort", params.sort);
   if (params?.sort_dir) q.set("sort_dir", params.sort_dir);

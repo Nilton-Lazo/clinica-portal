@@ -4,11 +4,10 @@ import {
   DataGrid,
   type DataGridColumnDef,
   type SortDirection,
-  exportRowsToCsv,
-  useClientGridSort,
 } from "../datagrid";
 import type { GridSortDefaults } from "../datagrid/gridSortCycle";
 import { DataGridFooterActions } from "../datagrid/DataGridFooterActions";
+import { useTableShellState } from "../datatable/useTableShellState";
 import { PaginationFooter } from "./PaginationFooter";
 
 function buildListMeta(rows: number, meta?: PaginationMeta): PaginationMeta {
@@ -81,45 +80,27 @@ export function ListGridWithFooter<T>(props: {
     defaultSort,
   } = props;
 
-  const [hiddenColumnIds, setHiddenColumnIds] = React.useState<string[]>([]);
-
-  const hasSortableColumn = React.useMemo(
-    () => columns.some((c) => c.sortable === true),
-    [columns]
-  );
-  const useClientSort = enableClientSort && !onToggleSort && hasSortableColumn;
-  const clientSort = useClientGridSort(rows, columns, defaultSort ? { defaultSort } : undefined);
-  const gridRows = useClientSort ? clientSort.rows : rows;
-  const gridSort = useClientSort ? clientSort.sort : sort;
-  const gridSortDir = useClientSort ? clientSort.sortDir : sortDir;
-  const gridToggleSort = onToggleSort ?? (useClientSort ? clientSort.toggleSort : undefined);
-
-  const toggleColumn = React.useCallback((columnId: string) => {
-    setHiddenColumnIds((prev) =>
-      prev.includes(columnId) ? prev.filter((id) => id !== columnId) : [...prev, columnId]
-    );
-  }, []);
-
-  const visibleColumns = React.useMemo(
-    () => columns.filter((c) => !hiddenColumnIds.includes(c.id)),
-    [columns, hiddenColumnIds]
-  );
-
-  const handleExport = React.useCallback(() => {
-    if (!exportFilename) return;
-    exportRowsToCsv(rows, visibleColumns, exportFilename);
-  }, [exportFilename, rows, visibleColumns]);
+  const shell = useTableShellState({
+    rows,
+    columns,
+    enableClientSort,
+    onToggleSort,
+    sort,
+    sortDir,
+    defaultSort,
+    exportFilename,
+  });
 
   const footerActions =
     onRefresh || (enableExport && exportFilename) || enableColumnPicker ? (
       <DataGridFooterActions
         loading={loading}
         onRefresh={onRefresh}
-        onExport={enableExport && exportFilename ? handleExport : undefined}
+        onExport={enableExport && exportFilename ? shell.handleExport : undefined}
         exportDisabled={rows.length === 0}
         columns={enableColumnPicker ? columns : undefined}
-        hiddenColumnIds={hiddenColumnIds}
-        onToggleColumn={enableColumnPicker ? toggleColumn : undefined}
+        hiddenColumnIds={shell.hiddenColumnIds}
+        onToggleColumn={enableColumnPicker ? shell.toggleColumn : undefined}
       />
     ) : null;
 
@@ -129,7 +110,7 @@ export function ListGridWithFooter<T>(props: {
 
   const grid = (
     <DataGrid
-      rows={gridRows}
+      rows={shell.effectiveRows}
       columns={columns}
       loading={loading}
       error={error}
@@ -140,12 +121,11 @@ export function ListGridWithFooter<T>(props: {
       onRowClick={onRowClick}
       onRowDoubleClick={onRowDoubleClick}
       onRowContextMenu={onRowContextMenu}
-      sort={gridSort}
-      sortDir={gridSortDir}
-      onToggleSort={gridToggleSort}
+      sort={shell.effectiveSort}
+      sortDir={shell.effectiveSortDir}
+      onToggleSort={shell.effectiveToggleSort}
       heightMode={heightMode}
-      hiddenColumnIds={hiddenColumnIds}
-      enableVirtualization={false}
+      hiddenColumnIds={shell.hiddenColumnIds}
     />
   );
 

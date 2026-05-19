@@ -11,11 +11,20 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { DataGridColumnDef, DataGridSortState, SortDirection } from "./types";
 import { DataGridSkeleton } from "./DataGridSkeleton";
 import { GridCellText } from "./GridCellText";
-import { renderGridHeader } from "./gridHeader";
-
-const ROW_MIN_HEIGHT = 40;
-const SELECTION_COL_WIDTH = 44;
-const VIRTUAL_THRESHOLD = 40;
+import { GridHeaderRenderer } from "./gridHeader";
+import {
+  DENSITY_CELL_PADDING_X,
+  DENSITY_CELL_PADDING_Y,
+  DENSITY_HEADER_HEIGHT,
+  DENSITY_ROW_HEIGHT,
+  TABLE_DEFAULT_COL_SIZE,
+  TABLE_DEFAULT_MAX_SIZE,
+  TABLE_DEFAULT_MIN_SIZE,
+  TABLE_GROW_MIN_SIZE,
+  TABLE_SELECTION_COL_WIDTH,
+  TABLE_VIRTUAL_THRESHOLD,
+  type TableDensity,
+} from "../datatable/tokens";
 
 function alignClass(align?: "left" | "center" | "right") {
   if (align === "center") return "text-center";
@@ -23,21 +32,24 @@ function alignClass(align?: "left" | "center" | "right") {
   return "text-left";
 }
 
+function justifyForAlign(align?: "left" | "center" | "right") {
+  if (align === "center") return "justify-center";
+  if (align === "right") return "justify-end";
+  return "justify-start";
+}
+
 function cellContentClass(align?: "left" | "center" | "right") {
-  return [
-    "flex min-h-10 w-full min-w-0 items-center",
-    align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start",
-  ].join(" ");
+  return ["flex w-full min-w-0 items-center", justifyForAlign(align)].join(" ");
 }
 
 function toTanstackColumns<T>(columns: DataGridColumnDef<T>[]): ColumnDef<T, unknown>[] {
   return columns.map((col) => {
     const base: ColumnDef<T, unknown> = {
       id: col.id,
-      header: () => renderGridHeader(col),
-      size: col.size ?? 160,
-      minSize: col.minSize ?? 80,
-      maxSize: col.maxSize ?? 600,
+      header: () => <GridHeaderRenderer col={col} />,
+      size: col.size ?? TABLE_DEFAULT_COL_SIZE,
+      minSize: col.minSize ?? TABLE_DEFAULT_MIN_SIZE,
+      maxSize: col.maxSize ?? TABLE_DEFAULT_MAX_SIZE,
       enableSorting: col.sortable === true,
       enableHiding: col.enableHiding !== false,
       cell: ({ row }) => {
@@ -65,6 +77,31 @@ function toTanstackColumns<T>(columns: DataGridColumnDef<T>[]): ColumnDef<T, unk
   });
 }
 
+type ColumnSizing = {
+  width: number | undefined;
+  minWidth: number;
+  maxWidth: number | undefined;
+  isGrow: boolean;
+};
+
+function resolveColumnSizing<T>(def: DataGridColumnDef<T>): ColumnSizing {
+  if (def.grow) {
+    return {
+      width: undefined,
+      minWidth: def.minSize ?? TABLE_GROW_MIN_SIZE,
+      maxWidth: def.maxSize,
+      isGrow: true,
+    };
+  }
+  const base = def.size ?? def.minSize ?? TABLE_DEFAULT_COL_SIZE;
+  return {
+    width: base,
+    minWidth: def.minSize ?? base,
+    maxWidth: def.maxSize ?? base,
+    isGrow: false,
+  };
+}
+
 export function DataGrid<T>(props: {
   rows: T[];
   columns: DataGridColumnDef<T>[];
@@ -86,6 +123,8 @@ export function DataGrid<T>(props: {
   onToggleSort?: (columnId: string) => void;
   heightMode?: "fill" | "hug";
   enableVirtualization?: boolean;
+  virtualThreshold?: number;
+  density?: TableDensity;
   tableClassName?: string;
   hiddenColumnIds?: string[];
 }) {
@@ -109,10 +148,17 @@ export function DataGrid<T>(props: {
     onSortChange,
     onToggleSort,
     heightMode = "fill",
-    enableVirtualization = false,
+    enableVirtualization,
+    virtualThreshold = TABLE_VIRTUAL_THRESHOLD,
+    density = "default",
     tableClassName,
     hiddenColumnIds = [],
   } = props;
+
+  const rowHeight = DENSITY_ROW_HEIGHT[density];
+  const headerMinHeight = DENSITY_HEADER_HEIGHT[density];
+  const paddingY = DENSITY_CELL_PADDING_Y[density];
+  const paddingX = DENSITY_CELL_PADDING_X[density];
 
   const parentRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -129,6 +175,23 @@ export function DataGrid<T>(props: {
     return map;
   }, [visibleColumnDefs]);
 
+  const sizingByColumnId = React.useMemo(() => {
+    const map = new Map<string, ColumnSizing>();
+    for (const def of visibleColumnDefs) {
+      map.set(def.id, resolveColumnSizing(def));
+    }
+    return map;
+  }, [visibleColumnDefs]);
+
+  const minTableWidth = React.useMemo(() => {
+    let total = selectionMode === "multiple" ? TABLE_SELECTION_COL_WIDTH : 0;
+    for (const def of visibleColumnDefs) {
+      const sz = sizingByColumnId.get(def.id);
+      if (sz) total += sz.minWidth;
+    }
+    return total;
+  }, [visibleColumnDefs, sizingByColumnId, selectionMode]);
+
   const tanstackColumns = React.useMemo(() => toTanstackColumns(visibleColumnDefs), [visibleColumnDefs]);
 
   const table = useReactTable({
@@ -136,16 +199,17 @@ export function DataGrid<T>(props: {
     columns: tanstackColumns,
     getCoreRowModel: getCoreRowModel(),
     enableColumnResizing: false,
-    defaultColumn: { minSize: 80, size: 160 },
+    defaultColumn: { minSize: TABLE_DEFAULT_MIN_SIZE, size: TABLE_DEFAULT_COL_SIZE },
   });
 
   const tableRows = table.getRowModel().rows;
-  const useVirtual = enableVirtualization && tableRows.length >= VIRTUAL_THRESHOLD;
+  const autoVirtualize = enableVirtualization ?? tableRows.length >= virtualThreshold;
+  const useVirtual = autoVirtualize && tableRows.length >= virtualThreshold;
 
   const virtualizer = useVirtualizer({
     count: tableRows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_MIN_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 8,
     enabled: useVirtual,
   });
@@ -164,7 +228,6 @@ export function DataGrid<T>(props: {
     onRowPointerEnter,
     onSelectionChange,
     getRowId,
-    selectionMode,
   });
   handlersRef.current = {
     onRowClick,
@@ -173,14 +236,13 @@ export function DataGrid<T>(props: {
     onRowPointerEnter,
     onSelectionChange,
     getRowId,
-    selectionMode,
   };
 
   const toggleRowSelection = React.useCallback((row: T) => {
-    const { selectionMode: mode, onSelectionChange: onChange, getRowId: getId } = handlersRef.current;
-    if (mode === "none" || !onChange) return;
+    const { onSelectionChange: onChange, getRowId: getId } = handlersRef.current;
+    if (selectionMode === "none" || !onChange) return;
     const id = getId(row);
-    if (mode === "single") {
+    if (selectionMode === "single") {
       onChange([id]);
       return;
     }
@@ -189,7 +251,7 @@ export function DataGrid<T>(props: {
     if (next.has(key)) next.delete(key);
     else next.add(key);
     onChange([...next].map((x) => (Number.isFinite(Number(x)) ? Number(x) : x)));
-  }, [selectedSet]);
+  }, [selectionMode, selectedSet]);
 
   const handleHeaderSort = React.useCallback(
     (columnId: string, sortable: boolean) => {
@@ -206,40 +268,6 @@ export function DataGrid<T>(props: {
       onSortChange({ sort: columnId, sortDir: "asc" });
     },
     [canSortColumns, onToggleSort, onSortChange, sort, sortDir]
-  );
-
-  const columnLayout = React.useMemo(() => {
-    let fixedSum = selectionMode === "multiple" ? SELECTION_COL_WIDTH : 0;
-    let flexGrowColumnId: string | null = null;
-
-    for (let i = visibleColumnDefs.length - 1; i >= 0; i -= 1) {
-      if (visibleColumnDefs[i]?.grow) {
-        flexGrowColumnId = visibleColumnDefs[i]!.id;
-        break;
-      }
-    }
-
-    for (const def of visibleColumnDefs) {
-      if (def.grow && def.id !== flexGrowColumnId) {
-        fixedSum += def.minSize ?? 140;
-      } else if (!def.grow) {
-        fixedSum += def.size ?? 160;
-      }
-    }
-
-    const flexGrowDef = flexGrowColumnId ? columnDefById.get(flexGrowColumnId) : null;
-    const minTableWidth = fixedSum + (flexGrowDef ? flexGrowDef.minSize ?? 140 : 0);
-
-    return { flexGrowColumnId, minTableWidth };
-  }, [visibleColumnDefs, selectionMode, columnDefById]);
-
-  const colWidthFor = React.useCallback(
-    (def: DataGridColumnDef<T>) => {
-      if (!def.grow) return def.size ?? 160;
-      if (def.id === columnLayout.flexGrowColumnId) return undefined;
-      return def.minSize ?? 140;
-    },
-    [columnLayout.flexGrowColumnId]
   );
 
   const rootClass =
@@ -265,16 +293,13 @@ export function DataGrid<T>(props: {
       className={["w-full border-collapse text-sm table-fixed", tableClassName ?? ""]
         .filter(Boolean)
         .join(" ")}
-      style={{
-        width: "100%",
-        minWidth: columnLayout.minTableWidth,
-      }}
+      style={{ minWidth: minTableWidth }}
     >
       <colgroup>
-        {selectionMode === "multiple" ? <col style={{ width: SELECTION_COL_WIDTH }} /> : null}
+        {selectionMode === "multiple" ? <col style={{ width: TABLE_SELECTION_COL_WIDTH }} /> : null}
         {visibleColumnDefs.map((def) => {
-          const width = colWidthFor(def);
-          return <col key={def.id} style={width ? { width } : undefined} />;
+          const sz = sizingByColumnId.get(def.id);
+          return <col key={def.id} style={sz?.width ? { width: sz.width } : undefined} />;
         })}
       </colgroup>
 
@@ -283,11 +308,12 @@ export function DataGrid<T>(props: {
           <tr key={headerGroup.id}>
             {selectionMode === "multiple" ? (
               <th
-                className="px-0 py-2 align-middle"
+                className="p-0 align-middle"
                 style={{
-                  width: SELECTION_COL_WIDTH,
-                  minWidth: SELECTION_COL_WIDTH,
-                  maxWidth: SELECTION_COL_WIDTH,
+                  width: TABLE_SELECTION_COL_WIDTH,
+                  minWidth: TABLE_SELECTION_COL_WIDTH,
+                  maxWidth: TABLE_SELECTION_COL_WIDTH,
+                  height: headerMinHeight,
                 }}
                 aria-label="Selección"
               />
@@ -297,45 +323,60 @@ export function DataGrid<T>(props: {
               const sortable = def?.sortable === true;
               const sortInteractive = sortable && canSortColumns;
               const active = sort === header.column.id;
-              const colWidth = def ? colWidthFor(def) : header.getSize();
+              const sizing = sizingByColumnId.get(header.column.id);
+              const headerJustify = justifyForAlign(def?.align);
+              const isGrow = sizing?.isGrow ?? false;
               return (
                 <th
                   key={header.id}
                   className={[
-                    "relative px-3 py-0 font-semibold select-none align-middle",
+                    "relative font-semibold select-none align-middle",
+                    paddingX,
+                    paddingY,
                     alignClass(def?.align),
-                    sortInteractive ? "cursor-pointer hover:bg-(--color-primary)/90" : "",
-                    def?.id === columnLayout.flexGrowColumnId ? "w-auto min-w-0" : "",
+                    sortInteractive
+                      ? "cursor-pointer outline-none transition-colors hover:bg-(--color-primary)/90 focus-visible:bg-(--color-primary)/85 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-(--color-text-inverse)"
+                      : "",
                     def?.headerClassName ?? "",
                   ].join(" ")}
-                  style={colWidth ? { width: colWidth } : undefined}
+                  style={{
+                    width: isGrow ? undefined : sizing?.width,
+                    minWidth: sizing?.minWidth,
+                    maxWidth: sizing?.maxWidth,
+                    height: headerMinHeight,
+                  }}
+                  tabIndex={sortInteractive ? 0 : -1}
                   onClick={() => handleHeaderSort(header.column.id, sortInteractive)}
+                  onKeyDown={(e) => {
+                    if (!sortInteractive) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleHeaderSort(header.column.id, sortInteractive);
+                    }
+                  }}
+                  aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                 >
-                  <div className="flex min-h-11 w-full items-center justify-center">
-                    <span
-                      className={[
-                        "inline-flex min-w-0 items-center gap-1",
-                        def?.id === "check" || def?.align === "center"
-                          ? "w-full justify-center"
-                          : def?.align === "right"
-                            ? "ml-auto justify-end"
-                            : "mr-auto justify-start",
-                      ].join(" ")}
-                    >
+                  <span
+                    className={[
+                      "inline-flex w-full min-w-0 max-w-full items-center gap-1",
+                      headerJustify,
+                    ].join(" ")}
+                  >
+                    <span className="min-w-0 wrap-break-words whitespace-normal">
                       {flexRender(header.column.columnDef.header, header.getContext())}
-                      {sortable && canSortColumns ? (
-                        active ? (
-                          sortDir === "asc" ? (
-                            <ArrowUp className="h-3.5 w-3.5 opacity-90" />
-                          ) : (
-                            <ArrowDown className="h-3.5 w-3.5 opacity-90" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
-                        )
-                      ) : null}
                     </span>
-                  </div>
+                    {sortable && canSortColumns ? (
+                      active ? (
+                        sortDir === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 shrink-0 opacity-90" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                      )
+                    ) : null}
+                  </span>
                 </th>
               );
             })}
@@ -352,13 +393,13 @@ export function DataGrid<T>(props: {
           </tr>
         ) : showError ? (
           <tr>
-            <td colSpan={colSpanFull} className="px-3 py-8 text-center text-sm text-red-600">
+            <td colSpan={colSpanFull} className={`${paddingX} py-8 text-center text-sm text-(--color-danger)`}>
               {error}
             </td>
           </tr>
         ) : showEmpty ? (
           <tr>
-            <td colSpan={colSpanFull} className="px-3 py-8 text-center text-sm text-(--color-text-secondary)">
+            <td colSpan={colSpanFull} className={`${paddingX} py-8 text-center text-sm text-(--color-text-secondary)`}>
               {emptyText}
             </td>
           </tr>
@@ -381,9 +422,12 @@ export function DataGrid<T>(props: {
                   row={row}
                   active={active}
                   zebra={virtualRow.index % 2 === 1}
+                  rowHeight={rowHeight}
+                  paddingY={paddingY}
+                  paddingX={paddingX}
+                  selectionMode={selectionMode}
                   visibleColumnDefs={visibleColumnDefs}
-                  flexGrowColumnId={columnLayout.flexGrowColumnId}
-                  colWidthFor={colWidthFor}
+                  sizingByColumnId={sizingByColumnId}
                   handlersRef={handlersRef}
                   toggleRowSelection={toggleRowSelection}
                 />
@@ -410,9 +454,12 @@ export function DataGrid<T>(props: {
                 row={row}
                 active={active}
                 zebra={index % 2 === 1}
+                rowHeight={rowHeight}
+                paddingY={paddingY}
+                paddingX={paddingX}
+                selectionMode={selectionMode}
                 visibleColumnDefs={visibleColumnDefs}
-                flexGrowColumnId={columnLayout.flexGrowColumnId}
-                colWidthFor={colWidthFor}
+                sizingByColumnId={sizingByColumnId}
                 handlersRef={handlersRef}
                 toggleRowSelection={toggleRowSelection}
               />
@@ -453,7 +500,6 @@ type DataRowHandlersRef<T> = React.MutableRefObject<{
   onRowPointerEnter?: (row: T) => void;
   onSelectionChange?: (ids: Array<string | number>) => void;
   getRowId: (row: T) => string | number;
-  selectionMode: "single" | "multiple" | "none";
 }>;
 
 type DataRowProps<T> = {
@@ -461,9 +507,12 @@ type DataRowProps<T> = {
   row: Row<T>;
   active: boolean;
   zebra: boolean;
+  rowHeight: number;
+  paddingY: string;
+  paddingX: string;
+  selectionMode: "single" | "multiple" | "none";
   visibleColumnDefs: DataGridColumnDef<T>[];
-  flexGrowColumnId: string | null;
-  colWidthFor: (def: DataGridColumnDef<T>) => number | undefined;
+  sizingByColumnId: Map<string, ColumnSizing>;
   handlersRef: DataRowHandlersRef<T>;
   toggleRowSelection: (row: T) => void;
 };
@@ -473,9 +522,12 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
     row,
     active,
     zebra,
+    rowHeight,
+    paddingY,
+    paddingX,
+    selectionMode,
     visibleColumnDefs,
-    flexGrowColumnId,
-    colWidthFor,
+    sizingByColumnId,
     handlersRef,
     toggleRowSelection,
   } = props;
@@ -492,9 +544,9 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
     (e: React.MouseEvent) => {
       const h = handlersRef.current;
       h.onRowClick?.(original, e);
-      if (h.selectionMode !== "none") toggleRowSelection(original);
+      if (selectionMode !== "none") toggleRowSelection(original);
     },
-    [handlersRef, original, toggleRowSelection]
+    [handlersRef, original, selectionMode, toggleRowSelection]
   );
 
   const handleDoubleClick = React.useCallback(() => {
@@ -513,7 +565,16 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
     [handlersRef, original]
   );
 
-  const selectionMode = handlersRef.current.selectionMode;
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (selectionMode !== "none") toggleRowSelection(original);
+        handlersRef.current.onRowClick?.(original, e as unknown as React.MouseEvent);
+      }
+    },
+    [handlersRef, original, selectionMode, toggleRowSelection]
+  );
 
   return (
     <tr
@@ -521,22 +582,32 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
       onDoubleClick={handleDoubleClick}
       onPointerEnter={handlePointerEnter}
       onContextMenu={handleContextMenu}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      role="row"
+      aria-selected={active}
       className={[
-        "min-h-10 cursor-pointer border-t border-(--border-color-default) transition-colors",
-        active ? "bg-(--color-surface-hover)" : zebra ? "bg-(--color-panel-bg)/40" : "bg-(--color-surface)",
+        "cursor-pointer border-t border-(--border-color-default) outline-none transition-colors",
+        active
+          ? "bg-(--color-surface-hover)"
+          : zebra
+            ? "bg-(--color-panel-bg)/40"
+            : "bg-(--color-surface)",
         "hover:bg-(--color-surface-hover)",
+        "focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-(--color-primary)",
       ].join(" ")}
+      style={{ height: rowHeight }}
     >
       {selectionMode === "multiple" ? (
         <td
-          className="px-0 py-2 align-middle"
+          className={`p-0 align-middle`}
           style={{
-            width: SELECTION_COL_WIDTH,
-            minWidth: SELECTION_COL_WIDTH,
-            maxWidth: SELECTION_COL_WIDTH,
+            width: TABLE_SELECTION_COL_WIDTH,
+            minWidth: TABLE_SELECTION_COL_WIDTH,
+            maxWidth: TABLE_SELECTION_COL_WIDTH,
           }}
         >
-          <div className="flex min-h-10 items-center justify-center">
+          <div className="flex items-center justify-center" style={{ minHeight: rowHeight - 4 }}>
             <input
               type="checkbox"
               checked={active}
@@ -550,20 +621,27 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
       ) : null}
       {row.getVisibleCells().map((cell) => {
         const def = columnDefById.get(cell.column.id);
-        const colWidth = def ? colWidthFor(def) : cell.column.getSize();
-        const isFlexGrow = def?.id === flexGrowColumnId;
+        const sizing = sizingByColumnId.get(cell.column.id);
+        const isGrow = sizing?.isGrow ?? false;
         return (
           <td
             key={cell.id}
             className={[
-              "px-3 py-2 align-middle",
-              isFlexGrow ? "min-w-0" : "",
+              `${paddingX} ${paddingY} align-middle`,
+              isGrow ? "min-w-0" : "",
               alignClass(def?.align),
               def?.cellClassName ?? "",
             ].join(" ")}
-            style={colWidth ? { width: colWidth } : undefined}
+            style={{
+              width: isGrow ? undefined : sizing?.width,
+              minWidth: sizing?.minWidth,
+              maxWidth: sizing?.maxWidth,
+            }}
           >
-            <div className={cellContentClass(def?.align)}>
+            <div
+              className={cellContentClass(def?.align)}
+              style={{ minHeight: rowHeight - 4 }}
+            >
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
             </div>
           </td>

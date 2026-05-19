@@ -2,11 +2,11 @@ import * as React from "react";
 import {
   DataGrid,
   type DataGridColumnDef,
-  exportRowsToCsv,
-  useClientGridSort,
 } from "../datagrid";
 import type { PaginationMeta } from "../types/pagination";
 import { DataGridFooterActions } from "../datagrid/DataGridFooterActions";
+import { useTableShellState } from "../datatable/useTableShellState";
+import { isUtilityColumn } from "../datatable/columnKinds";
 import { PaginationFooter } from "./PaginationFooter";
 import { parseTailwindWidth } from "./parseTailwindWidth";
 
@@ -30,10 +30,10 @@ function mapColumns<T>(columns: DataTableColumn<T>[]): DataGridColumnDef<T>[] {
     const isCheck = c.key === "check";
     const size = isCheck ? 44 : c.size ?? parsedSize ?? 180;
 
-    const hideFromPicker = c.enableHiding === false || c.key === "actions" || c.key === "check";
-    const isUtilityColumn = c.key === "actions" || c.key === "check";
+    const isUtility = isUtilityColumn(c.key);
+    const hideFromPicker = c.enableHiding === false || isUtility;
     const defaultSortable =
-      typeof c.header === "string" && c.header.trim() !== "" && !isUtilityColumn;
+      typeof c.header === "string" && c.header.trim() !== "" && !isUtility;
 
     return {
       id: c.key,
@@ -122,7 +122,6 @@ export function DataTable<T>(props: {
     shellClassName,
   } = props;
 
-  const [hiddenColumnIds, setHiddenColumnIds] = React.useState<string[]>([]);
   const gridColumns = React.useMemo(() => {
     const mapped = mapColumns(columns);
     if (!enableClientSort && !onToggleSort) {
@@ -131,49 +130,32 @@ export function DataTable<T>(props: {
     return mapped;
   }, [columns, enableClientSort, onToggleSort]);
 
-  const hasSortableColumn = React.useMemo(
-    () => gridColumns.some((c) => c.sortable === true),
-    [gridColumns]
-  );
-  const useClientSort = enableClientSort && !onToggleSort && hasSortableColumn;
-  const clientSort = useClientGridSort(rows, gridColumns);
-  const gridRows = useClientSort ? clientSort.rows : rows;
-  const gridSort = useClientSort ? clientSort.sort : sort;
-  const gridSortDir = useClientSort ? clientSort.sortDir : sortDir;
-  const gridToggleSort = onToggleSort ?? (useClientSort ? clientSort.toggleSort : undefined);
-
-  const toggleColumn = React.useCallback((columnId: string) => {
-    setHiddenColumnIds((prev) =>
-      prev.includes(columnId) ? prev.filter((id) => id !== columnId) : [...prev, columnId]
-    );
-  }, []);
-
-  const visibleColumns = React.useMemo(
-    () => gridColumns.filter((c) => !hiddenColumnIds.includes(c.id)),
-    [gridColumns, hiddenColumnIds]
-  );
-
-  const handleExport = React.useCallback(() => {
-    if (!exportFilename) return;
-    exportRowsToCsv(rows, visibleColumns, exportFilename);
-  }, [exportFilename, rows, visibleColumns]);
+  const shell = useTableShellState({
+    rows,
+    columns: gridColumns,
+    enableClientSort,
+    onToggleSort,
+    sort,
+    sortDir,
+    exportFilename,
+  });
 
   const footerActions =
     onRefresh || (enableExport && exportFilename) || enableColumnPicker ? (
       <DataGridFooterActions
         loading={loading}
         onRefresh={onRefresh}
-        onExport={enableExport && exportFilename ? handleExport : undefined}
+        onExport={enableExport && exportFilename ? shell.handleExport : undefined}
         exportDisabled={rows.length === 0}
         columns={enableColumnPicker ? gridColumns : undefined}
-        hiddenColumnIds={hiddenColumnIds}
-        onToggleColumn={enableColumnPicker ? toggleColumn : undefined}
+        hiddenColumnIds={shell.hiddenColumnIds}
+        onToggleColumn={enableColumnPicker ? shell.toggleColumn : undefined}
       />
     ) : null;
 
   const grid = (
     <DataGrid
-      rows={gridRows}
+      rows={shell.effectiveRows}
       columns={gridColumns}
       loading={loading}
       error={error}
@@ -185,13 +167,12 @@ export function DataTable<T>(props: {
       onRowDoubleClick={onDoubleClick}
       onRowContextMenu={onContextMenu}
       onRowPointerEnter={onRowPointerEnter}
-      sort={gridSort}
-      sortDir={gridSortDir}
-      onToggleSort={gridToggleSort}
+      sort={shell.effectiveSort}
+      sortDir={shell.effectiveSortDir}
+      onToggleSort={shell.effectiveToggleSort}
       heightMode={heightMode}
       tableClassName={tableClassName}
-      hiddenColumnIds={hiddenColumnIds}
-      enableVirtualization={false}
+      hiddenColumnIds={shell.hiddenColumnIds}
     />
   );
 
