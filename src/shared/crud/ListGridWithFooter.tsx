@@ -49,6 +49,7 @@ export function ListGridWithFooter<T>(props: {
   onToggleSort?: (columnId: string) => void;
   enableClientSort?: boolean;
   defaultSort?: GridSortDefaults;
+  tableId?: string;
 }) {
   const {
     rows,
@@ -78,6 +79,7 @@ export function ListGridWithFooter<T>(props: {
     onToggleSort,
     enableClientSort = true,
     defaultSort,
+    tableId,
   } = props;
 
   const shell = useTableShellState({
@@ -126,6 +128,7 @@ export function ListGridWithFooter<T>(props: {
       onToggleSort={shell.effectiveToggleSort}
       heightMode={heightMode}
       hiddenColumnIds={shell.hiddenColumnIds}
+      tableId={tableId}
     />
   );
 

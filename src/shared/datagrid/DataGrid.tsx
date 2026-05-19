@@ -4,6 +4,7 @@ import {
   getCoreRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnSizingState,
   type Row,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -52,6 +53,7 @@ function toTanstackColumns<T>(columns: DataGridColumnDef<T>[]): ColumnDef<T, unk
       maxSize: col.maxSize ?? TABLE_DEFAULT_MAX_SIZE,
       enableSorting: col.sortable === true,
       enableHiding: col.enableHiding !== false,
+      enableResizing: col.resizable !== false && !col.grow,
       cell: ({ row }) => {
         if (col.cell) return col.cell(row.original);
         if (col.accessor) {
@@ -127,6 +129,7 @@ export function DataGrid<T>(props: {
   density?: TableDensity;
   tableClassName?: string;
   hiddenColumnIds?: string[];
+  tableId?: string;
 }) {
   const {
     rows,
@@ -153,7 +156,40 @@ export function DataGrid<T>(props: {
     density = "default",
     tableClassName,
     hiddenColumnIds = [],
+    tableId,
   } = props;
+
+  const sizingStorageKey = tableId ? `datagrid:${tableId}:sizing` : null;
+
+  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(() => {
+    if (!sizingStorageKey || typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(sizingStorageKey);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw) as unknown;
+      if (parsed && typeof parsed === "object") {
+        const out: ColumnSizingState = {};
+        for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+          if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+            out[k] = v;
+          }
+        }
+        return out;
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  });
+
+  React.useEffect(() => {
+    if (!sizingStorageKey || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(sizingStorageKey, JSON.stringify(columnSizing));
+    } catch {
+      void 0;
+    }
+  }, [sizingStorageKey, columnSizing]);
 
   const rowHeight = DENSITY_ROW_HEIGHT[density];
   const headerMinHeight = DENSITY_HEADER_HEIGHT[density];
@@ -178,10 +214,16 @@ export function DataGrid<T>(props: {
   const sizingByColumnId = React.useMemo(() => {
     const map = new Map<string, ColumnSizing>();
     for (const def of visibleColumnDefs) {
-      map.set(def.id, resolveColumnSizing(def));
+      const base = resolveColumnSizing(def);
+      const override = columnSizing[def.id];
+      if (override != null && Number.isFinite(override) && override > 0 && !base.isGrow) {
+        map.set(def.id, { ...base, width: override });
+      } else {
+        map.set(def.id, base);
+      }
     }
     return map;
-  }, [visibleColumnDefs]);
+  }, [visibleColumnDefs, columnSizing]);
 
   const minTableWidth = React.useMemo(() => {
     let total = selectionMode === "multiple" ? TABLE_SELECTION_COL_WIDTH : 0;
@@ -198,13 +240,31 @@ export function DataGrid<T>(props: {
     data: rows,
     columns: tanstackColumns,
     getCoreRowModel: getCoreRowModel(),
-    enableColumnResizing: false,
+    enableColumnResizing: true,
+    columnResizeMode: "onChange",
+    state: { columnSizing },
+    onColumnSizingChange: setColumnSizing,
     defaultColumn: { minSize: TABLE_DEFAULT_MIN_SIZE, size: TABLE_DEFAULT_COL_SIZE },
   });
 
   const tableRows = table.getRowModel().rows;
   const autoVirtualize = enableVirtualization ?? tableRows.length >= virtualThreshold;
   const useVirtual = autoVirtualize && tableRows.length >= virtualThreshold;
+
+  const isResizingAnyColumn = !!table.getState().columnSizingInfo.isResizingColumn;
+
+  React.useEffect(() => {
+    if (!isResizingAnyColumn || typeof document === "undefined") return;
+    const body = document.body;
+    const prevCursor = body.style.cursor;
+    const prevUserSelect = body.style.userSelect;
+    body.style.cursor = "col-resize";
+    body.style.userSelect = "none";
+    return () => {
+      body.style.cursor = prevCursor;
+      body.style.userSelect = prevUserSelect;
+    };
+  }, [isResizingAnyColumn]);
 
   const virtualizer = useVirtualizer({
     count: tableRows.length,
@@ -308,7 +368,7 @@ export function DataGrid<T>(props: {
           <tr key={headerGroup.id}>
             {selectionMode === "multiple" ? (
               <th
-                className="p-0 align-middle"
+                className="bg-(--color-primary) p-0 text-center align-middle"
                 style={{
                   width: TABLE_SELECTION_COL_WIDTH,
                   minWidth: TABLE_SELECTION_COL_WIDTH,
@@ -324,16 +384,16 @@ export function DataGrid<T>(props: {
               const sortInteractive = sortable && canSortColumns;
               const active = sort === header.column.id;
               const sizing = sizingByColumnId.get(header.column.id);
-              const headerJustify = justifyForAlign(def?.align);
               const isGrow = sizing?.isGrow ?? false;
+              const canResize = header.column.getCanResize();
+              const isResizing = header.column.getIsResizing();
               return (
                 <th
                   key={header.id}
                   className={[
-                    "relative font-semibold select-none align-middle",
+                    "group/th relative bg-(--color-primary) text-center font-semibold select-none align-middle",
                     paddingX,
                     paddingY,
-                    alignClass(def?.align),
                     sortInteractive
                       ? "cursor-pointer outline-none transition-colors hover:bg-(--color-primary)/90 focus-visible:bg-(--color-primary)/85 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-(--color-text-inverse)"
                       : "",
@@ -356,12 +416,7 @@ export function DataGrid<T>(props: {
                   }}
                   aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                 >
-                  <span
-                    className={[
-                      "inline-flex w-full min-w-0 max-w-full items-center gap-1",
-                      headerJustify,
-                    ].join(" ")}
-                  >
+                  <span className="inline-flex w-full min-w-0 max-w-full items-center justify-center gap-1">
                     <span className="min-w-0 wrap-break-words whitespace-normal">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </span>
@@ -377,6 +432,38 @@ export function DataGrid<T>(props: {
                       )
                     ) : null}
                   </span>
+                  {canResize ? (
+                    <span
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-label="Redimensionar columna"
+                      title="Arrastrar para cambiar el ancho. Doble clic para restablecer."
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        header.getResizeHandler()(e);
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        header.getResizeHandler()(e);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        header.column.resetSize();
+                      }}
+                      className="group/resize absolute top-0 right-0 z-10 flex h-full w-2.5 cursor-col-resize touch-none select-none items-center justify-end"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={[
+                          "block rounded-full transition-all duration-150",
+                          isResizing
+                            ? "h-3/5 w-[3px] bg-(--color-text-inverse)"
+                            : "h-1/2 w-px bg-(--color-text-inverse)/40 group-hover/resize:h-3/5 group-hover/resize:w-[3px] group-hover/resize:bg-(--color-text-inverse)",
+                        ].join(" ")}
+                      />
+                    </span>
+                  ) : null}
                 </th>
               );
             })}

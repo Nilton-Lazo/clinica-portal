@@ -90,6 +90,7 @@ export function DataTable<T>(props: {
   enableExport?: boolean;
   enableClientSort?: boolean;
   shellClassName?: string;
+  tableId?: string;
 }) {
   const {
     rows,
@@ -120,6 +121,7 @@ export function DataTable<T>(props: {
     enableExport = true,
     enableClientSort = true,
     shellClassName,
+    tableId,
   } = props;
 
   const gridColumns = React.useMemo(() => {
@@ -173,6 +175,7 @@ export function DataTable<T>(props: {
       heightMode={heightMode}
       tableClassName={tableClassName}
       hiddenColumnIds={shell.hiddenColumnIds}
+      tableId={tableId}
     />
   );
 

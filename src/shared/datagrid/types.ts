@@ -22,6 +22,7 @@ export type DataGridColumnDef<T> = {
   maxSize?: number;
   grow?: boolean;
   enableHiding?: boolean;
+  resizable?: boolean;
   headerClassName?: string;
   cellClassName?: string;
   exportValue?: (row: T) => string | number | null | undefined;

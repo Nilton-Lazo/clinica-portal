@@ -36,6 +36,7 @@ export function CrudListGrid<T>(props: {
   enableColumnPicker?: boolean;
   enableExport?: boolean;
   enableClientSort?: boolean;
+  tableId?: string;
 }) {
   const {
     rows,
@@ -64,6 +65,7 @@ export function CrudListGrid<T>(props: {
     enableColumnPicker = true,
     enableExport = true,
     enableClientSort = true,
+    tableId,
   } = props;
 
   const shell = useTableShellState({
@@ -117,6 +119,7 @@ export function CrudListGrid<T>(props: {
           onToggleSort={shell.effectiveToggleSort}
           heightMode={heightMode}
           hiddenColumnIds={shell.hiddenColumnIds}
+          tableId={tableId}
         />
       </div>
 
