@@ -320,11 +320,11 @@ html, body {
   scrollbar-gutter: auto;
 }
 
-/* Tablas DataGrid: scroll real solo cuando hay overflow (sin hueco vacío fijo) */
 .datagrid-scroll {
   overflow: auto;
   scrollbar-gutter: auto;
-  overscroll-behavior: contain;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
 }
 
 .Toastify__toast-container {
