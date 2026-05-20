@@ -106,6 +106,66 @@ function resolveColumnSizing<T>(def: DataGridColumnDef<T>): ColumnSizing {
   };
 }
 
+type EffectiveColumnSizing = ColumnSizing & { width: number };
+
+function resolveEffectiveTableLayout<T>(
+  visibleColumnDefs: DataGridColumnDef<T>[],
+  sizingByColumnId: Map<string, ColumnSizing>,
+  selectionMode: "single" | "multiple" | "none",
+  containerWidth: number
+): {
+  tableWidth: number;
+  minTableWidth: number;
+  effectiveSizing: Map<string, EffectiveColumnSizing>;
+} {
+  const selectionW = selectionMode === "multiple" ? TABLE_SELECTION_COL_WIDTH : 0;
+  let fixedSum = selectionW;
+  const growIds: string[] = [];
+  let growMinSum = 0;
+
+  for (const def of visibleColumnDefs) {
+    const sz = sizingByColumnId.get(def.id);
+    if (!sz) continue;
+    if (sz.isGrow) {
+      growIds.push(def.id);
+      growMinSum += sz.minWidth;
+    } else {
+      fixedSum += sz.width ?? sz.minWidth;
+    }
+  }
+
+  const minTableWidth = fixedSum + growMinSum;
+  const tableWidth = containerWidth > 0 ? Math.max(minTableWidth, containerWidth) : minTableWidth;
+  const remaining = Math.max(0, tableWidth - fixedSum);
+  const perGrow =
+    growIds.length > 0
+      ? Math.max(TABLE_GROW_MIN_SIZE, Math.floor(remaining / growIds.length))
+      : 0;
+
+  const effectiveSizing = new Map<string, EffectiveColumnSizing>();
+  for (const def of visibleColumnDefs) {
+    const sz = sizingByColumnId.get(def.id);
+    if (!sz) continue;
+    if (sz.isGrow) {
+      effectiveSizing.set(def.id, {
+        ...sz,
+        width: perGrow,
+        maxWidth: perGrow,
+        isGrow: true,
+      });
+    } else {
+      const width = sz.width ?? sz.minWidth;
+      effectiveSizing.set(def.id, {
+        ...sz,
+        width,
+        maxWidth: sz.maxWidth ?? width,
+      });
+    }
+  }
+
+  return { tableWidth, minTableWidth, effectiveSizing };
+}
+
 export function DataGrid<T>(props: {
   rows: T[];
   columns: DataGridColumnDef<T>[];
@@ -160,6 +220,7 @@ export function DataGrid<T>(props: {
   } = props;
 
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
+  const [containerWidth, setContainerWidth] = React.useState(0);
 
   const rowHeight = DENSITY_ROW_HEIGHT[density];
   const headerMinHeight = DENSITY_HEADER_HEIGHT[density];
@@ -205,14 +266,16 @@ export function DataGrid<T>(props: {
     return map;
   }, [visibleColumnDefs, columnSizing]);
 
-  const minTableWidth = React.useMemo(() => {
-    let total = selectionMode === "multiple" ? TABLE_SELECTION_COL_WIDTH : 0;
-    for (const def of visibleColumnDefs) {
-      const sz = sizingByColumnId.get(def.id);
-      if (sz) total += sz.minWidth;
-    }
-    return total;
-  }, [visibleColumnDefs, sizingByColumnId, selectionMode]);
+  const { tableWidth, minTableWidth, effectiveSizing } = React.useMemo(
+    () =>
+      resolveEffectiveTableLayout(
+        visibleColumnDefs,
+        sizingByColumnId,
+        selectionMode,
+        containerWidth
+      ),
+    [visibleColumnDefs, sizingByColumnId, selectionMode, containerWidth]
+  );
 
   const tanstackColumns = React.useMemo(() => toTanstackColumns(visibleColumnDefs), [visibleColumnDefs]);
 
@@ -232,6 +295,20 @@ export function DataGrid<T>(props: {
   const useVirtual = autoVirtualize && tableRows.length >= virtualThreshold;
 
   const isResizingAnyColumn = !!table.getState().columnSizingInfo.isResizingColumn;
+
+  React.useEffect(() => {
+    const el = parentRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const updateWidth = () => {
+      setContainerWidth(el.clientWidth);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   React.useEffect(() => {
     if (!isResizingAnyColumn || typeof document === "undefined") return;
@@ -329,18 +406,21 @@ export function DataGrid<T>(props: {
 
   const colSpanFull = visibleColumnDefs.length + (selectionMode === "multiple" ? 1 : 0);
 
+  const tableStyleWidth =
+    containerWidth > 0 && tableWidth <= containerWidth ? "100%" : tableWidth;
+
   const tableContent = (
     <table
-      className={["w-full border-collapse text-sm table-fixed", tableClassName ?? ""]
+      className={["border-collapse text-sm table-fixed", tableClassName ?? ""]
         .filter(Boolean)
         .join(" ")}
-      style={{ minWidth: minTableWidth }}
+      style={{ width: tableStyleWidth, minWidth: minTableWidth }}
     >
       <colgroup>
         {selectionMode === "multiple" ? <col style={{ width: TABLE_SELECTION_COL_WIDTH }} /> : null}
         {visibleColumnDefs.map((def) => {
-          const sz = sizingByColumnId.get(def.id);
-          return <col key={def.id} style={sz?.width ? { width: sz.width } : undefined} />;
+          const sz = effectiveSizing.get(def.id);
+          return <col key={def.id} style={sz ? { width: sz.width } : undefined} />;
         })}
       </colgroup>
 
@@ -364,7 +444,7 @@ export function DataGrid<T>(props: {
               const sortable = def?.sortable === true;
               const sortInteractive = sortable && canSortColumns;
               const active = sort === header.column.id;
-              const sizing = sizingByColumnId.get(header.column.id);
+              const sizing = effectiveSizing.get(header.column.id);
               const isGrow = sizing?.isGrow ?? false;
               const canResize = header.column.getCanResize();
               const isResizing = header.column.getIsResizing();
@@ -381,7 +461,7 @@ export function DataGrid<T>(props: {
                       : "",
                   ].join(" ")}
                   style={{
-                    width: isGrow ? undefined : sizing?.width,
+                    width: sizing?.width,
                     minWidth: sizing?.minWidth,
                     maxWidth: sizing?.maxWidth,
                     minHeight: headerMinHeight,
@@ -401,7 +481,12 @@ export function DataGrid<T>(props: {
                     className="flex w-full min-w-0 items-center justify-center"
                     style={{ paddingRight: canResize ? TABLE_HEADER_RESIZE_RESERVE_PX : 0 }}
                   >
-                    <span className="min-w-0 text-center leading-tight wrap-break-words whitespace-normal">
+                    <span
+                      className={[
+                        "text-center leading-tight wrap-break-words whitespace-normal",
+                        isGrow ? "min-w-full" : "min-w-0",
+                      ].join(" ")}
+                    >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </span>
                   </div>
@@ -487,7 +572,7 @@ export function DataGrid<T>(props: {
                   paddingX={paddingX}
                   selectionMode={selectionMode}
                   visibleColumnDefs={visibleColumnDefs}
-                  sizingByColumnId={sizingByColumnId}
+                  effectiveSizing={effectiveSizing}
                   handlersRef={handlersRef}
                   toggleRowSelection={toggleRowSelection}
                 />
@@ -519,7 +604,7 @@ export function DataGrid<T>(props: {
                 paddingX={paddingX}
                 selectionMode={selectionMode}
                 visibleColumnDefs={visibleColumnDefs}
-                sizingByColumnId={sizingByColumnId}
+                effectiveSizing={effectiveSizing}
                 handlersRef={handlersRef}
                 toggleRowSelection={toggleRowSelection}
               />
@@ -572,7 +657,7 @@ type DataRowProps<T> = {
   paddingX: string;
   selectionMode: "single" | "multiple" | "none";
   visibleColumnDefs: DataGridColumnDef<T>[];
-  sizingByColumnId: Map<string, ColumnSizing>;
+  effectiveSizing: Map<string, EffectiveColumnSizing>;
   handlersRef: DataRowHandlersRef<T>;
   toggleRowSelection: (row: T) => void;
 };
@@ -587,7 +672,7 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
     paddingX,
     selectionMode,
     visibleColumnDefs,
-    sizingByColumnId,
+    effectiveSizing,
     handlersRef,
     toggleRowSelection,
   } = props;
@@ -681,7 +766,7 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
       ) : null}
       {row.getVisibleCells().map((cell) => {
         const def = columnDefById.get(cell.column.id);
-        const sizing = sizingByColumnId.get(cell.column.id);
+        const sizing = effectiveSizing.get(cell.column.id);
         const isGrow = sizing?.isGrow ?? false;
         return (
           <td
@@ -693,7 +778,7 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
               def?.cellClassName ?? "",
             ].join(" ")}
             style={{
-              width: isGrow ? undefined : sizing?.width,
+              width: sizing?.width,
               minWidth: sizing?.minWidth,
               maxWidth: sizing?.maxWidth,
             }}
