@@ -15,11 +15,11 @@ export function GridHeaderLabel(props: {
   const hAlign = headerTextAlign(align);
 
   if (!trimmed) {
-    return <span className="block w-full">&nbsp;</span>;
+    return <span>&nbsp;</span>;
   }
 
   return (
-    <span className={`block w-full wrap-break-words whitespace-normal leading-tight ${hAlign}`}>
+    <span className={`wrap-break-words whitespace-normal leading-tight ${hAlign}`}>
       {trimmed}
     </span>
   );

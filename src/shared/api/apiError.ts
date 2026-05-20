@@ -21,10 +21,23 @@ export function isApiError(input: unknown): input is ApiError {
   return typeof error.kind === "string" && typeof error.message === "string";
 }
 
+const LARAVEL_VALIDATION_MESSAGE_ES: Record<string, string> = {
+  "The selected sort is invalid.": "No se puede ordenar por esa columna. Elige otra columna del encabezado.",
+  "The selected sort dir is invalid.": "El sentido de ordenamiento no es válido. Debe ser ascendente o descendente.",
+  "The given data was invalid.": "Los datos enviados no son válidos. Revisa los filtros e intenta de nuevo.",
+  "Error de validación.": "Los datos enviados no son válidos. Revisa los filtros e intenta de nuevo.",
+};
+
+function localizeValidationMessage(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return trimmed;
+  return LARAVEL_VALIDATION_MESSAGE_ES[trimmed] ?? trimmed;
+}
+
 function firstValidationMessages(errors: ApiValidationErrors): string[] {
   return Object.values(errors)
     .flat()
-    .map((message) => message.trim())
+    .map((message) => localizeValidationMessage(String(message)))
     .filter(Boolean);
 }
 
@@ -34,10 +47,12 @@ export function getApiErrorMessage(input: unknown, fallback: string): string {
   if (input.kind === "validation") {
     const messages = firstValidationMessages(input.errors);
     if (messages.length > 0) return messages.slice(0, 3).join(" ");
+    const summary = localizeValidationMessage(input.message.trim());
+    if (summary) return summary;
   }
 
   const message = input.message.trim();
-  return message || fallback;
+  return localizeValidationMessage(message) || fallback;
 }
 
 export function toApiError(input: unknown): ApiError {

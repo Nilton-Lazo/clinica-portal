@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { getApiErrorMessage, isAbortedRequest } from "../api/apiError";
 import type { PaginatedResponse, PaginationMeta } from "../types/pagination";
-import type { DataGridFetchParams, SortDirection } from "../datagrid/types";
+import type { DataGridColumnDef, DataGridFetchParams, SortDirection } from "../datagrid/types";
 import { nextGridSort, type GridSortDefaults, type GridSortState } from "../datagrid/gridSortCycle";
+import { resolveGridSortField } from "../datagrid/gridSortField";
 import { toastService } from "../notifications";
 
 export type CrudStatusFilter = "ALL" | string;
@@ -23,6 +24,7 @@ export function clampCrudPerPage(n: number) {
 
 type Options<T> = {
   listFn: (params: DataGridFetchParams) => Promise<PaginatedResponse<T>>;
+  columns?: ReadonlyArray<Pick<DataGridColumnDef<T>, "id" | "sortKey">>;
   errorMessage: string;
   initialPerPage?: number;
   defaultSort?: string;
@@ -35,6 +37,7 @@ type Options<T> = {
 export function useCrudListQuery<T>(options: Options<T>) {
   const {
     listFn,
+    columns,
     errorMessage,
     initialPerPage = 50,
     defaultSort: defaultSortOpt,
@@ -84,7 +87,7 @@ export function useCrudListQuery<T>(options: Options<T>) {
           per_page: targetPerPage,
           q: qDebounced.trim() || undefined,
           status: statusFilter === "ALL" ? undefined : statusFilter,
-          sort: sort ?? undefined,
+          sort: resolveGridSortField(sort, columns),
           sort_dir: sortDir,
         });
         if (requestId !== requestIdRef.current) return;
@@ -100,7 +103,7 @@ export function useCrudListQuery<T>(options: Options<T>) {
         }
       }
     },
-    [errorMessage, listFn, page, perPage, qDebounced, sort, sortDir, statusFilter]
+    [errorMessage, listFn, columns, page, perPage, qDebounced, sort, sortDir, statusFilter]
   );
 
   const prevFiltersRef = useRef<{

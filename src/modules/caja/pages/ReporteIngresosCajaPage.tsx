@@ -16,7 +16,10 @@ import {
 import { ReporteIngresoMediosResumen } from "../components/ReporteIngresoMediosResumen";
 import { ReporteIngresosAperturasMobileList } from "../components/ReporteIngresosAperturasMobileList";
 import { ReporteIngresosAperturasTable } from "../components/ReporteIngresosAperturasTable";
-import { ReporteIngresosMovimientosTable } from "../components/ReporteIngresosMovimientosTable";
+import {
+  ReporteIngresosMovimientosTable,
+  reporteIngresosMovimientosGridColumns,
+} from "../components/ReporteIngresosMovimientosTable";
 import { ReporteIngresosMovimientosMobileList } from "../components/ReporteIngresosMovimientosMobileList";
 import { ReporteFraccionarPagoModal } from "../components/ReporteFraccionarPagoModal";
 import { PaginationFooter } from "../../../shared/crud/PaginationFooter";
@@ -24,6 +27,7 @@ import type { PaginationMeta } from "../../../shared/types/pagination";
 import { closeAperturaCaja } from "../services/aperturaCaja.service";
 import type { CajaAperturaTipo } from "../types/aperturaCaja.types";
 import { ConfirmDialog } from "../../ficheros/components/ConfirmDialog";
+import { resolveGridSortField } from "../../../shared/datagrid";
 import { nextGridSort } from "../../../shared/datagrid/gridSortCycle";
 import type { SortDirection } from "../../../shared/datagrid/types";
 
@@ -228,7 +232,7 @@ export default function ReporteIngresosCajaPage() {
     fetchReporteIngresosBootstrap({
       ...(aperturasPage !== undefined ? { aperturasPage } : {}),
       aperturasPerPage: APERTURAS_PER_PAGE,
-      sort: aperturasSort ?? undefined,
+      sort: resolveGridSortField(aperturasSort) ?? undefined,
       sort_dir: aperturasSortDir,
     })
       .then((b) => {
@@ -306,7 +310,7 @@ export default function ReporteIngresosCajaPage() {
       numeracionId: numeracionId.trim() || undefined,
       page: movPage,
       perPage: movPerPage,
-      sort: movSort ?? undefined,
+      sort: resolveGridSortField(movSort, reporteIngresosMovimientosGridColumns) ?? undefined,
       sort_dir: movSortDir,
     })
       .then((d) => {

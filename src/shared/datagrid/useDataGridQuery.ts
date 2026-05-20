@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { getApiErrorMessage, isAbortedRequest } from "../api/apiError";
 import type { PaginatedResponse, PaginationMeta } from "../types/pagination";
-import type { DataGridFetchParams, DataGridSortState, SortDirection } from "./types";
+import type { DataGridColumnDef, DataGridFetchParams, DataGridSortState, SortDirection } from "./types";
 import { nextGridSort, type GridSortDefaults, type GridSortState } from "./gridSortCycle";
+import { resolveGridSortField } from "./gridSortField";
 
 const defaultMeta: PaginationMeta = {
   current_page: 1,
@@ -14,6 +15,7 @@ const defaultMeta: PaginationMeta = {
 
 type Options<T> = {
   fetcher: (params: DataGridFetchParams) => Promise<PaginatedResponse<T>>;
+  columns?: ReadonlyArray<Pick<DataGridColumnDef<T>, "id" | "sortKey">>;
   initialPerPage?: number;
   debounceMs?: number;
   extraParams?: Record<string, string | undefined>;
@@ -26,6 +28,7 @@ type Options<T> = {
 export function useDataGridQuery<T>(options: Options<T>) {
   const {
     fetcher,
+    columns,
     initialPerPage = 25,
     debounceMs = 350,
     extraParams,
@@ -67,15 +70,16 @@ export function useDataGridQuery<T>(options: Options<T>) {
 
       const targetPage = overrides?.page ?? page;
       const targetPerPage = overrides?.per_page ?? perPage;
-      const activeSort = overrides?.sort !== undefined ? overrides.sort : sort;
+      const activeSortColumnId = overrides?.sort !== undefined ? overrides.sort : sort;
       const activeSortDir = overrides?.sort_dir ?? sortDir;
+      const activeSort = resolveGridSortField(activeSortColumnId, columns);
 
       try {
         const res = await fetcher({
           page: targetPage,
           per_page: targetPerPage,
           q: qDebounced.trim() || undefined,
-          sort: activeSort ?? undefined,
+          sort: activeSort,
           sort_dir: activeSortDir,
           ...(extraParams ?? {}),
           ...overrides,
@@ -91,7 +95,7 @@ export function useDataGridQuery<T>(options: Options<T>) {
         }
       }
     },
-    [enabled, extraKey, extraParams, fetcher, page, perPage, qDebounced, sort, sortDir, errorFallback]
+    [enabled, extraKey, extraParams, fetcher, columns, page, perPage, qDebounced, sort, sortDir, errorFallback]
   );
 
   const prevFiltersRef = useRef<string | null>(null);

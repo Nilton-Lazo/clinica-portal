@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DataGridColumnDef, SortDirection } from "../datagrid/types";
 import { useClientGridSort } from "../datagrid/useClientGridSort";
 import type { GridSortDefaults } from "../datagrid/gridSortCycle";
 import { exportRowsToCsv } from "../datagrid/exportCsv";
+import { useAuth } from "../auth/useAuth";
 
 type Options<T> = {
   rows: T[];
@@ -13,7 +14,21 @@ type Options<T> = {
   sortDir?: SortDirection;
   defaultSort?: GridSortDefaults;
   exportFilename?: string;
+  tableId?: string;
 };
+
+function loadHiddenColumnsFromStorage(storageKey: string | null): string[] {
+  if (!storageKey || typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((v): v is string => typeof v === "string");
+  } catch {
+    return [];
+  }
+}
 
 export function useTableShellState<T>(opts: Options<T>) {
   const {
@@ -25,9 +40,40 @@ export function useTableShellState<T>(opts: Options<T>) {
     sortDir,
     defaultSort,
     exportFilename,
+    tableId,
   } = opts;
 
-  const [hiddenColumnIds, setHiddenColumnIds] = useState<string[]>([]);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const resolvedTableId = tableId ?? exportFilename ?? null;
+  const hiddenStorageKey =
+    userId != null && resolvedTableId
+      ? `datagrid:u${userId}:${resolvedTableId}:hidden`
+      : null;
+
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<string[]>(() =>
+    loadHiddenColumnsFromStorage(hiddenStorageKey)
+  );
+
+  useEffect(() => {
+    if (!hiddenStorageKey) return;
+    const loaded = loadHiddenColumnsFromStorage(hiddenStorageKey);
+    setHiddenColumnIds((prev) => {
+      if (prev.length === loaded.length && prev.every((id, i) => id === loaded[i])) {
+        return prev;
+      }
+      return loaded;
+    });
+  }, [hiddenStorageKey]);
+
+  useEffect(() => {
+    if (!hiddenStorageKey || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(hiddenStorageKey, JSON.stringify(hiddenColumnIds));
+    } catch {
+      void 0;
+    }
+  }, [hiddenStorageKey, hiddenColumnIds]);
 
   const hasSortableColumn = useMemo(
     () => columns.some((c) => c.sortable === true),

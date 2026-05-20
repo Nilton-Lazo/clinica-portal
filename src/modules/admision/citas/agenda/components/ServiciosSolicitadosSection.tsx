@@ -1031,6 +1031,7 @@ export function ServiciosSolicitadosSection({
               onSelect={readOnly ? () => {} : (x) => setSelectedLineaIdx(x._idx)}
               emptyText={emptyFinalServiciosText}
               exportFilename="servicios-solicitados"
+              heightMode="hug"
               enableColumnPicker
               enableExport
               enableClientSort={false}

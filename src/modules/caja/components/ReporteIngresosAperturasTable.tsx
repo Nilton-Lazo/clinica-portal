@@ -54,10 +54,10 @@ export function ReporteIngresosAperturasTable(props: {
       {
         id: "usuario",
         header: "Usuario",
-        align: "left",
+        align: "center",
         size: 100,
         sortable: true,
-        cell: (x) => <GridCellText value={x.usuario || "—"} title={x.usuario || undefined} />,
+        cell: (x) => <GridCellText value={x.usuario || "—"} align="center" title={x.usuario || undefined} />,
       },
       {
         id: "fecha",

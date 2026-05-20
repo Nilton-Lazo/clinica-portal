@@ -16,6 +16,7 @@ export type DataGridColumnDef<T> = {
   columnLabel?: string;
   accessor?: keyof T & string;
   sortable?: boolean;
+  sortKey?: string;
   align?: "left" | "center" | "right";
   size?: number;
   minSize?: number;

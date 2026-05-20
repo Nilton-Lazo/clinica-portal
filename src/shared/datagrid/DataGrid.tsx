@@ -8,8 +8,8 @@ import {
   type Row,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { DataGridColumnDef, DataGridSortState, SortDirection } from "./types";
+import { nextGridSort } from "./gridSortCycle";
 import { DataGridSkeleton } from "./DataGridSkeleton";
 import { GridCellText } from "./GridCellText";
 import { GridHeaderRenderer } from "./gridHeader";
@@ -53,7 +53,7 @@ function toTanstackColumns<T>(columns: DataGridColumnDef<T>[]): ColumnDef<T, unk
       maxSize: col.maxSize ?? TABLE_DEFAULT_MAX_SIZE,
       enableSorting: col.sortable === true,
       enableHiding: col.enableHiding !== false,
-      enableResizing: col.resizable !== false && !col.grow,
+      enableResizing: col.resizable !== false,
       cell: ({ row }) => {
         if (col.cell) return col.cell(row.original);
         if (col.accessor) {
@@ -85,6 +85,8 @@ type ColumnSizing = {
   maxWidth: number | undefined;
   isGrow: boolean;
 };
+
+const TABLE_HEADER_RESIZE_RESERVE_PX = 12;
 
 function resolveColumnSizing<T>(def: DataGridColumnDef<T>): ColumnSizing {
   if (def.grow) {
@@ -129,7 +131,6 @@ export function DataGrid<T>(props: {
   density?: TableDensity;
   tableClassName?: string;
   hiddenColumnIds?: string[];
-  tableId?: string;
 }) {
   const {
     rows,
@@ -156,40 +157,9 @@ export function DataGrid<T>(props: {
     density = "default",
     tableClassName,
     hiddenColumnIds = [],
-    tableId,
   } = props;
 
-  const sizingStorageKey = tableId ? `datagrid:${tableId}:sizing` : null;
-
-  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(() => {
-    if (!sizingStorageKey || typeof window === "undefined") return {};
-    try {
-      const raw = window.localStorage.getItem(sizingStorageKey);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw) as unknown;
-      if (parsed && typeof parsed === "object") {
-        const out: ColumnSizingState = {};
-        for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
-          if (typeof v === "number" && Number.isFinite(v) && v > 0) {
-            out[k] = v;
-          }
-        }
-        return out;
-      }
-      return {};
-    } catch {
-      return {};
-    }
-  });
-
-  React.useEffect(() => {
-    if (!sizingStorageKey || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(sizingStorageKey, JSON.stringify(columnSizing));
-    } catch {
-      void 0;
-    }
-  }, [sizingStorageKey, columnSizing]);
+  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
 
   const rowHeight = DENSITY_ROW_HEIGHT[density];
   const headerMinHeight = DENSITY_HEADER_HEIGHT[density];
@@ -216,8 +186,18 @@ export function DataGrid<T>(props: {
     for (const def of visibleColumnDefs) {
       const base = resolveColumnSizing(def);
       const override = columnSizing[def.id];
-      if (override != null && Number.isFinite(override) && override > 0 && !base.isGrow) {
-        map.set(def.id, { ...base, width: override });
+      if (override != null && Number.isFinite(override) && override > 0) {
+        if (base.isGrow) {
+          map.set(def.id, {
+            width: override,
+            minWidth: Math.min(base.minWidth, override),
+            maxWidth: override,
+            isGrow: false,
+          });
+        } else {
+          const maxW = base.maxWidth != null ? Math.max(base.maxWidth, override) : override;
+          map.set(def.id, { ...base, width: override, maxWidth: maxW });
+        }
       } else {
         map.set(def.id, base);
       }
@@ -321,11 +301,12 @@ export function DataGrid<T>(props: {
         return;
       }
       if (!onSortChange) return;
-      if (sort === columnId) {
-        onSortChange({ sort: columnId, sortDir: sortDir === "asc" ? "desc" : "asc" });
-        return;
-      }
-      onSortChange({ sort: columnId, sortDir: "asc" });
+      const next = nextGridSort(
+        { sort: sort ?? null, sortDir: sortDir ?? "asc" },
+        columnId,
+        { column: columnId, direction: "asc" }
+      );
+      onSortChange(next);
     },
     [canSortColumns, onToggleSort, onSortChange, sort, sortDir]
   );
@@ -333,7 +314,7 @@ export function DataGrid<T>(props: {
   const rootClass =
     heightMode === "hug"
       ? "relative flex w-full flex-none flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)"
-      : "relative flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)";
+      : "relative flex h-full min-h-[280px] min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-(--border-color-default) bg-(--color-surface)";
 
   const isFillHeight = heightMode === "fill";
 
@@ -363,7 +344,7 @@ export function DataGrid<T>(props: {
         })}
       </colgroup>
 
-      <thead className="sticky top-0 z-10 bg-(--color-primary) text-(--color-text-inverse)">
+      <thead className="sticky top-0 z-10 bg-(--color-primary) text-(--color-text-inverse) shadow-[0_1px_0_0] shadow-(--color-primary)">
         {table.getHeaderGroups().map((headerGroup) => (
           <tr key={headerGroup.id}>
             {selectionMode === "multiple" ? (
@@ -373,7 +354,7 @@ export function DataGrid<T>(props: {
                   width: TABLE_SELECTION_COL_WIDTH,
                   minWidth: TABLE_SELECTION_COL_WIDTH,
                   maxWidth: TABLE_SELECTION_COL_WIDTH,
-                  height: headerMinHeight,
+                  minHeight: headerMinHeight,
                 }}
                 aria-label="Selección"
               />
@@ -391,19 +372,19 @@ export function DataGrid<T>(props: {
                 <th
                   key={header.id}
                   className={[
-                    "group/th relative bg-(--color-primary) text-center font-semibold select-none align-middle",
+                    "group/th relative border-b border-(--border-color-default) bg-(--color-primary) text-center font-semibold select-none align-middle",
                     paddingX,
                     paddingY,
+                    canResize ? "pr-3" : "",
                     sortInteractive
-                      ? "cursor-pointer outline-none transition-colors hover:bg-(--color-primary)/90 focus-visible:bg-(--color-primary)/85 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-(--color-text-inverse)"
+                      ? "cursor-pointer outline-none transition-[filter] hover:brightness-110 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-(--color-text-inverse)"
                       : "",
-                    def?.headerClassName ?? "",
                   ].join(" ")}
                   style={{
                     width: isGrow ? undefined : sizing?.width,
                     minWidth: sizing?.minWidth,
                     maxWidth: sizing?.maxWidth,
-                    height: headerMinHeight,
+                    minHeight: headerMinHeight,
                   }}
                   tabIndex={sortInteractive ? 0 : -1}
                   onClick={() => handleHeaderSort(header.column.id, sortInteractive)}
@@ -416,22 +397,14 @@ export function DataGrid<T>(props: {
                   }}
                   aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
                 >
-                  <span className="inline-flex w-full min-w-0 max-w-full items-center justify-center gap-1">
-                    <span className="min-w-0 wrap-break-words whitespace-normal">
+                  <div
+                    className="flex w-full min-w-0 items-center justify-center"
+                    style={{ paddingRight: canResize ? TABLE_HEADER_RESIZE_RESERVE_PX : 0 }}
+                  >
+                    <span className="min-w-0 text-center leading-tight wrap-break-words whitespace-normal">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </span>
-                    {sortable && canSortColumns ? (
-                      active ? (
-                        sortDir === "asc" ? (
-                          <ArrowUp className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                        ) : (
-                          <ArrowDown className="h-3.5 w-3.5 shrink-0 opacity-90" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
-                      )
-                    ) : null}
-                  </span>
+                  </div>
                   {canResize ? (
                     <span
                       role="separator"
@@ -471,7 +444,7 @@ export function DataGrid<T>(props: {
         ))}
       </thead>
 
-      <tbody>
+      <tbody className="[&>tr:first-child]:border-t-0">
         {showSkeleton ? (
           <tr>
             <td colSpan={colSpanFull}>

@@ -76,6 +76,7 @@ export function CrudListGrid<T>(props: {
     sort,
     sortDir,
     exportFilename,
+    tableId,
   });
 
   const footerActions =
@@ -119,7 +120,6 @@ export function CrudListGrid<T>(props: {
           onToggleSort={shell.effectiveToggleSort}
           heightMode={heightMode}
           hiddenColumnIds={shell.hiddenColumnIds}
-          tableId={tableId}
         />
       </div>
 

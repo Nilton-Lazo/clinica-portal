@@ -91,6 +91,7 @@ export function ListGridWithFooter<T>(props: {
     sortDir,
     defaultSort,
     exportFilename,
+    tableId,
   });
 
   const footerActions =
@@ -128,7 +129,6 @@ export function ListGridWithFooter<T>(props: {
       onToggleSort={shell.effectiveToggleSort}
       heightMode={heightMode}
       hiddenColumnIds={shell.hiddenColumnIds}
-      tableId={tableId}
     />
   );
 

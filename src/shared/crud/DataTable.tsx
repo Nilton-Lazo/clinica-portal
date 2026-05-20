@@ -28,6 +28,10 @@ function mapColumns<T>(columns: DataTableColumn<T>[]): DataGridColumnDef<T>[] {
   return columns.map((c) => {
     const parsedSize = parseTailwindWidth(c.headerClassName);
     const isCheck = c.key === "check";
+    const hasExplicitWidth = c.size != null || parsedSize != null;
+    const wantsGrow =
+      c.grow ??
+      (!hasExplicitWidth && c.headerClassName?.includes("min-w-0") ? true : undefined);
     const size = isCheck ? 44 : c.size ?? parsedSize ?? 180;
 
     const isUtility = isUtilityColumn(c.key);
@@ -41,7 +45,7 @@ function mapColumns<T>(columns: DataTableColumn<T>[]): DataGridColumnDef<T>[] {
       columnLabel: c.columnLabel,
       sortable: c.sortable ?? defaultSortable,
       sortValue: c.sortValue,
-      grow: c.grow,
+      grow: wantsGrow,
       enableHiding: hideFromPicker ? false : c.enableHiding,
       align: isCheck
         ? "center"
@@ -140,6 +144,7 @@ export function DataTable<T>(props: {
     sort,
     sortDir,
     exportFilename,
+    tableId,
   });
 
   const footerActions =
@@ -175,7 +180,6 @@ export function DataTable<T>(props: {
       heightMode={heightMode}
       tableClassName={tableClassName}
       hiddenColumnIds={shell.hiddenColumnIds}
-      tableId={tableId}
     />
   );
 

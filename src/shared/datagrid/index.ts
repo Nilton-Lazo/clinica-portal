@@ -13,6 +13,8 @@ export { useClientGridSort, buildColumnSortGetter } from "./useClientGridSort";
 export { nextGridSort, useGridSortState, createGridSortToggle } from "./gridSortCycle";
 export type { GridSortDefaults, GridSortState } from "./gridSortCycle";
 export { buildListQuery } from "./buildListQuery";
+export { resolveGridSortField, withResolvedGridSort } from "./gridSortField";
+export type { GridSortColumnRef } from "./gridSortField";
 export { exportRowsToCsv } from "./exportCsv";
 export type {
   DataGridColumnDef,
