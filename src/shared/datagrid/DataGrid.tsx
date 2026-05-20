@@ -344,7 +344,7 @@ export function DataGrid<T>(props: {
         })}
       </colgroup>
 
-      <thead className="sticky top-0 z-10 bg-(--color-primary) text-(--color-text-inverse) shadow-[0_1px_0_0] shadow-(--color-primary)">
+      <thead className="sticky top-0 z-10 bg-(--color-primary) text-(--color-text-inverse) shadow-[0_1px_0_0_var(--color-primary)]">
         {table.getHeaderGroups().map((headerGroup) => (
           <tr key={headerGroup.id}>
             {selectionMode === "multiple" ? (
