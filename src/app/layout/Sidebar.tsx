@@ -49,28 +49,30 @@ export default function Sidebar({
 
   return (
     <aside className="sidebar-surface h-full bg-(--color-sidebar-bg) text-(--color-text-inverse) flex flex-col overflow-hidden">
-      <div className="h-(--layout-header-height) px-4 flex items-center">
+      <div className="h-(--layout-header-height) shrink-0 px-2 flex items-center justify-center">
         <NavLink
-            to="/inicio"
-            onClick={onNavigateMobile}
-            className="w-full flex items-center justify-center"
-            aria-label="Ir a inicio"
-            >
-            <div className={`flex items-center ${showLabels ? "gap-3" : ""}`}>
-                <img
-                src={brandLogo}
-                alt="HeartCare"
-                className="h-11 w-11 object-contain"
-                draggable={false}
-                />
+          to="/inicio"
+          onClick={onNavigateMobile}
+          className="flex h-full w-full items-center justify-center"
+          aria-label="Ir a inicio"
+        >
+          <div
+            className={`flex items-center justify-center ${showLabels ? "" : ""}`}
+          >
+            <img
+              src={brandLogo}
+              alt="Internacional San Rafael"
+              className="h-14 w-14 shrink-0 object-contain"
+              draggable={false}
+            />
 
-                {showLabels && (
-                <div className="leading-tight">
-                    <div className="text-lg font-bold">HeartCare</div>
-                    <div className="text-xs opacity-90">Medical Clinic</div>
-                </div>
-                )}
-            </div>
+            {showLabels && (
+              <div className="min-w-0 leading-none">
+                <div className="text-base font-bold">INTERNACIONAL</div>
+                <div className="text-[0.6875rem] opacity-90">San Rafael</div>
+              </div>
+            )}
+          </div>
         </NavLink>
       </div>
 

@@ -16,10 +16,10 @@ export default function AuthLayout({ children, illustration, logo }: Props) {
               src={logo}
               alt="Logo Clínica"
               className="
-                h-12
-                sm:h-14
-                md:h-15
-                lg:h-16
+                h-14
+                sm:h-18
+                md:h-20
+                lg:h-22
               "
             />
           </div>
@@ -33,7 +33,7 @@ export default function AuthLayout({ children, illustration, logo }: Props) {
               />
 
               <h2 className="mt-6 text-2xl font-bold text-(--color-primary)">
-                CLÍNICA VIDA SANA
+                CLÍNICA INTERNACIONAL
               </h2>
 
               <p className="mt-2 text-center text-sm text-(--color-text-secondary) leading-6">
