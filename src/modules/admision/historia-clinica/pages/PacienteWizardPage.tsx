@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { FileDown } from "lucide-react";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { PacienteWizardProvider } from "../wizard/PacienteWizardProvider";
 import { usePacienteWizard } from "../wizard/usePacienteWizard";
@@ -20,6 +21,7 @@ import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
 import { toastService } from "../../../../shared/notifications";
+import { downloadHojaFiliacionPaciente, previewHojaFiliacionPaciente } from "../services/hojaFiliacionPaciente.service";
 import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
@@ -67,6 +69,8 @@ export default function PacienteWizardPage() {
       .finally(() => setCatalogLoading(false));
   }, []);
 
+  const reportBusyRef = React.useRef(false);
+
   useEffect(() => {
     if (!isEdit) {
       setInitialDraft(emptyDraft());
@@ -76,26 +80,36 @@ export default function PacienteWizardPage() {
     const id = Number(pacienteId);
     if (!id || Number.isNaN(id)) return;
 
+    const controller = new AbortController();
+
     const load = async () => {
       setLoadingPaciente(true);
       try {
-        const res = await pacienteService.show(id);
+        const res = await pacienteService.show(id, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         setInitialDraft(mapPacienteToDraft(res.data));
       } catch (e) {
+        if (controller.signal.aborted) return;
         toastService.showError(toUserFriendlyMessage(e, "No se pudo cargar la historia clínica del paciente."));
       } finally {
-        setLoadingPaciente(false);
+        if (!controller.signal.aborted) {
+          setLoadingPaciente(false);
+        }
       }
     };
 
     void load();
+
+    return () => controller.abort();
   }, [isEdit, pacienteId, realtimeReloadKey]);
 
   useRealtimeModuleRefresh({
     module: "admision",
     entities: ["paciente", "paciente_plan", "paciente_contacto_emergencia"],
+    includeOwnEvents: false,
     onEvent: (event) => {
       if (!isEdit) return;
+      if (reportBusyRef.current) return;
       if (event.entity === "paciente" && event.id != null && Number(event.id) !== Number(pacienteId)) return;
       setRealtimeReloadKey((key) => key + 1);
     },
@@ -115,6 +129,7 @@ export default function PacienteWizardPage() {
         catalog={catalog}
         catalogLoading={catalogLoading}
         loadingPaciente={loadingPaciente}
+        reportBusyRef={reportBusyRef}
       />
     </PacienteWizardProvider>
   );
@@ -127,6 +142,7 @@ function WizardInner({
   catalog,
   catalogLoading,
   loadingPaciente,
+  reportBusyRef,
 }: {
   isEdit: boolean;
   pacienteId: number | null;
@@ -134,9 +150,12 @@ function WizardInner({
   catalog: PacienteFormCatalogos | null;
   catalogLoading: boolean;
   loadingPaciente: boolean;
+  reportBusyRef: React.MutableRefObject<boolean>;
 }) {
   const navigate = useNavigate();
   const { state, actions, derived } = usePacienteWizard();
+  const [downloadingFiliacion, setDownloadingFiliacion] = React.useState(false);
+  const [previewingFiliacion, setPreviewingFiliacion] = React.useState(false);
 
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
 
@@ -181,6 +200,39 @@ function WizardInner({
     if (k === "acreditacion" && !canGoAcreditacion) return;
     navigate(`${base}/${k}`);
   };
+
+  const onPreviewFiliacion = React.useCallback(async () => {
+    if (!pacienteId || pacienteId <= 0) {
+      toastService.showError("Guarda el paciente antes de previsualizar la hoja de filiación.");
+      return;
+    }
+    reportBusyRef.current = true;
+    setPreviewingFiliacion(true);
+    try {
+      const ok = await previewHojaFiliacionPaciente(pacienteId, (msg) => toastService.showError(msg));
+      if (ok) toastService.showSuccess("Vista previa abierta en una nueva pestaña.");
+    } finally {
+      reportBusyRef.current = false;
+      setPreviewingFiliacion(false);
+    }
+  }, [pacienteId, reportBusyRef]);
+
+  const onDownloadFiliacion = React.useCallback(async () => {
+    if (!pacienteId || pacienteId <= 0) {
+      toastService.showError("Guarda el paciente antes de generar la hoja de filiación.");
+      return;
+    }
+    reportBusyRef.current = true;
+    setDownloadingFiliacion(true);
+    toastService.showInfo("Generando PDF. Si la app no responde, espera a que termine la descarga.");
+    try {
+      const ok = await downloadHojaFiliacionPaciente(pacienteId, (msg) => toastService.showError(msg));
+      if (ok) toastService.showSuccess("Hoja de filiación descargada.");
+    } finally {
+      reportBusyRef.current = false;
+      setDownloadingFiliacion(false);
+    }
+  }, [pacienteId, reportBusyRef]);
 
   const save = async () => {
     actions.markSaving(true);
@@ -228,6 +280,27 @@ function WizardInner({
           </div>
 
           <div className="flex flex-wrap justify-end gap-2">
+            {isEdit && pacienteId ? (
+              <>
+                <SecondaryButton
+                  type="button"
+                  onClick={() => void onPreviewFiliacion()}
+                  disabled={previewingFiliacion || downloadingFiliacion || loadingPaciente || catalogLoading}
+                  className="inline-flex h-10 items-center justify-center gap-2"
+                >
+                  {previewingFiliacion ? "Abriendo vista…" : "Vista previa"}
+                </SecondaryButton>
+                <SecondaryButton
+                  type="button"
+                  onClick={() => void onDownloadFiliacion()}
+                  disabled={downloadingFiliacion || previewingFiliacion || loadingPaciente || catalogLoading}
+                  className="inline-flex h-10 items-center justify-center gap-2"
+                >
+                  <FileDown className="h-4 w-4 shrink-0" aria-hidden />
+                  {downloadingFiliacion ? "Generando PDF…" : "Descargar PDF"}
+                </SecondaryButton>
+              </>
+            ) : null}
             <button
               type="button"
               onClick={() => navigate("/admision/historia-clinica")}
