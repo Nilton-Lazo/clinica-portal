@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, FileDown, Loader2 } from "lucide-react";
+import { ChevronLeft, Printer } from "lucide-react";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { PacienteWizardProvider } from "../wizard/PacienteWizardProvider";
 import { usePacienteWizard } from "../wizard/usePacienteWizard";
@@ -21,7 +21,11 @@ import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
 import { toastService } from "../../../../shared/notifications";
-import { downloadHojaFiliacionPaciente } from "../services/hojaFiliacionPaciente.service";
+import {
+  hojaFiliacionFilenameFallback,
+  hojaFiliacionReportPath,
+} from "../services/hojaFiliacionPaciente.service";
+import { ReportPrintPreviewDialog } from "../../../../shared/reporting";
 import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
@@ -158,7 +162,7 @@ function WizardInner({
 }) {
   const navigate = useNavigate();
   const { state, actions, derived } = usePacienteWizard();
-  const [downloadingFiliacion, setDownloadingFiliacion] = React.useState(false);
+  const [filiacionPreviewOpen, setFiliacionPreviewOpen] = React.useState(false);
 
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
 
@@ -204,21 +208,31 @@ function WizardInner({
     navigate(`${base}/${k}`);
   };
 
-  const onDownloadFiliacion = React.useCallback(async () => {
+  const onOpenFiliacionPrintPreview = React.useCallback(() => {
     if (!pacienteId || pacienteId <= 0) {
-      toastService.showError("Guarda el paciente antes de generar la hoja de filiación.");
+      toastService.showError("Guarda el paciente antes de imprimir la hoja de filiación.");
       return;
     }
     reportBusyRef.current = true;
-    setDownloadingFiliacion(true);
-    try {
-      const ok = await downloadHojaFiliacionPaciente(pacienteId, (msg) => toastService.showError(msg));
-      if (ok) toastService.showSuccess("Hoja de filiación descargada.");
-    } finally {
-      reportBusyRef.current = false;
-      setDownloadingFiliacion(false);
-    }
+    setFiliacionPreviewOpen(true);
   }, [pacienteId, reportBusyRef]);
+
+  const onCloseFiliacionPrintPreview = React.useCallback(() => {
+    setFiliacionPreviewOpen(false);
+    reportBusyRef.current = false;
+  }, [reportBusyRef]);
+
+  const filiacionReportPreview = React.useMemo(() => {
+    if (!pacienteId || pacienteId <= 0) return null;
+    return {
+      path: hojaFiliacionReportPath(pacienteId),
+      download: {
+        path: hojaFiliacionReportPath(pacienteId),
+        format: "pdf" as const,
+        filenameFallback: hojaFiliacionFilenameFallback(pacienteId),
+      },
+    };
+  }, [pacienteId]);
 
   const save = async () => {
     actions.markSaving(true);
@@ -270,61 +284,30 @@ function WizardInner({
             onClick={() => navigate("/admision/historia-clinica")}
             className="inline-flex h-10 shrink-0 items-center gap-1.5 self-end text-sm font-semibold text-(--color-text-secondary) transition hover:text-(--color-primary) sm:self-auto"
           >
-            <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+            <ChevronLeft className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
             Volver al listado
           </button>
         </div>
 
-        <PacienteSummaryBar />
-
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-(--border-color-default) pt-3">
-          {isEdit && pacienteId ? (
-            <button
-              type="button"
-              onClick={() => void onDownloadFiliacion()}
-              disabled={downloadingFiliacion || loadingPaciente || catalogLoading}
-              className={`${REPORT_ICON_BTN} ${downloadingFiliacion || loadingPaciente || catalogLoading ? REPORT_ICON_BTN_DISABLED : ""}`}
-              title={
-                downloadingFiliacion
-                  ? "Generando hoja de filiación en PDF…"
-                  : "Descargar hoja de filiación (PDF)"
-              }
-              aria-label={
-                downloadingFiliacion
-                  ? "Generando hoja de filiación en PDF"
-                  : "Descargar hoja de filiación en PDF"
-              }
-            >
-              {downloadingFiliacion ? (
-                <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden />
-              ) : (
-                <FileDown className="h-[18px] w-[18px] shrink-0" aria-hidden />
-              )}
-            </button>
-          ) : null}
-
-          {step !== "acreditacion" ? (
-            <>
-              <SecondaryButton
-                onClick={() => {
-                  actions.resetDraft();
-                  toastService.showInfo("Cambios descartados.");
-                }}
-                disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
-                className="w-full sm:w-auto"
-              >
-                Cancelar
-              </SecondaryButton>
-              <PrimaryButton
-                onClick={save}
-                disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading}
-                className="w-full sm:w-auto"
-              >
-                {state.saving ? "Guardando…" : "Guardar"}
-              </PrimaryButton>
-            </>
-          ) : null}
-        </div>
+        {(isEdit && pacienteId) || step !== "acreditacion" ? (
+          <WizardSummaryToolbar
+            showPdf={Boolean(isEdit && pacienteId)}
+            showFormActions={step !== "acreditacion"}
+            loadingPaciente={loadingPaciente}
+            catalogLoading={catalogLoading}
+            onPrintFiliacion={onOpenFiliacionPrintPreview}
+            onCancel={() => {
+              actions.resetDraft();
+              toastService.showInfo("Cambios descartados.");
+            }}
+            onSave={save}
+            cancelDisabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
+            saveDisabled={!requiredOk || state.saving || loadingPaciente || catalogLoading}
+            saving={state.saving}
+          />
+        ) : (
+          <PacienteSummaryBar />
+        )}
       </div>
 
       {catalogLoading || loadingPaciente ? (
@@ -355,6 +338,83 @@ function WizardInner({
 
         </>
       ) : null}
+
+      {filiacionReportPreview ? (
+        <ReportPrintPreviewDialog
+          open={filiacionPreviewOpen}
+          onClose={onCloseFiliacionPrintPreview}
+          title="Hoja de filiación del paciente"
+          subtitle="Revise el documento, imprímalo o descargue el PDF si lo necesita."
+          preview={{ path: filiacionReportPreview.path }}
+          download={filiacionReportPreview.download}
+          onDownloadSuccess={() => toastService.showSuccess("Hoja de filiación descargada.")}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function WizardSummaryToolbar({
+  showPdf,
+  showFormActions,
+  loadingPaciente,
+  catalogLoading,
+  onPrintFiliacion,
+  onCancel,
+  onSave,
+  cancelDisabled,
+  saveDisabled,
+  saving,
+}: {
+  showPdf: boolean;
+  showFormActions: boolean;
+  loadingPaciente: boolean;
+  catalogLoading: boolean;
+  onPrintFiliacion: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+  cancelDisabled: boolean;
+  saveDisabled: boolean;
+  saving: boolean;
+}) {
+  const busy = loadingPaciente || catalogLoading;
+
+  const mobileActionsClass =
+    showPdf && showFormActions
+      ? "grid w-full grid-cols-[2.5rem_1fr_1fr] gap-2 sm:flex sm:w-auto"
+      : showFormActions
+        ? "grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto"
+        : "flex w-full justify-end gap-2 sm:w-auto";
+
+  return (
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3">
+      <PacienteSummaryBar compact className="w-full min-w-0 sm:flex-1" />
+
+      <div className={`shrink-0 items-center ${mobileActionsClass}`}>
+        {showPdf ? (
+          <button
+            type="button"
+            onClick={onPrintFiliacion}
+            disabled={busy}
+            className={`${REPORT_ICON_BTN} ${busy ? REPORT_ICON_BTN_DISABLED : ""}`}
+            title="Imprimir hoja de filiación"
+            aria-label="Imprimir hoja de filiación"
+          >
+            <Printer className="h-[18px] w-[18px] shrink-0" aria-hidden />
+          </button>
+        ) : null}
+
+        {showFormActions ? (
+          <>
+            <SecondaryButton onClick={onCancel} disabled={cancelDisabled} className="min-w-0 w-full sm:w-auto">
+              Cancelar
+            </SecondaryButton>
+            <PrimaryButton onClick={onSave} disabled={saveDisabled} className="min-w-0 w-full sm:w-auto">
+              {saving ? "Guardando…" : "Guardar"}
+            </PrimaryButton>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -370,9 +430,11 @@ function TabButton({
   onClick: () => void;
   children: React.ReactNode;
 }) {
-  const base = "h-10 px-4 rounded-md text-sm font-semibold transition border border-(--border-color-default)";
-  const cls = active ? `${base} bg-(--color-primary) text-(--color-text-inverse)` : `${base} bg-(--color-surface) text-(--color-text-primary) hover:bg-(--color-background)`;
-  const dis = disabled ? "opacity-50 cursor-not-allowed hover:bg-(--color-surface)" : "";
+  const base = "h-10 rounded-md border border-(--border-color-default) px-4 text-sm font-semibold transition";
+  const cls = active
+    ? `${base} bg-(--color-primary) text-(--color-text-inverse)`
+    : `${base} bg-(--color-surface) text-(--color-text-primary) hover:bg-(--color-background)`;
+  const dis = disabled ? "cursor-not-allowed opacity-50 hover:bg-(--color-surface)" : "";
   return (
     <button type="button" onClick={disabled ? undefined : onClick} className={`${cls} ${dis}`}>
       {children}

@@ -137,12 +137,12 @@ export default function AppShell() {
         >
           <div
             className={[
-              "mx-auto flex w-full min-h-0 flex-col p-4 lg:h-full lg:p-2",
+              "mx-auto flex w-full min-w-0 flex-col px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] lg:px-2 lg:pt-2 lg:pb-2",
               isScrollableContent
                 ? isTarifario
-                  ? "lg:flex-1 lg:overflow-hidden"
+                  ? "min-h-0 flex-1 lg:overflow-hidden"
                   : ""
-                : "flex-1 lg:overflow-hidden",
+                : "min-h-0 flex-1 lg:h-full lg:overflow-hidden",
             ]
               .filter(Boolean)
               .join(" ")}
