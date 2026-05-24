@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FileDown } from "lucide-react";
+import { ArrowLeft, FileDown, Loader2 } from "lucide-react";
 import { PrimaryButton, SecondaryButton } from "../../../../shared/ui/buttons";
 import { PacienteWizardProvider } from "../wizard/PacienteWizardProvider";
 import { usePacienteWizard } from "../wizard/usePacienteWizard";
@@ -21,10 +21,14 @@ import { DatosGeneralesStep } from "./steps/DatosGeneralesStep";
 import { DatosAdicionalesStep } from "./steps/DatosAdicionalesStep";
 import { AcreditacionStep } from "./steps/AcreditacionStep";
 import { toastService } from "../../../../shared/notifications";
-import { downloadHojaFiliacionPaciente, previewHojaFiliacionPaciente } from "../services/hojaFiliacionPaciente.service";
+import { downloadHojaFiliacionPaciente } from "../services/hojaFiliacionPaciente.service";
 import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
+
+const REPORT_ICON_BTN =
+  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-(--border-color-default) bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface)";
+const REPORT_ICON_BTN_DISABLED = "cursor-not-allowed opacity-50 hover:scale-100 active:scale-100";
 
 function stepFromPath(pathname: string): StepKey | null {
   if (pathname.includes("/datos-generales")) return "datos-generales";
@@ -155,7 +159,6 @@ function WizardInner({
   const navigate = useNavigate();
   const { state, actions, derived } = usePacienteWizard();
   const [downloadingFiliacion, setDownloadingFiliacion] = React.useState(false);
-  const [previewingFiliacion, setPreviewingFiliacion] = React.useState(false);
 
   const base = isEdit && pacienteId ? `/admision/historia-clinica/${pacienteId}` : `/admision/historia-clinica/nuevo`;
 
@@ -201,22 +204,6 @@ function WizardInner({
     navigate(`${base}/${k}`);
   };
 
-  const onPreviewFiliacion = React.useCallback(async () => {
-    if (!pacienteId || pacienteId <= 0) {
-      toastService.showError("Guarda el paciente antes de previsualizar la hoja de filiación.");
-      return;
-    }
-    reportBusyRef.current = true;
-    setPreviewingFiliacion(true);
-    try {
-      const ok = await previewHojaFiliacionPaciente(pacienteId, (msg) => toastService.showError(msg));
-      if (ok) toastService.showSuccess("Vista previa abierta en una nueva pestaña.");
-    } finally {
-      reportBusyRef.current = false;
-      setPreviewingFiliacion(false);
-    }
-  }, [pacienteId, reportBusyRef]);
-
   const onDownloadFiliacion = React.useCallback(async () => {
     if (!pacienteId || pacienteId <= 0) {
       toastService.showError("Guarda el paciente antes de generar la hoja de filiación.");
@@ -224,7 +211,6 @@ function WizardInner({
     }
     reportBusyRef.current = true;
     setDownloadingFiliacion(true);
-    toastService.showInfo("Generando PDF. Si la app no responde, espera a que termine la descarga.");
     try {
       const ok = await downloadHojaFiliacionPaciente(pacienteId, (msg) => toastService.showError(msg));
       if (ok) toastService.showSuccess("Hoja de filiación descargada.");
@@ -265,7 +251,7 @@ function WizardInner({
 
   return (
     <div className="flex flex-col gap-4 lg:gap-2">
-      <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 space-y-3">
+      <div className="rounded-lg border border-(--border-color-default) bg-(--color-surface) p-4 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             <TabButton active={step === "datos-generales"} onClick={() => onTab("datos-generales")}>
@@ -279,56 +265,66 @@ function WizardInner({
             </TabButton>
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            {isEdit && pacienteId ? (
-              <>
-                <SecondaryButton
-                  type="button"
-                  onClick={() => void onPreviewFiliacion()}
-                  disabled={previewingFiliacion || downloadingFiliacion || loadingPaciente || catalogLoading}
-                  className="inline-flex h-10 items-center justify-center gap-2"
-                >
-                  {previewingFiliacion ? "Abriendo vista…" : "Vista previa"}
-                </SecondaryButton>
-                <SecondaryButton
-                  type="button"
-                  onClick={() => void onDownloadFiliacion()}
-                  disabled={downloadingFiliacion || previewingFiliacion || loadingPaciente || catalogLoading}
-                  className="inline-flex h-10 items-center justify-center gap-2"
-                >
-                  <FileDown className="h-4 w-4 shrink-0" aria-hidden />
-                  {downloadingFiliacion ? "Generando PDF…" : "Descargar PDF"}
-                </SecondaryButton>
-              </>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => navigate("/admision/historia-clinica")}
-              className="h-10 px-4 rounded-md border border-dashed border-(--border-color-default) bg-(--color-background) text-sm font-semibold text-(--color-text-secondary) transition hover:bg-(--color-surface) hover:text-(--color-text-primary)"
-            >
-              Regresar a historias
-            </button>
-            {step !== "acreditacion" ? (
-              <>
-                <SecondaryButton
-                  onClick={() => {
-                    actions.resetDraft();
-                    toastService.showInfo("Cambios descartados.");
-                  }}
-                  disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
-                  className="w-full sm:w-auto"
-                >
-                  Cancelar
-                </SecondaryButton>
-                <PrimaryButton onClick={save} disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading} className="w-full sm:w-auto">
-                  {state.saving ? "Guardando..." : "Guardar"}
-                </PrimaryButton>
-              </>
-            ) : null}
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/admision/historia-clinica")}
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 self-end text-sm font-semibold text-(--color-text-secondary) transition hover:text-(--color-primary) sm:self-auto"
+          >
+            <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
+            Volver al listado
+          </button>
         </div>
 
-            <PacienteSummaryBar />
+        <PacienteSummaryBar />
+
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-(--border-color-default) pt-3">
+          {isEdit && pacienteId ? (
+            <button
+              type="button"
+              onClick={() => void onDownloadFiliacion()}
+              disabled={downloadingFiliacion || loadingPaciente || catalogLoading}
+              className={`${REPORT_ICON_BTN} ${downloadingFiliacion || loadingPaciente || catalogLoading ? REPORT_ICON_BTN_DISABLED : ""}`}
+              title={
+                downloadingFiliacion
+                  ? "Generando hoja de filiación en PDF…"
+                  : "Descargar hoja de filiación (PDF)"
+              }
+              aria-label={
+                downloadingFiliacion
+                  ? "Generando hoja de filiación en PDF"
+                  : "Descargar hoja de filiación en PDF"
+              }
+            >
+              {downloadingFiliacion ? (
+                <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <FileDown className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              )}
+            </button>
+          ) : null}
+
+          {step !== "acreditacion" ? (
+            <>
+              <SecondaryButton
+                onClick={() => {
+                  actions.resetDraft();
+                  toastService.showInfo("Cambios descartados.");
+                }}
+                disabled={!derived.isDirty || state.saving || loadingPaciente || catalogLoading}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={save}
+                disabled={!requiredOk || state.saving || loadingPaciente || catalogLoading}
+                className="w-full sm:w-auto"
+              >
+                {state.saving ? "Guardando…" : "Guardar"}
+              </PrimaryButton>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {catalogLoading || loadingPaciente ? (
