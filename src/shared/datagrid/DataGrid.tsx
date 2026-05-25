@@ -43,6 +43,15 @@ function cellContentClass(align?: "left" | "center" | "right") {
   return ["flex w-full min-w-0 items-center", justifyForAlign(align)].join(" ");
 }
 
+function isInteractiveGridTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      'input, textarea, select, button, a, [role="button"], [contenteditable="true"], [data-grid-interactive="true"]'
+    )
+  );
+}
+
 function toTanstackColumns<T>(columns: DataGridColumnDef<T>[]): ColumnDef<T, unknown>[] {
   return columns.map((col) => {
     const base: ColumnDef<T, unknown> = {
@@ -687,6 +696,7 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
 
   const handleClick = React.useCallback(
     (e: React.MouseEvent) => {
+      if (isInteractiveGridTarget(e.target)) return;
       const h = handlersRef.current;
       h.onRowClick?.(original, e);
       if (selectionMode !== "none") toggleRowSelection(original);
@@ -694,7 +704,8 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
     [handlersRef, original, selectionMode, toggleRowSelection]
   );
 
-  const handleDoubleClick = React.useCallback(() => {
+  const handleDoubleClick = React.useCallback((e: React.MouseEvent) => {
+    if (isInteractiveGridTarget(e.target)) return;
     handlersRef.current.onRowDoubleClick?.(original);
   }, [handlersRef, original]);
 
@@ -704,6 +715,7 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
 
   const handleContextMenu = React.useCallback(
     (e: React.MouseEvent) => {
+      if (isInteractiveGridTarget(e.target)) return;
       e.preventDefault();
       handlersRef.current.onRowContextMenu?.(original, e);
     },
@@ -712,6 +724,7 @@ function DataRowImpl<T>(props: DataRowProps<T>) {
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent) => {
+      if (isInteractiveGridTarget(e.target)) return;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         if (selectionMode !== "none") toggleRowSelection(original);

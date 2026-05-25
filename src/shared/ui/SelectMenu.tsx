@@ -13,7 +13,6 @@ function isScrollableElement(el: HTMLElement): boolean {
   return /(auto|scroll|overlay)/.test(`${s.overflow}${s.overflowY}${s.overflowX}`);
 }
 
-/** Contenedores con scroll entre el trigger y el documento (p. ej. `<main class="overflow-y-auto">`). */
 function getScrollableAncestors(trigger: HTMLElement | null): HTMLElement[] {
   const chain: HTMLElement[] = [];
   if (!trigger) return chain;

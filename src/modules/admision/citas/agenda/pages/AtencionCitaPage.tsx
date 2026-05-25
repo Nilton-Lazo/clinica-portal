@@ -66,6 +66,41 @@ function mapServicioToDisplay(item: AtencionServicioItem): AtencionServicioLinea
   };
 }
 
+function numberChanged(a: unknown, b: unknown, epsilon = 0.0001): boolean {
+  const av = Number(a ?? 0);
+  const bv = Number(b ?? 0);
+  if (!Number.isFinite(av) && !Number.isFinite(bv)) return false;
+  if (!Number.isFinite(av) || !Number.isFinite(bv)) return true;
+  return Math.abs(av - bv) > epsilon;
+}
+
+function textChanged(a: unknown, b: unknown): boolean {
+  return String(a ?? "").trim() !== String(b ?? "").trim();
+}
+
+function estadoServicio(value: unknown): string {
+  const estado = String(value ?? "PENDIENTE").trim();
+  return estado === "" ? "PENDIENTE" : estado;
+}
+
+function servicioLineaChanged(linea: AtencionServicioLineaDisplay, guardada: AtencionServicioItem | undefined): boolean {
+  if (!guardada) return true;
+  return (
+    linea.id !== guardada.id ||
+    linea.tarifa_servicio_id !== guardada.tarifa_servicio_id ||
+    linea.medico_id !== guardada.medico_id ||
+    numberChanged(linea.cop_var, guardada.cop_var) ||
+    numberChanged(linea.cop_fijo, guardada.cop_fijo) ||
+    numberChanged(linea.descuento_pct, guardada.descuento_pct) ||
+    numberChanged(linea.aumento_pct, guardada.aumento_pct) ||
+    numberChanged(linea.cantidad, guardada.cantidad) ||
+    numberChanged(linea.precio_sin_igv, guardada.precio_sin_igv) ||
+    numberChanged(linea.precio_con_igv, guardada.precio_con_igv) ||
+    Boolean(linea.desea_liberar_precio) !== Boolean(guardada.desea_liberar_precio) ||
+    textChanged(linea.estado_facturacion, estadoServicio(guardada.estado_facturacion))
+  );
+}
+
 function userNombreCompleto(user: { name?: string | null; apellido_paterno?: string; apellido_materno?: string | null; nombres?: string; username?: string } | null | undefined): string {
   if (!user) return "";
   if (user.name && user.name.trim() !== "") return user.name.trim();
@@ -644,10 +679,7 @@ export default function AtencionCitaPage() {
     if ((soatNumeroPoliza ?? "").trim() !== (a.soat_numero_poliza ?? "").trim()) return true;
     if ((soatNumeroPlaca ?? "").trim() !== (a.soat_numero_placa ?? "").trim()) return true;
     if (lineas.length !== s.length) return true;
-    const lineasChanged = lineas.some(
-      (l, i) =>
-        !s[i] || l.id !== s[i].id || Number(l.cantidad) !== Number(s[i].cantidad)
-    );
+    const lineasChanged = lineas.some((l, i) => servicioLineaChanged(l, s[i]));
     if (lineasChanged) return true;
     return false;
   }, [

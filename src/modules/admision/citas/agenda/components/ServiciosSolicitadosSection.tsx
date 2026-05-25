@@ -107,6 +107,341 @@ function PrecioCell({ valor }: { valor: number }) {
   );
 }
 
+function stopInputGridEvent(e: React.SyntheticEvent) {
+  e.stopPropagation();
+}
+
+function inputTextFromNumber(value: number | null | undefined): string {
+  const n = value ?? 0;
+  return n === 0 ? "" : String(n);
+}
+
+function normalizeDecimalText(value: string): string {
+  return value.replace(/,/g, ".");
+}
+
+function parseDecimalText(value: string): number | null {
+  const raw = normalizeDecimalText(value).trim();
+  if (raw === "") return 0;
+  const parsed = parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+type CopVarInputProps = {
+  value: number | null | undefined;
+  onCommitValue: (value: number) => void;
+  className: string;
+  placeholder?: string;
+};
+
+function CopVarInput({ value, onCommitValue, className, placeholder }: CopVarInputProps) {
+  const [text, setText] = React.useState(() => inputTextFromNumber(value));
+  const editingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editingRef.current) setText(inputTextFromNumber(value));
+  }, [value]);
+
+  const commit = React.useCallback(() => {
+    const parsed = parseDecimalText(text);
+    if (parsed != null && parsed >= 0 && parsed <= 100) {
+      onCommitValue(parsed);
+      setText(inputTextFromNumber(parsed));
+      return;
+    }
+    setText(inputTextFromNumber(value));
+  }, [onCommitValue, text, value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      placeholder={placeholder}
+      value={text}
+      onFocus={(e) => {
+        editingRef.current = true;
+        e.target.select?.();
+        setText(inputTextFromNumber(value));
+      }}
+      onChange={(e) => {
+        setText(normalizeDecimalText(e.target.value));
+      }}
+      onBlur={() => {
+        editingRef.current = false;
+        commit();
+      }}
+      onMouseDown={stopInputGridEvent}
+      onClick={stopInputGridEvent}
+      onDoubleClick={stopInputGridEvent}
+      onKeyDown={(e) => {
+        stopInputGridEvent(e);
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          editingRef.current = false;
+          setText(inputTextFromNumber(value));
+        }
+      }}
+      className={className}
+    />
+  );
+}
+
+type CopFijoInputProps = {
+  value: number | null | undefined;
+  onCommitValue: (value: number) => void;
+  className: string;
+  prefix?: React.ReactNode;
+  placeholder?: string;
+};
+
+function CopFijoInput({ value, onCommitValue, className, prefix, placeholder }: CopFijoInputProps) {
+  const [text, setText] = React.useState(() => inputTextFromNumber(value));
+  const editingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editingRef.current) setText(inputTextFromNumber(value));
+  }, [value]);
+
+  const commit = React.useCallback(() => {
+    const parsed = parseDecimalText(text);
+    if (parsed != null && parsed >= 0) {
+      onCommitValue(parsed);
+      setText(inputTextFromNumber(parsed));
+      return;
+    }
+    setText(inputTextFromNumber(value));
+  }, [onCommitValue, text, value]);
+
+  const input = (
+    <input
+      type="text"
+      inputMode="decimal"
+      placeholder={placeholder}
+      value={text}
+      onFocus={(e) => {
+        editingRef.current = true;
+        e.target.select?.();
+        setText(inputTextFromNumber(value));
+      }}
+      onChange={(e) => {
+        setText(normalizeDecimalText(e.target.value));
+      }}
+      onBlur={() => {
+        editingRef.current = false;
+        commit();
+      }}
+      onMouseDown={stopInputGridEvent}
+      onClick={stopInputGridEvent}
+      onDoubleClick={stopInputGridEvent}
+      onKeyDown={(e) => {
+        stopInputGridEvent(e);
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          editingRef.current = false;
+          setText(inputTextFromNumber(value));
+        }
+      }}
+      className={className}
+    />
+  );
+
+  if (!prefix) return input;
+
+  return (
+    <div className="inline-flex items-baseline gap-0 text-xs">
+      {prefix}
+      {input}
+    </div>
+  );
+}
+
+type CopVarDefaultInputProps = {
+  id: string;
+  value: number;
+  disabled: boolean;
+  onCommitValue: (value: number) => void;
+  className: string;
+  title?: string;
+};
+
+function CopVarDefaultInput({ id, value, disabled, onCommitValue, className, title }: CopVarDefaultInputProps) {
+  const [text, setText] = React.useState(() => inputTextFromNumber(value));
+  const editingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editingRef.current) setText(inputTextFromNumber(value));
+  }, [value]);
+
+  const commit = React.useCallback(() => {
+    const parsed = parseDecimalText(text);
+    if (parsed != null && parsed >= 0 && parsed <= 100) {
+      onCommitValue(parsed);
+      setText(inputTextFromNumber(parsed));
+      return;
+    }
+    setText(inputTextFromNumber(value));
+  }, [onCommitValue, text, value]);
+
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="decimal"
+      disabled={disabled}
+      value={text}
+      onFocus={(e) => {
+        editingRef.current = true;
+        e.target.select?.();
+        setText(inputTextFromNumber(value));
+      }}
+      onChange={(e) => {
+        setText(normalizeDecimalText(e.target.value));
+      }}
+      onBlur={() => {
+        editingRef.current = false;
+        commit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          editingRef.current = false;
+          setText(inputTextFromNumber(value));
+        }
+      }}
+      className={className}
+      title={title}
+    />
+  );
+}
+
+type PositiveIntegerInputProps = {
+  value: number | null | undefined;
+  onCommitValue: (value: number) => void;
+  className: string;
+};
+
+function PositiveIntegerInput({ value, onCommitValue, className }: PositiveIntegerInputProps) {
+  const normalizedValue = Math.max(1, Math.floor(Number(value) || 1));
+  const [text, setText] = React.useState(() => String(normalizedValue));
+  const editingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editingRef.current) setText(String(normalizedValue));
+  }, [normalizedValue]);
+
+  const commit = React.useCallback(() => {
+    const parsed = parseInt(text, 10);
+    const next = Math.max(1, Number.isFinite(parsed) ? parsed : 1);
+    onCommitValue(next);
+    setText(String(next));
+  }, [onCommitValue, text]);
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={text}
+      onFocus={(e) => {
+        editingRef.current = true;
+        e.target.select?.();
+        setText(String(normalizedValue));
+      }}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^\d]/g, "");
+        setText(raw);
+      }}
+      onBlur={() => {
+        editingRef.current = false;
+        commit();
+      }}
+      onMouseDown={stopInputGridEvent}
+      onClick={stopInputGridEvent}
+      onDoubleClick={stopInputGridEvent}
+      onKeyDown={(e) => {
+        stopInputGridEvent(e);
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          editingRef.current = false;
+          setText(String(normalizedValue));
+        }
+      }}
+      className={className}
+    />
+  );
+}
+
+type PositiveDecimalInputProps = {
+  value: number | null | undefined;
+  onCommitValue: (value: number) => void;
+  className: string;
+  prefix?: React.ReactNode;
+};
+
+function PositiveDecimalInput({ value, onCommitValue, className, prefix }: PositiveDecimalInputProps) {
+  const [text, setText] = React.useState(() => String(value ?? 0));
+  const editingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!editingRef.current) setText(String(value ?? 0));
+  }, [value]);
+
+  const commit = React.useCallback(() => {
+    const parsed = parseDecimalText(text);
+    if (parsed != null && parsed >= 0) {
+      onCommitValue(parsed);
+      setText(String(parsed));
+      return;
+    }
+    setText(String(value ?? 0));
+  }, [onCommitValue, text, value]);
+
+  const input = (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onFocus={(e) => {
+        editingRef.current = true;
+        e.target.select?.();
+        setText(String(value ?? 0));
+      }}
+      onChange={(e) => {
+        setText(normalizeDecimalText(e.target.value));
+      }}
+      onBlur={() => {
+        editingRef.current = false;
+        commit();
+      }}
+      onMouseDown={stopInputGridEvent}
+      onClick={stopInputGridEvent}
+      onDoubleClick={stopInputGridEvent}
+      onKeyDown={(e) => {
+        stopInputGridEvent(e);
+        if (e.key === "Enter") {
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          editingRef.current = false;
+          setText(String(value ?? 0));
+        }
+      }}
+      className={className}
+    />
+  );
+
+  if (!prefix) return input;
+
+  return (
+    <div className="inline-flex items-baseline gap-0 text-xs">
+      {prefix}
+      {input}
+    </div>
+  );
+}
+
 export type ServiciosSolicitadosNav =
   | { type: "cita"; citaId: number }
   | { type: "presupuesto"; buscarPath: string; returnPath: string; draftStorageKey: string }
@@ -205,8 +540,6 @@ export function ServiciosSolicitadosSection({
     return () => mql.removeEventListener("change", onChange);
   }, []);
   const [estadoFacturacionFilter, setEstadoFacturacionFilter] = React.useState<string>("");
-  const [precioSinIgvEditing, setPrecioSinIgvEditing] = React.useState<{ idx: number; value: string } | null>(null);
-  const [copFijoEditing, setCopFijoEditing] = React.useState<{ idx: number; value: string } | null>(null);
   const [reporteExpandido, setReporteExpandido] = React.useState(false);
   const reporteSectionRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -448,11 +781,9 @@ export function ServiciosSolicitadosSection({
           );
         }
         return (
-          <input
-            type="text"
-            value={(x.cop_var ?? 0) === 0 ? "" : String(x.cop_var)}
-            onChange={(e) => updateLinea(x._idx, { cop_var: parseFloat(e.target.value) || 0 })}
-            onClick={(ev) => ev.stopPropagation()}
+          <CopVarInput
+            value={x.cop_var}
+            onCommitValue={(value) => updateLinea(x._idx, { cop_var: value })}
             className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
           />
         );
@@ -490,38 +821,13 @@ export function ServiciosSolicitadosSection({
             </div>
           );
         }
-        const copFijo = (x.cop_fijo ?? 0) as number;
-        const isEditing = copFijoEditing?.idx === x._idx;
-        const displayValue = isEditing ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
         return (
-          <div className="inline-flex items-baseline gap-0 text-xs">
-            <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={displayValue}
-              onFocus={(e) => {
-                e.target.select?.();
-                setCopFijoEditing({ idx: x._idx, value: copFijo === 0 ? "" : String(copFijo) });
-              }}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/,/g, ".");
-                setCopFijoEditing({ idx: x._idx, value: raw });
-                const v = parseFloat(raw);
-                if (raw.trim() === "" || (Number.isFinite(v) && v >= 0)) {
-                  updateLinea(x._idx, { cop_fijo: v || 0 });
-                }
-              }}
-              onBlur={() => {
-                const raw = copFijoEditing?.idx === x._idx ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
-                const v = parseFloat(raw) || 0;
-                updateLinea(x._idx, { cop_fijo: v });
-                setCopFijoEditing(null);
-              }}
-              onClick={(ev) => ev.stopPropagation()}
-              className="h-7 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
-            />
-          </div>
+          <CopFijoInput
+            value={x.cop_fijo}
+            onCommitValue={(value) => updateLinea(x._idx, { cop_fijo: value })}
+            prefix={<span className="w-8 shrink-0 text-right tabular-nums">S/. </span>}
+            className="h-7 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
+          />
         );
       },
     },
@@ -558,13 +864,9 @@ export function ServiciosSolicitadosSection({
             {Math.max(1, Math.floor(Number(x.cantidad) || 1))}
           </span>
         ) : (
-          <input
-            type="number"
-            min={1}
-            step={1}
-            value={Math.max(1, Math.floor(Number(x.cantidad) || 1))}
-            onChange={(e) => updateLinea(x._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-            onClick={(ev) => ev.stopPropagation()}
+          <PositiveIntegerInput
+            value={x.cantidad}
+            onCommitValue={(value) => updateLinea(x._idx, { cantidad: value })}
             className="h-7 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
           />
         ),
@@ -579,34 +881,12 @@ export function ServiciosSolicitadosSection({
         ((readOnly && !editableCodigoSet.has((x.servicio_codigo ?? "").trim())) || !x.desea_liberar_precio) ? (
           <PrecioCell valor={x.precio_con_igv ?? 0} />
         ) : (
-          <div className="inline-flex items-baseline gap-0 text-xs">
-            <span className="w-8 shrink-0 text-right tabular-nums">S/. </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_con_igv ?? 0)}
-              onFocus={(e) => {
-                e.target.select?.();
-                setPrecioSinIgvEditing({ idx: x._idx, value: String(x.precio_con_igv ?? 0) });
-              }}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/,/g, ".");
-                setPrecioSinIgvEditing({ idx: x._idx, value: raw });
-                const parsed = parseFloat(raw);
-                if (raw.trim() === "" || (Number.isFinite(parsed) && parsed >= 0)) {
-                  updateLinea(x._idx, { precio_con_igv: parsed || 0 });
-                }
-              }}
-              onBlur={() => {
-                const raw = precioSinIgvEditing?.idx === x._idx ? precioSinIgvEditing.value : String(x.precio_con_igv ?? 0);
-                const v = parseFloat(raw) || 0;
-                updateLinea(x._idx, { precio_con_igv: v });
-                setPrecioSinIgvEditing(null);
-              }}
-              onClick={(ev) => ev.stopPropagation()}
-              className="min-w-14 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 py-0.5 text-right text-xs tabular-nums outline-none focus:ring-0 focus:border-(--color-primary)"
-            />
-          </div>
+          <PositiveDecimalInput
+            value={x.precio_con_igv}
+            onCommitValue={(value) => updateLinea(x._idx, { precio_con_igv: value })}
+            prefix={<span className="w-8 shrink-0 text-right tabular-nums">S/. </span>}
+            className="min-w-14 w-20 rounded border border-(--border-color-default) bg-(--color-surface) px-1.5 py-0.5 text-right text-xs tabular-nums outline-none focus:ring-0 focus:border-(--color-primary)"
+          />
         ),
     },
     ...(esPresupuesto || hideMedicoUsuarioColumns
@@ -670,7 +950,7 @@ export function ServiciosSolicitadosSection({
             ),
           } satisfies DataTableColumn<AtencionServicioLineaDisplay & { _idx: number }>,
         ]),
-  ], [esPresupuesto, medicosOptions, updateLinea, handleRemoveLinea, precioSinIgvEditing, copFijoEditing, tarifaEsPrecioDirecto, readOnly, hideMedicoUsuarioColumns, hideEstado, editableCodigoSet]);
+  ], [esPresupuesto, medicosOptions, updateLinea, handleRemoveLinea, tarifaEsPrecioDirecto, readOnly, hideMedicoUsuarioColumns, hideEstado, editableCodigoSet]);
 
   const finalRows = React.useMemo(() => {
     const withIdx = lineas.map((l, i) => ({ ...l, _idx: i }));
@@ -751,6 +1031,18 @@ export function ServiciosSolicitadosSection({
   const selectedUsuarioNombre = selectedLinea?.user_nombre ?? null;
 
   const serviciosBloqueados = tarifaId == null || readOnly;
+
+  const applyCopVarDefault = React.useCallback(
+    (newVal: number) => {
+      onCopVarDefaultChange?.(newVal);
+      const nextLineas = lineas.map((l) => {
+        if ((l.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO) return l;
+        return { ...l, cop_var: newVal };
+      });
+      onLineasChange(nextLineas);
+    },
+    [lineas, onCopVarDefaultChange, onLineasChange]
+  );
 
   const emptyFinalServiciosText = React.useMemo(
     () =>
@@ -852,25 +1144,11 @@ export function ServiciosSolicitadosSection({
                     <label htmlFor="cop-var-paquete-servicios" className="text-xs text-(--color-text-secondary) whitespace-nowrap">
                       Copago variable
                     </label>
-                    <input
+                    <CopVarDefaultInput
                       id="cop-var-paquete-servicios"
-                      type="text"
-                      inputMode="numeric"
                       disabled={serviciosBloqueados}
-                      value={copVarDefault === 0 ? "" : String(copVarDefault)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/,/g, ".");
-                        const v = parseFloat(raw);
-                        if (raw.trim() === "" || (Number.isFinite(v) && v >= 0 && v <= 100)) {
-                          const newVal = raw.trim() === "" ? 0 : v;
-                          onCopVarDefaultChange?.(newVal);
-                          const nextLineas = lineas.map((l) => {
-                            if ((l.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO) return l;
-                            return { ...l, cop_var: newVal };
-                          });
-                          onLineasChange(nextLineas);
-                        }
-                      }}
+                      value={copVarDefault}
+                      onCommitValue={applyCopVarDefault}
                       className="h-8 w-16 rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-sm tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary) disabled:cursor-not-allowed disabled:opacity-60"
                     />
                     <span className="text-xs text-(--color-text-secondary)">%</span>
@@ -966,25 +1244,11 @@ export function ServiciosSolicitadosSection({
                     <label htmlFor="cop-var-default" className="text-xs text-(--color-text-secondary) whitespace-nowrap">
                       Definir Copago variable
                     </label>
-                    <input
+                    <CopVarDefaultInput
                       id="cop-var-default"
-                      type="text"
-                      inputMode="numeric"
                       disabled={serviciosBloqueados}
-                      value={copVarDefault === 0 ? "" : String(copVarDefault)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/,/g, ".");
-                        const v = parseFloat(raw);
-                        if (raw.trim() === "" || (Number.isFinite(v) && v >= 0 && v <= 100)) {
-                          const newVal = raw.trim() === "" ? 0 : v;
-                          onCopVarDefaultChange?.(newVal);
-                          const nextLineas = lineas.map((l) => {
-                            if ((l.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO) return l;
-                            return { ...l, cop_var: newVal };
-                          });
-                          onLineasChange(nextLineas);
-                        }
-                      }}
+                      value={copVarDefault}
+                      onCommitValue={applyCopVarDefault}
                       className="h-7 w-16 rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary) disabled:cursor-not-allowed disabled:opacity-60"
                       title="Copago variable por defecto. Al cambiar, se aplica a todos los servicios; puede editar cada uno después."
                     />
@@ -1084,12 +1348,10 @@ export function ServiciosSolicitadosSection({
                             ) : (item.categoria_codigo ?? "").trim() === CATEGORIA_CONSULTAS_MEDICAS_CODIGO ? (
                               <span className="h-9 flex items-center justify-center text-(--color-text-secondary)">—</span>
                             ) : (
-                              <input
-                                type="text"
+                              <CopVarInput
+                                value={item.cop_var}
+                                onCommitValue={(value) => updateLinea(item._idx, { cop_var: value })}
                                 placeholder="%"
-                                value={(item.cop_var ?? 0) === 0 ? "" : String(item.cop_var)}
-                                onChange={(e) => updateLinea(item._idx, { cop_var: parseFloat(e.target.value) || 0 })}
-                                onClick={(ev) => ev.stopPropagation()}
                                 className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
                               />
                             )}
@@ -1106,39 +1368,14 @@ export function ServiciosSolicitadosSection({
                               <span className="h-9 flex items-center justify-center tabular-nums text-(--color-text-primary)">
                                 {(item.cop_fijo ?? 0) === 0 ? "—" : `S/. ${formatDecimalFixed((item.cop_fijo ?? 0) as number, 2)}`}
                               </span>
-                            ) : (() => {
-                              const copFijo = (item.cop_fijo ?? 0) as number;
-                              const isEditing = copFijoEditing?.idx === item._idx;
-                              const displayValue = isEditing ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
-                              return (
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  placeholder="0.00"
-                                  value={displayValue}
-                                  onFocus={(e) => {
-                                    e.target.select?.();
-                                    setCopFijoEditing({ idx: item._idx, value: copFijo === 0 ? "" : String(copFijo) });
-                                  }}
-                                  onChange={(e) => {
-                                    const raw = e.target.value.replace(/,/g, ".");
-                                    setCopFijoEditing({ idx: item._idx, value: raw });
-                                    const v = parseFloat(raw);
-                                    if (raw.trim() === "" || (Number.isFinite(v) && v >= 0)) {
-                                      updateLinea(item._idx, { cop_fijo: v || 0 });
-                                    }
-                                  }}
-                                  onBlur={() => {
-                                    const raw = copFijoEditing?.idx === item._idx ? copFijoEditing.value : (copFijo === 0 ? "" : String(copFijo));
-                                    const v = parseFloat(raw) || 0;
-                                    updateLinea(item._idx, { cop_fijo: v });
-                                    setCopFijoEditing(null);
-                                  }}
-                                  onClick={(ev) => ev.stopPropagation()}
-                                  className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
-                                />
-                              );
-                            })()}
+                            ) : (
+                              <CopFijoInput
+                                value={item.cop_fijo}
+                                onCommitValue={(value) => updateLinea(item._idx, { cop_fijo: value })}
+                                placeholder="0.00"
+                                className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
+                              />
+                            )}
                           </div>
                           <div className="flex flex-col gap-1">
                             <span className="text-(--color-text-secondary)">Descuento</span>
@@ -1159,13 +1396,9 @@ export function ServiciosSolicitadosSection({
                                 {Math.max(1, Math.floor(Number(item.cantidad) || 1))}
                               </span>
                             ) : (
-                              <input
-                                type="number"
-                                min={1}
-                                step={1}
-                                value={Math.max(1, Math.floor(Number(item.cantidad) || 1))}
-                                onChange={(e) => updateLinea(item._idx, { cantidad: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                                onClick={(ev) => ev.stopPropagation()}
+                              <PositiveIntegerInput
+                                value={item.cantidad}
+                                onCommitValue={(value) => updateLinea(item._idx, { cantidad: value })}
                                 className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-center outline-none focus:ring-0 focus:border-(--color-primary)"
                               />
                             )}
@@ -1177,26 +1410,9 @@ export function ServiciosSolicitadosSection({
                                 S/. {formatDecimalFixed(item.precio_con_igv, 2)}
                               </span>
                             ) : (
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_con_igv ?? 0)}
-                                onFocus={() => setPrecioSinIgvEditing({ idx: item._idx, value: String(item.precio_con_igv ?? 0) })}
-                                onChange={(e) => {
-                                  const raw = e.target.value.replace(/,/g, ".");
-                                  setPrecioSinIgvEditing({ idx: item._idx, value: raw });
-                                  const parsed = parseFloat(raw);
-                                  if (raw.trim() === "" || (Number.isFinite(parsed) && parsed >= 0)) {
-                                    updateLinea(item._idx, { precio_con_igv: parsed || 0 });
-                                  }
-                                }}
-                                onBlur={() => {
-                                  const raw = precioSinIgvEditing?.idx === item._idx ? precioSinIgvEditing.value : String(item.precio_con_igv ?? 0);
-                                  const v = parseFloat(raw) || 0;
-                                  updateLinea(item._idx, { precio_con_igv: v });
-                                  setPrecioSinIgvEditing(null);
-                                }}
-                                onClick={(ev) => ev.stopPropagation()}
+                              <PositiveDecimalInput
+                                value={item.precio_con_igv}
+                                onCommitValue={(value) => updateLinea(item._idx, { precio_con_igv: value })}
                                 className="h-9 w-full rounded border border-(--border-color-default) bg-(--color-surface) px-2 text-xs tabular-nums text-right outline-none focus:ring-0 focus:border-(--color-primary)"
                               />
                             )}
