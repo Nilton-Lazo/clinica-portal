@@ -188,7 +188,7 @@ export async function listSubcategorias(
       per_page: query.per_page,
       q: query.q,
       status: query.status,
-      categoria_id: query.categoria_id,
+      filter_categoria_id: query.categoria_id,
     })}`
   );
   return res;
@@ -274,9 +274,9 @@ export async function listServiciosCrud(
       per_page: query.per_page,
       q: query.q,
       status: query.status,
-      categoria_id: query.categoria_id,
-      subcategoria_id: query.subcategoria_id,
-      grupo_codigo: query.grupo_codigo ?? undefined,
+      filter_categoria_id: query.categoria_id,
+      filter_subcategoria_id: query.subcategoria_id,
+      filter_grupo_codigo: query.grupo_codigo ?? undefined,
       sort: query.sort,
       sort_dir: query.sort_dir,
     })}`
