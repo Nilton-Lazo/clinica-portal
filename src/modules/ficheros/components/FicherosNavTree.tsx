@@ -1,131 +1,94 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
 
-type Item = { label: string; to: string; disabled?: boolean };
-type Group = { label: string; items: Item[] };
+type ModuleItem = {
+  label: string;
+  to: string;
+  match: string[];
+};
 
-const groups: Group[] = [
+const modules: ModuleItem[] = [
   {
-    label: "Configuración clínica",
-    items: [
-      { label: "Especialidades", to: "/ficheros/especialidades" },
-      { label: "Consultorios", to: "/ficheros/consultorios" },
-      { label: "Médicos", to: "/ficheros/medicos"},
-      { label: "Turnos", to: "/ficheros/turnos"},
-      { label: "Clientes", to: "/ficheros/clientes"},
-      { label: "Paquetes", to: "/ficheros/paquetes"},
-      { label: "Servicios por paquete", to: "/ficheros/paquetes-servicios"},
+    label: "Admisión",
+    to: "/ficheros/admision",
+    match: [
+      "/ficheros/admision",
+      "/ficheros/especialidades",
+      "/ficheros/consultorios",
+      "/ficheros/medicos",
+      "/ficheros/turnos",
     ],
   },
   {
-    label: "Aseguradoras y planes",
-    items: [
-      { label: "Tipos de IAFAS", to: "/ficheros/tipos-iafas"},
-      { label: "IAFAS", to: "/ficheros/iafas"},
-      { label: "Contratantes", to: "/ficheros/contratantes"},
-      { label: "Tarifas", to: "/ficheros/tarifas"},
-      { label: "Tipos de clientes", to: "/ficheros/tipos-clientes"},
-      { label: "Clonación de tarifa", to: "/ficheros/clonacion-tarifa"},
-      { label: "Categorías", to: "/ficheros/tarifario-categorias"},
-      { label: "Subcategorías", to: "/ficheros/tarifario-subcategorias"},
+    label: "Caja",
+    to: "/ficheros/parametros/caja",
+    match: [
+      "/ficheros/parametros/caja",
+      "/ficheros/parametros/igv",
+      "/ficheros/parametros/recargo-noche",
     ],
   },
   {
-    label: "Parámetros",
-    items: [
-      { label: "IGV", to: "/ficheros/parametros/igv" },
-      { label: "Recargo nocturno", to: "/ficheros/parametros/recargo-noche" },
-      { label: "Emergencia", to: "/ficheros/parametros/emergencia" },
-      { label: "Caja", to: "/ficheros/parametros/caja" },
-      { label: "Hospitalización", to: "/ficheros/parametros/hospitalizacion" },
+    label: "Facturación",
+    to: "/ficheros/facturacion",
+    match: [
+      "/ficheros/facturacion",
+      "/ficheros/tipos-iafas",
+      "/ficheros/iafas",
+      "/ficheros/contratantes",
+      "/ficheros/tarifas",
+      "/ficheros/tipos-clientes",
+      "/ficheros/clonacion-tarifa",
+      "/ficheros/tarifario-categorias",
+      "/ficheros/tarifario-subcategorias",
+      "/ficheros/paquetes",
+      "/ficheros/paquetes-servicios",
+      "/ficheros/clientes",
     ],
+  },
+  {
+    label: "Hospitalización",
+    to: "/ficheros/parametros/hospitalizacion",
+    match: ["/ficheros/parametros/hospitalizacion"],
+  },
+  {
+    label: "Emergencia",
+    to: "/ficheros/parametros/emergencia",
+    match: ["/ficheros/parametros/emergencia"],
   },
 ];
 
 export function FicherosNavTree({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
 
-  const activeGroupLabel = useMemo(() => {
-    for (const g of groups) {
-      if (g.items.some((it) => pathname.startsWith(it.to))) return g.label;
-    }
-    return groups[0]?.label ?? "";
+  const activeModuleLabel = useMemo(() => {
+    const active = modules.find((module) =>
+      module.match.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+    );
+    return active?.label ?? modules[0]?.label ?? "";
   }, [pathname]);
 
-  const [openByLabel, setOpenByLabel] = useState<Record<string, boolean>>({});
-
   return (
-    <div className="space-y-2">
-      {groups.map((g) => {
-        const isActiveGroup = g.label === activeGroupLabel;
-        const open = openByLabel[g.label] ?? isActiveGroup;
+    <nav className="space-y-1" aria-label="Módulos de ficheros">
+      {modules.map((module) => {
+        const isActive = module.label === activeModuleLabel;
 
         return (
-          <div key={g.label} className="rounded-md">
-            <button
-              type="button"
-              onClick={() =>
-                setOpenByLabel((prev) => ({
-                  ...prev,
-                  [g.label]: !(prev[g.label] ?? isActiveGroup),
-                }))
-              }
-              className={[
-                "flex w-full items-center justify-between rounded-md px-2 py-2 text-left",
-                "text-sm font-semibold text-(--color-text-primary)",
-                "hover:bg-(--color-surface-hover) transition-colors",
-              ].join(" ")}
-              aria-expanded={open}
-            >
-              <span className="min-w-0 truncate">{g.label}</span>
-              {open ? (
-                <ChevronDown className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
-              ) : (
-                <ChevronRight className="h-4 w-4 shrink-0 text-(--color-text-secondary)" />
-              )}
-            </button>
-
-            <div
-              className={[
-                "grid transition-[grid-template-rows] duration-200 ease-out",
-                open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-              ].join(" ")}
-            >
-              <div className="overflow-hidden">
-                <div className="mt-1 space-y-1 pl-2">
-                  {g.items.map((it) =>
-                    it.disabled ? (
-                      <div
-                        key={it.to}
-                        className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-(--color-text-secondary) opacity-50"
-                      >
-                        {it.label}
-                      </div>
-                    ) : (
-                      <NavLink
-                        key={it.to}
-                        to={it.to}
-                        onClick={onNavigate}
-                        className={({ isActive }) =>
-                          [
-                            "block rounded-md px-3 py-2 text-sm transition-colors",
-                            isActive
-                              ? "bg-(--color-primary) text-(--color-text-inverse)"
-                              : "text-(--color-text-primary) hover:bg-(--color-surface-hover)",
-                          ].join(" ")
-                        }
-                      >
-                        {it.label}
-                      </NavLink>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <NavLink
+            key={module.to}
+            to={module.to}
+            onClick={onNavigate}
+            className={[
+              "block rounded-lg border-l-2 px-3 py-2.5 text-sm font-medium transition-colors",
+              isActive
+                ? "border-l-(--color-primary) bg-(--color-primary)/8 text-(--color-primary)"
+                : "border-l-transparent text-(--color-text-primary) hover:bg-(--color-surface-hover) hover:text-(--color-primary)",
+            ].join(" ")}
+          >
+            {module.label}
+          </NavLink>
         );
       })}
-    </div>
+    </nav>
   );
 }

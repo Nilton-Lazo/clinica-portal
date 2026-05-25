@@ -78,7 +78,7 @@ export async function getNextIafaCodigo(): Promise<{ codigo: string }> {
 function buildQuery(query: IafasQuery): string {
   return buildListQuery({
     page: query.page ?? 1,
-    per_page: query.per_page ?? 50,
+    per_page: query.per_page ?? 10,
     q: query.q,
     status: query.status,
     sort: query.sort,

@@ -56,7 +56,7 @@ const TIPOS_BASE = "/ficheros/parametros/caja/tipo-documento";
 function buildQuery(query: NumeracionComprobanteCajaQuery): string {
   return buildListQuery({
     page: query.page ?? 1,
-    per_page: query.per_page ?? 50,
+    per_page: query.per_page ?? 10,
     q: query.q,
     status: query.status,
     sort: query.sort,

@@ -12,9 +12,18 @@ import {
   type TarifaOperativa,
   type CategoriaLookupItem,
 } from "../../services/recargoNoche.service";
+import type { PaginationMeta } from "../../../../shared/types/pagination";
+import type { SortDirection } from "../../../../shared/datagrid";
 
 export type StatusFilter = "ALL" | "ACTIVO" | "INACTIVO" | "SUSPENDIDO";
 export type Notice = { type: "success" | "error"; text: string } | null;
+
+const defaultPaginationMeta: PaginationMeta = {
+  current_page: 1,
+  per_page: 10,
+  total: 0,
+  last_page: 1,
+};
 
 export function useRecargoNoche() {
   const [tarifas, setTarifas] = React.useState<TarifaOperativa[]>([]);
@@ -29,6 +38,11 @@ export function useRecargoNoche() {
   const [selected, setSelected] = React.useState<RecargoNocheRegla | null>(null);
   const [mode, setMode] = React.useState<"new" | "edit">("new");
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = React.useState(false);
+  const [page, setPage] = React.useState(1);
+  const [paginationMeta, setPaginationMeta] = React.useState<PaginationMeta>(defaultPaginationMeta);
+  const [activeCategoriaIds, setActiveCategoriaIds] = React.useState<number[]>([]);
+  const [sort, setSort] = React.useState<string | null>("codigo");
+  const [sortDir, setSortDir] = React.useState<SortDirection>("asc");
 
   const dispatchRecargoChanged = React.useCallback((nextTarifaId: number | null) => {
     if (typeof window === "undefined") return;
@@ -81,31 +95,52 @@ export function useRecargoNoche() {
       .finally(() => setTarifasLoading(false));
   }, []);
 
-  const refresh = React.useCallback(async () => {
+  const refresh = React.useCallback(async (next?: { page?: number }) => {
     if (!tarifaId) {
       setReglas([]);
       setCategorias([]);
+      setPaginationMeta(defaultPaginationMeta);
+      setActiveCategoriaIds([]);
       setSelected(null);
       setMode("new");
       return;
     }
     setLoading(true);
     const statusParam = statusFilter === "ALL" ? undefined : statusFilter;
+    const targetPage = next?.page ?? page;
     try {
       const [r, c] = await Promise.all([
-        listRecargoNoche(tarifaId, { status: statusParam }),
+        listRecargoNoche(tarifaId, {
+          page: targetPage,
+          per_page: 10,
+          status: statusParam,
+          sort: sort ?? undefined,
+          sort_dir: sortDir,
+        }),
         getCategoriasLookup(tarifaId),
       ]);
-      setReglas(r);
+      setReglas(r.data);
+      setPaginationMeta(r.meta);
+      setActiveCategoriaIds(
+        Array.isArray(r.meta.active_categoria_ids)
+          ? r.meta.active_categoria_ids.map((id) => Number(id)).filter(Number.isFinite)
+          : []
+      );
       setCategorias(c);
     } catch (e) {
       setReglas([]);
       setCategorias([]);
+      setPaginationMeta(defaultPaginationMeta);
+      setActiveCategoriaIds([]);
       toastService.showError(getApiErrorMessage(e, "No se pudieron cargar las reglas de recargo nocturno."));
     } finally {
       setLoading(false);
     }
-  }, [tarifaId, statusFilter]);
+  }, [tarifaId, statusFilter, page, sort, sortDir]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [tarifaId, statusFilter, sort, sortDir]);
 
   React.useEffect(() => {
     void refresh();
@@ -132,9 +167,21 @@ export function useRecargoNoche() {
   }, []);
 
   const categoriasDisponiblesParaNuevo = React.useMemo(() => {
-    const usados = new Set(reglas.filter((x) => x.estado === "ACTIVO").map((x) => x.tarifa_categoria_id));
+    const usados = new Set(activeCategoriaIds);
     return categorias.filter((c) => !usados.has(c.id));
-  }, [categorias, reglas]);
+  }, [categorias, activeCategoriaIds]);
+
+  const toggleSort = React.useCallback((columnId: string) => {
+    setPage(1);
+    setSort((prev) => {
+      if (prev !== columnId) {
+        setSortDir("asc");
+        return columnId;
+      }
+      setSortDir((prevDir) => (prevDir === "asc" ? "desc" : "asc"));
+      return columnId;
+    });
+  }, []);
 
   const isValid = React.useCallback(() => {
     if (mode === "new") {
@@ -184,15 +231,16 @@ export function useRecargoNoche() {
     try {
       if (mode === "new") {
         const horaDesde = formHoraDesde.trim() || "19:00";
-        const created = await createRecargoNoche(tarifaId, {
+        await createRecargoNoche(tarifaId, {
           tarifa_categoria_id: formCategoriaId!,
           porcentaje: parseFloat(formPorcentaje),
           hora_desde: horaDesde,
           hora_hasta: formHoraHasta.trim() || undefined,
           estado: formEstado && ["ACTIVO", "INACTIVO", "SUSPENDIDO"].includes(formEstado) ? formEstado : "ACTIVO",
         });
-        setReglas((prev) => [...prev, created]);
         resetToNew();
+        setPage(1);
+        await refresh({ page: 1 });
         setNotice({ type: "success", text: "Regla creada." });
         toastService.showSuccess("Regla creada.");
         dispatchRecargoChanged(tarifaId);
@@ -209,8 +257,8 @@ export function useRecargoNoche() {
         };
         if (formEstado && ["ACTIVO", "INACTIVO", "SUSPENDIDO"].includes(formEstado)) payload.estado = formEstado;
         const updated = await updateRecargoNoche(tarifaId, selected.id, payload);
-        setReglas((prev) => prev.map((x) => (x.id === selected.id ? updated : x)));
         setSelected(updated);
+        await refresh();
         setNotice({ type: "success", text: "Regla actualizada." });
         toastService.showSuccess("Regla actualizada.");
         dispatchRecargoChanged(tarifaId);
@@ -225,7 +273,7 @@ export function useRecargoNoche() {
     } finally {
       setSaving(false);
     }
-  }, [tarifaId, mode, selected, formCategoriaId, formPorcentaje, formHoraDesde, formHoraHasta, formEstado, isValid, resetToNew, dispatchRecargoChanged]);
+  }, [tarifaId, mode, selected, formCategoriaId, formPorcentaje, formHoraDesde, formHoraHasta, formEstado, isValid, resetToNew, refresh, dispatchRecargoChanged]);
 
   const cancel = React.useCallback(() => {
     if (selected) {
@@ -266,7 +314,6 @@ export function useRecargoNoche() {
     setNotice(null);
     try {
       const updated = await deactivateRecargoNoche(tarifaId, selected.id);
-      setReglas((prev) => prev.map((x) => (x.id === selected.id ? updated : x)));
       setSelected(updated);
       setFormCategoriaId(null);
       setFormPorcentaje("");
@@ -274,6 +321,7 @@ export function useRecargoNoche() {
       setFormHoraHasta("");
       setFormEstado("ACTIVO");
       setMode("new");
+      await refresh();
       setNotice({ type: "success", text: "Regla desactivada." });
       toastService.showSuccess("Regla desactivada.");
       dispatchRecargoChanged(tarifaId);
@@ -284,7 +332,7 @@ export function useRecargoNoche() {
     } finally {
       setSaving(false);
     }
-  }, [tarifaId, selected, dispatchRecargoChanged]);
+  }, [tarifaId, selected, refresh, dispatchRecargoChanged]);
 
   const canDeactivate = Boolean(selected?.estado === "ACTIVO");
 
@@ -296,6 +344,12 @@ export function useRecargoNoche() {
     statusFilter,
     setStatusFilter,
     reglas,
+    paginationMeta,
+    page,
+    setPage,
+    sort,
+    sortDir,
+    toggleSort,
     categorias,
     categoriasDisponiblesParaNuevo,
     loading,

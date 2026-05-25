@@ -1,4 +1,7 @@
 import { api } from "../../../shared/api";
+import { buildListQuery } from "../../../shared/datagrid/buildListQuery";
+import type { DataGridFetchParams } from "../../../shared/datagrid";
+import type { PaginatedResponse, PaginationMeta } from "../../../shared/types/pagination";
 
 export type RecordStatusRecargo = "ACTIVO" | "INACTIVO" | "SUSPENDIDO";
 
@@ -20,6 +23,14 @@ export type TarifaOperativa = { id: number; codigo: string; descripcion_tarifa?:
 
 export type CategoriaLookupItem = { id: number; codigo: string; nombre: string };
 
+export type RecargoNocheMeta = PaginationMeta & {
+  active_categoria_ids?: number[];
+};
+
+export type RecargoNocheListResponse = PaginatedResponse<RecargoNocheRegla> & {
+  meta: RecargoNocheMeta;
+};
+
 export async function getTarifasOperativas(): Promise<TarifaOperativa[]> {
   const res = await api.get<{ data: TarifaOperativa[] }>("/ficheros/tarifas/operativas");
   return Array.isArray(res.data) ? res.data : [];
@@ -40,13 +51,13 @@ export async function getCategoriasLookup(tarifaId: number): Promise<CategoriaLo
 
 export async function listRecargoNoche(
   tarifaId: number,
-  params?: { status?: string }
-): Promise<RecargoNocheRegla[]> {
-  const qs = params?.status ? `?status=${encodeURIComponent(params.status)}` : "";
-  const res = await api.get<{ data: RecargoNocheRegla[] }>(
+  params: DataGridFetchParams
+): Promise<RecargoNocheListResponse> {
+  const qs = buildListQuery(params);
+  const res = await api.get<RecargoNocheListResponse>(
     `/ficheros/tarifas/${tarifaId}/recargo-noche${qs}`
   );
-  return Array.isArray(res.data) ? res.data : [];
+  return res as RecargoNocheListResponse;
 }
 
 function horaDesdeMas12(hora: string): string {

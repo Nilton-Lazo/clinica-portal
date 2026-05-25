@@ -9,8 +9,8 @@ export default function FicherosPage() {
     <div className="flex h-full w-full min-h-0 flex-col gap-4 md:flex-row md:gap-2">
       <aside className="hidden w-64 shrink-0 md:block">
         <div className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4 overflow-y-auto overflow-x-hidden app-scrollbar">
-          <div className="text-sm font-semibold text-(--color-text-primary)">
-            Ficheros
+          <div className="px-1 text-xs font-semibold uppercase tracking-wide text-(--color-text-secondary)">
+            Módulos
           </div>
           <div className="mt-4">
             <FicherosNavTree />
@@ -44,7 +44,7 @@ export default function FicherosPage() {
           <div className="absolute bottom-0 left-0 right-0 rounded-t border border-(--border-color-default) bg-(--color-surface) p-4">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold text-(--color-text-primary)">
-                Ficheros
+                Seleccionar módulo
               </div>
               <button
                 type="button"

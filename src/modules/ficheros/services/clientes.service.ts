@@ -77,7 +77,7 @@ function normalizeCliente(x: ClienteApi): Cliente {
 function buildQuery(query: ClientesQuery): string {
   return buildListQuery({
     page: query.page ?? 1,
-    per_page: query.per_page ?? 50,
+    per_page: query.per_page ?? 10,
     q: query.q,
     status: query.status,
     sort: query.sort,

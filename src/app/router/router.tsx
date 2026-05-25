@@ -16,6 +16,8 @@ import TarifarioSubcategoriasPage from "../../modules/ficheros/pages/TarifarioSu
 import AdmisionHomePage from "../../modules/admision/pages/AdmisionHomePage";
 
 import FicherosPage from "../../modules/ficheros/pages/FicherosPage";
+import AdmisionFicherosHubPage from "../../modules/ficheros/pages/AdmisionFicherosHubPage";
+import FacturacionFicherosHubPage from "../../modules/ficheros/pages/FacturacionFicherosHubPage";
 import EspecialidadesPage from "../../modules/ficheros/pages/EspecialidadesPage";
 import ConsultoriosPage from "../../modules/ficheros/pages/ConsultoriosPage";
 import MedicosPage from "../../modules/ficheros/pages/MedicosPage";
@@ -126,7 +128,9 @@ export const router = createBrowserRouter([
                 path: "ficheros",
                 element: <FicherosPage />,
                 children: [
-                  { index: true, element: <Navigate to="especialidades" replace /> },
+                  { index: true, element: <Navigate to="admision" replace /> },
+                  { path: "admision", element: <AdmisionFicherosHubPage /> },
+                  { path: "facturacion", element: <FacturacionFicherosHubPage /> },
                   { path: "especialidades", element: <EspecialidadesPage /> },
                   { path: "consultorios", element: <ConsultoriosPage /> },
                   { path: "medicos", element: <MedicosPage /> },

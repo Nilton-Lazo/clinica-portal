@@ -27,29 +27,12 @@ function useIsLgUp(): boolean {
   return isLgUp;
 }
 
-const PER_PAGE = 25;
-
 export default function RecargoNochePage() {
   const vm = useRecargoNoche();
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
 
   useFicherosRealtimeRefresh(vm, ["recargo_noche"]);
-  const [page, setPage] = React.useState(1);
-
-  React.useEffect(() => {
-    setPage(1);
-  }, [vm.tarifaId, vm.statusFilter]);
-
-  const total = vm.reglas.length;
-  const lastPage = Math.max(1, Math.ceil(total / PER_PAGE));
-  const slicedReglas = vm.reglas.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const paginationMeta = {
-    current_page: page,
-    per_page: PER_PAGE,
-    total,
-    last_page: lastPage,
-  };
 
   const handleNew = React.useCallback(() => {
     vm.resetToNew();
@@ -83,27 +66,30 @@ export default function RecargoNochePage() {
             left={
               <>
                 <RecargoNocheTable
-                  reglas={slicedReglas}
+                  reglas={vm.reglas}
                   loading={vm.loading}
                   selectedId={vm.selected?.id ?? null}
                   onSelect={vm.loadForEdit}
-                  paginationMeta={paginationMeta}
-                  onPrev={() => setPage((p) => Math.max(1, p - 1))}
-                  onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
-                  onFirst={() => setPage(1)}
-                  onLast={() => setPage(lastPage)}
+                  paginationMeta={vm.paginationMeta}
+                  onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => vm.setPage((p) => Math.min(vm.paginationMeta.last_page, p + 1))}
+                  onFirst={() => vm.setPage(1)}
+                  onLast={() => vm.setPage(vm.paginationMeta.last_page)}
+                  sort={vm.sort}
+                  sortDir={vm.sortDir}
+                  onToggleSort={vm.toggleSort}
                 />
 
                 <RecargoNocheMobileList
-                  reglas={slicedReglas}
+                  reglas={vm.reglas}
                   loading={vm.loading}
                   selectedId={vm.selected?.id ?? null}
                   onSelect={vm.loadForEdit}
-                  paginationMeta={paginationMeta}
-                  onPrev={() => setPage((p) => Math.max(1, p - 1))}
-                  onNext={() => setPage((p) => Math.min(lastPage, p + 1))}
-                  onFirst={() => setPage(1)}
-                  onLast={() => setPage(lastPage)}
+                  paginationMeta={vm.paginationMeta}
+                  onPrev={() => vm.setPage((p) => Math.max(1, p - 1))}
+                  onNext={() => vm.setPage((p) => Math.min(vm.paginationMeta.last_page, p + 1))}
+                  onFirst={() => vm.setPage(1)}
+                  onLast={() => vm.setPage(vm.paginationMeta.last_page)}
                 />
               </>
             }

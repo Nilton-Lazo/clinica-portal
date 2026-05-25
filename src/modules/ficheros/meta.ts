@@ -1,192 +1,77 @@
 import type { RouteMeta } from "../../app/router/routeMeta.types";
 
+const title = "Ficheros";
+const rootSubtitle = "Gestión de tablas maestras y registros configurables del sistema.";
+const rootCrumb = { label: "Ficheros", path: "/ficheros" };
+
+function moduleMeta(label: string, subtitle: string): RouteMeta {
+    return {
+        title,
+        subtitle,
+        breadcrumb: [rootCrumb, { label }],
+    };
+}
+
+function childMeta(
+    modulePath: string,
+    moduleLabel: string,
+    label: string,
+    subtitle = rootSubtitle,
+): RouteMeta {
+    return {
+        title,
+        subtitle,
+        breadcrumb: [
+            rootCrumb,
+            { label: moduleLabel, path: modulePath },
+            { label },
+        ],
+    };
+}
+
 export const ficherosMeta: Record<string, RouteMeta> = {
     "/ficheros": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
+        title,
+        subtitle: rootSubtitle,
         breadcrumb: [{ label: "Ficheros" }],
     },
 
-    "/ficheros/especialidades": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Especialidades" },
-        ],
-    },
-    "/ficheros/consultorios": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Consultorios" }],
-    },
-    "/ficheros/medicos": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Médicos" }],
-    },
-    "/ficheros/turnos": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Turnos" }],
-    },
-    "/ficheros/clientes": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Clientes" }],
-    },
-    "/ficheros/paquetes": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Paquetes" }],
-    },
-    "/ficheros/paquetes-servicios": {
-        title: "Ficheros",
-        subtitle: "Asignación de servicios por paquete.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Servicios por paquete" }],
-    },
-    "/ficheros/parametros/hospitalizacion": {
-        title: "Ficheros",
-        subtitle: "Parámetros del módulo Hospitalización.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Hospitalización" },
-        ],
-    },
-    "/ficheros/parametros/hospitalizacion/cirugias": {
-        title: "Ficheros",
-        subtitle: "Catálogo de cirugías para hospitalización.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Hospitalización", path: "/ficheros/parametros/hospitalizacion" },
-            { label: "Cirugías" },
-        ],
-    },
-    "/ficheros/tipos-iafas": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Tipos de IAFAS" }],
-    },
-    "/ficheros/iafas": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "IAFAS" }],
-    },
-    "/ficheros/contratantes": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Contratantes" }],
-    },
-    "/ficheros/clonacion-tarifa": {
-        title: "Ficheros",
-        subtitle: "Clonar estructura y servicios desde el tarifario base.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Clonación de tarifa" }],
-    },
-    "/ficheros/tarifario-categorias": {
-        title: "Ficheros",
-        subtitle: "Categorías por tarifa.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Categorías" }],
-    },
-    "/ficheros/tarifario-subcategorias": {
-        title: "Ficheros",
-        subtitle: "Subcategorías por tarifa.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Subcategorías" }],
-    },
-    "/ficheros/tarifas": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Tarifas" }],
-    },
-    "/ficheros/tipos-clientes": {
-        title: "Ficheros",
-        subtitle: "Gestión de tablas maestras y registros configurables del sistema.",
-        breadcrumb: [{ label: "Ficheros", path: "/ficheros" }, { label: "Tipos de clientes" }],
-    },
+    "/ficheros/admision": moduleMeta("Admisión", "Catálogos base para admisión y programación médica."),
+    "/ficheros/especialidades": childMeta("/ficheros/admision", "Admisión", "Especialidades"),
+    "/ficheros/consultorios": childMeta("/ficheros/admision", "Admisión", "Consultorios"),
+    "/ficheros/medicos": childMeta("/ficheros/admision", "Admisión", "Médicos"),
+    "/ficheros/turnos": childMeta("/ficheros/admision", "Admisión", "Turnos"),
 
-    "/ficheros/parametros/igv": {
-        title: "Ficheros",
-        subtitle: "Configuración de parámetros del sistema.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "IGV" },
-        ],
-    },
-    "/ficheros/parametros/recargo-noche": {
-        title: "Ficheros",
-        subtitle: "Recargo nocturno por tarifario y categoría.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Recargo nocturno" },
-        ],
-    },
-    "/ficheros/parametros/emergencia": {
-        title: "Ficheros",
-        subtitle: "Parámetros del módulo Emergencia.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Emergencia" },
-        ],
-    },
-    "/ficheros/parametros/emergencia/tipo": {
-        title: "Ficheros",
-        subtitle: "Tipo Emergencia.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
-            { label: "Tipo Emergencia" },
-        ],
-    },
-    "/ficheros/parametros/emergencia/topico": {
-        title: "Ficheros",
-        subtitle: "Tópico.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
-            { label: "Tópico" },
-        ],
-    },
-    "/ficheros/parametros/emergencia/tipo-documento": {
-        title: "Ficheros",
-        subtitle: "Tipo Documento.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
-            { label: "Tipo Documento" },
-        ],
-    },
-    "/ficheros/parametros/emergencia/documento-atencion": {
-        title: "Ficheros",
-        subtitle: "Documento de Atención.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Emergencia", path: "/ficheros/parametros/emergencia" },
-            { label: "Documento de Atención" },
-        ],
-    },
-    "/ficheros/parametros/caja": {
-        title: "Ficheros",
-        subtitle: "Parámetros del módulo Caja.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Caja" },
-        ],
-    },
-    "/ficheros/parametros/caja/area-jefatura": {
-        title: "Ficheros",
-        subtitle: "Área o Jefatura.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Caja", path: "/ficheros/parametros/caja" },
-            { label: "Área o Jefatura" },
-        ],
-    },
-    "/ficheros/parametros/caja/banco-tarjeta": {
-        title: "Ficheros",
-        subtitle: "Banco o tarjeta.",
-        breadcrumb: [
-            { label: "Ficheros", path: "/ficheros" },
-            { label: "Caja", path: "/ficheros/parametros/caja" },
-            { label: "Banco o tarjeta" },
-        ],
-    },
+    "/ficheros/facturacion": moduleMeta("Facturación", "Configuración de tarifarios, paquetes e impuestos."),
+    "/ficheros/tipos-iafas": childMeta("/ficheros/facturacion", "Facturación", "Tipos de IAFAS"),
+    "/ficheros/iafas": childMeta("/ficheros/facturacion", "Facturación", "IAFAS"),
+    "/ficheros/contratantes": childMeta("/ficheros/facturacion", "Facturación", "Contratantes"),
+    "/ficheros/tarifas": childMeta("/ficheros/facturacion", "Facturación", "Tarifas"),
+    "/ficheros/tipos-clientes": childMeta("/ficheros/facturacion", "Facturación", "Tipos de clientes"),
+    "/ficheros/clonacion-tarifa": childMeta("/ficheros/facturacion", "Facturación", "Clonación de tarifa", "Clonar estructura y servicios desde el tarifario base."),
+    "/ficheros/tarifario-categorias": childMeta("/ficheros/facturacion", "Facturación", "Categorías", "Categorías por tarifa."),
+    "/ficheros/tarifario-subcategorias": childMeta("/ficheros/facturacion", "Facturación", "Subcategorías", "Subcategorías por tarifa."),
+    "/ficheros/paquetes": childMeta("/ficheros/facturacion", "Facturación", "Paquetes"),
+    "/ficheros/paquetes-servicios": childMeta("/ficheros/facturacion", "Facturación", "Servicios por paquete", "Asignación de servicios por paquete."),
+    "/ficheros/clientes": childMeta("/ficheros/facturacion", "Facturación", "Clientes"),
+
+    "/ficheros/parametros/emergencia": moduleMeta("Emergencia", "Parámetros del módulo Emergencia."),
+    "/ficheros/parametros/emergencia/tipo": childMeta("/ficheros/parametros/emergencia", "Emergencia", "Tipo Emergencia", "Tipo Emergencia."),
+    "/ficheros/parametros/emergencia/topico": childMeta("/ficheros/parametros/emergencia", "Emergencia", "Tópico", "Tópico."),
+    "/ficheros/parametros/emergencia/tipo-documento": childMeta("/ficheros/parametros/emergencia", "Emergencia", "Tipo Documento", "Tipo Documento."),
+    "/ficheros/parametros/emergencia/documento-atencion": childMeta("/ficheros/parametros/emergencia", "Emergencia", "Documento de Atención", "Documento de Atención."),
+    "/ficheros/parametros/emergencia/servicios-defaults": childMeta("/ficheros/parametros/emergencia", "Emergencia", "Servicios por defecto", "Servicios precargados por tarifario en Emergencia."),
+
+    "/ficheros/parametros/caja": moduleMeta("Caja", "Parámetros del módulo Caja."),
+    "/ficheros/parametros/caja/area-jefatura": childMeta("/ficheros/parametros/caja", "Caja", "Área o Jefatura", "Área o Jefatura."),
+    "/ficheros/parametros/caja/tipo-documento": childMeta("/ficheros/parametros/caja", "Caja", "Tipo de documento", "Tipo de documento."),
+    "/ficheros/parametros/caja/numeracion-comprobante": childMeta("/ficheros/parametros/caja", "Caja", "Numeración de comprobante", "Numeración de comprobante."),
+    "/ficheros/parametros/caja/forma-pago": childMeta("/ficheros/parametros/caja", "Caja", "Forma de pago", "Forma de pago."),
+    "/ficheros/parametros/caja/medio-pago": childMeta("/ficheros/parametros/caja", "Caja", "Medio de pago", "Medio de pago."),
+    "/ficheros/parametros/caja/banco-tarjeta": childMeta("/ficheros/parametros/caja", "Caja", "Banco o tarjeta", "Banco o tarjeta."),
+    "/ficheros/parametros/igv": childMeta("/ficheros/parametros/caja", "Caja", "IGV", "Configuración de parámetros del sistema."),
+    "/ficheros/parametros/recargo-noche": childMeta("/ficheros/parametros/caja", "Caja", "Recargo nocturno", "Recargo nocturno por tarifario y categoría."),
+
+    "/ficheros/parametros/hospitalizacion": moduleMeta("Hospitalización", "Parámetros del módulo Hospitalización."),
+    "/ficheros/parametros/hospitalizacion/cirugias": childMeta("/ficheros/parametros/hospitalizacion", "Hospitalización", "Cirugías", "Catálogo de cirugías para hospitalización."),
 };

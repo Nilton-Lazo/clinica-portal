@@ -5,6 +5,8 @@ import {
   FileText,
   Hash,
   HandCoins,
+  Moon,
+  Percent,
   WalletCards,
 } from "lucide-react";
 
@@ -50,6 +52,18 @@ const options = [
     description:
       "Gestiona bancos o tarjetas vinculados a formas y medios de pago activos.",
     icon: CreditCard,
+  },
+  {
+    to: "/ficheros/parametros/igv",
+    label: "IGV",
+    description: "Configura el porcentaje de IGV usado en comprobantes y cálculos.",
+    icon: Percent,
+  },
+  {
+    to: "/ficheros/parametros/recargo-noche",
+    label: "Recargo nocturno",
+    description: "Define reglas de recargo nocturno por tarifa y categoría.",
+    icon: Moon,
   },
 ];
 
