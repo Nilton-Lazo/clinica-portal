@@ -5,7 +5,9 @@ import { SelectAllCheckbox } from "../../../../../shared/crud/SelectAllCheckbox"
 import { GridCellText } from "../../../../../shared/datagrid";
 import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
-import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
+import { SelectMenu } from "../../../../../shared/ui/SelectMenu";
+import { listPageSizeOptions } from "../../../../../shared/crud/listPageSizeOptions";
+import { normalizeListPerPage } from "../../../../../shared/datagrid/buildListQuery";
 import { PrimaryButton, SecondaryButton } from "../../../../../shared/ui/buttons";
 import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
 import {
@@ -58,14 +60,10 @@ function precioConRecargo(
   return base * (1 + recargoPct / 100);
 }
 
-const PER_PAGE_OPTIONS: SelectOption[] = [
-  { value: "25", label: "25" },
-  { value: "50", label: "50" },
-  { value: "100", label: "100" },
-];
+const PER_PAGE_OPTIONS = listPageSizeOptions;
 
 function clampPerPage(n: number): number {
-  return n <= 25 ? 25 : n <= 50 ? 50 : 100;
+  return normalizeListPerPage(n);
 }
 
 function useIsLgUp(): boolean {
@@ -99,7 +97,7 @@ export function ServicioPicker(props: ServicioPickerProps) {
   const [loading, setLoading] = React.useState(false);
   const [q, setQ] = React.useState("");
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(50);
+  const [perPage, setPerPage] = React.useState(10);
   const [igvPct, setIgvPct] = React.useState(igvPctProp ?? 18);
   const [selectedItems, setSelectedItems] = React.useState<Map<number, TarifaServicioBusqueda>>(new Map());
   const isLgUp = useIsLgUp();

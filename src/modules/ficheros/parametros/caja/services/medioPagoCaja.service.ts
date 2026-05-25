@@ -82,6 +82,6 @@ export function deactivateMedioPagoCaja(id: number): Promise<{ data: MedioPagoCa
 }
 
 export async function listFormasPagoActivas(): Promise<FormaPagoCajaOption[]> {
-  const res = await api.get<{ data: FormaPagoCajaOption[] }>(`${FORMAS_BASE}?page=1&per_page=100&status=ACTIVO`);
+  const res = await api.get<{ data: FormaPagoCajaOption[] }>(`${FORMAS_BASE}?page=1&per_page=50&status=ACTIVO`);
   return Array.isArray(res.data) ? res.data : [];
 }

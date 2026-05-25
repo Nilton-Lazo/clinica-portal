@@ -125,6 +125,8 @@ export default function TarifarioClonacionPage() {
       </div>
 
       <div className="mt-3">
+        <label className="block text-sm text-(--color-text-primary)">Tarifa destino *</label>
+        <div className="mt-1">
         <SelectMenu
           value={selectedCloneTarifaStr}
           onChange={(v) => vm.setCloneTarifaId(v ? Number(v) : null)}
@@ -134,6 +136,7 @@ export default function TarifarioClonacionPage() {
           buttonClassName={`w-full ${cloneTarifaReady ? inputBase : tarifaEmptyHighlightTriggerCls}`}
           menuClassName="min-w-full"
         />
+        </div>
       </div>
 
       <div className="mt-4 rounded-md border border-(--border-color-default) bg-(--color-panel-bg) px-3 py-3">

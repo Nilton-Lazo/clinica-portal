@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-r
 
 const defaultMeta: PaginationMeta = {
   current_page: 1,
-  per_page: 25,
+  per_page: 10,
   total: 0,
   last_page: 1,
 };

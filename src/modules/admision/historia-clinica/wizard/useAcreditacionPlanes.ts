@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toUserFriendlyMessage } from "../utils/userFriendlyError";
 import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import { toastService } from "../../../../shared/notifications";
+import { normalizeListPerPage } from "../../../../shared/datagrid/buildListQuery";
 
 import type {
   AcreditacionPlan,
@@ -16,7 +17,7 @@ import type { PaginatedResponse } from "../../../../shared/types/pagination";
 import {
   createPacientePlan,
   deactivatePacientePlan,
-  listPacientePlanes,
+  listPacientePlanesPage,
   listContratantesLookup,
   listIafasLookup,
   listTiposClientesLookup,
@@ -27,9 +28,7 @@ export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
 
 function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
+  return normalizeListPerPage(n);
 }
 
 function toNullIfBlank(s: string): string | null {
@@ -116,32 +115,19 @@ function planLabel(p: AcreditacionPlan | null): string {
   return c || d || `#${p.id}`;
 }
 
-function matchesQ(p: AcreditacionPlan, q: string): boolean {
-  if (!q) return true;
-
-  const parts = [
-    p.tipo_cliente?.codigo ?? "",
-    p.tipo_cliente?.descripcion_tipo_cliente ?? "",
-    p.parentesco_seguro ?? "",
-    p.fecha_afiliacion ?? "",
-    p.estado ?? "",
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return parts.includes(q);
-}
-
 export function useAcreditacionPlanes(pacienteId: number | null, parentescoPaciente?: string | null) {
-  const [raw, setRaw] = useState<AcreditacionPlan[]>([]);
+  const [data, setData] = useState<PaginatedResponse<AcreditacionPlan>>({
+    data: [],
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
+  });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(50);
+  const [perPage, setPerPageState] = useState(10);
 
   const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
+  const qDebounced = useDebouncedValue(q, 300);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
@@ -190,21 +176,34 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
 
   const reloadPlanes = useCallback(async () => {
     if (!pacienteId) {
-      setRaw([]);
+      setData({
+        data: [],
+        meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
+      });
       return;
     }
 
     setLoading(true);
     try {
-      const res = await listPacientePlanes(pacienteId);
-      setRaw(res);
+      const res = await listPacientePlanesPage(pacienteId, {
+        page,
+        per_page: perPage,
+        q: qDebounced.trim() || undefined,
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        sort: "id",
+        sort_dir: "asc",
+      });
+      setData(res);
     } catch (e) {
       toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los planes afiliados del paciente."));
-      setRaw([]);
+      setData({
+        data: [],
+        meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
+      });
     } finally {
       setLoading(false);
     }
-  }, [pacienteId]);
+  }, [pacienteId, page, perPage, qDebounced, statusFilter]);
 
   useEffect(() => {
     void loadTiposClientes();
@@ -222,13 +221,6 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
     void reloadPlanes();
   }, [pacienteId, parentescoPaciente, reloadPlanes]);
 
-  const filtered = useMemo(() => {
-    const qx = qDebounced.trim().toLowerCase();
-    return raw
-      .filter((p) => (statusFilter === "ALL" ? true : p.estado === statusFilter))
-      .filter((p) => matchesQ(p, qx));
-  }, [raw, qDebounced, statusFilter]);
-
   const prevFiltersRef = useRef<{ q: string; status: StatusFilter; perPage: number } | null>(null);
 
   useEffect(() => {
@@ -239,20 +231,6 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
 
     if (changed && page !== 1) setPage(1);
   }, [qDebounced, statusFilter, perPage, page]);
-
-  const data = useMemo<PaginatedResponse<AcreditacionPlan>>(() => {
-    const total = filtered.length;
-    const last = Math.max(1, Math.ceil(total / perPage));
-    const current = Math.min(Math.max(1, page), last);
-
-    const start = (current - 1) * perPage;
-    const rows = filtered.slice(start, start + perPage);
-
-    return {
-      data: rows,
-      meta: { current_page: current, per_page: perPage, total, last_page: last },
-    };
-  }, [filtered, page, perPage]);
 
   useEffect(() => {
     const last = data.meta.last_page;
@@ -447,7 +425,7 @@ export function useAcreditacionPlanes(pacienteId: number | null, parentescoPacie
 
   return {
     data,
-    rawCount: raw.length,
+    rawCount: data.meta.total,
     loading,
     saving,
 

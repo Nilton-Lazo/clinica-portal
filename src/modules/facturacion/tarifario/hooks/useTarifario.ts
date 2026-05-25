@@ -40,7 +40,7 @@ export function useTarifario() {
 
   const [data, setData] = useState<PaginatedResponse<TarifaServicioListItem>>({
     data: [],
-    meta: { current_page: 1, per_page: 25, total: 0, last_page: 1 },
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
   });
 
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,7 @@ export function useTarifario() {
   const noticeTimerRef = useRef<number | null>(null);
 
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(25);
+  const [perPage, setPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState<"ALL" | RecordStatus>("ALL");
 
   const [q, setQ] = useState("");

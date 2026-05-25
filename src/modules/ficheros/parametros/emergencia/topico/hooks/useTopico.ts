@@ -146,7 +146,10 @@ export function useTopico() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) { toast.error("Selecciona un tópico para desactivar."); return; }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El tópico seleccionado ya está inactivo.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

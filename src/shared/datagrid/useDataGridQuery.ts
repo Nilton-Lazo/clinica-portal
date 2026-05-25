@@ -5,10 +5,11 @@ import type { PaginatedResponse, PaginationMeta } from "../types/pagination";
 import type { DataGridColumnDef, DataGridFetchParams, DataGridSortState, SortDirection } from "./types";
 import { nextGridSort, type GridSortDefaults, type GridSortState } from "./gridSortCycle";
 import { resolveGridSortField } from "./gridSortField";
+import { normalizeListPerPage } from "./buildListQuery";
 
 const defaultMeta: PaginationMeta = {
   current_page: 1,
-  per_page: 25,
+  per_page: 10,
   total: 0,
   last_page: 1,
 };
@@ -29,8 +30,8 @@ export function useDataGridQuery<T>(options: Options<T>) {
   const {
     fetcher,
     columns,
-    initialPerPage = 25,
-    debounceMs = 350,
+    initialPerPage = 10,
+    debounceMs = 300,
     extraParams,
     enabled = true,
     errorFallback = "No se pudo cargar los datos.",
@@ -47,7 +48,7 @@ export function useDataGridQuery<T>(options: Options<T>) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(initialPerPage);
+  const [perPage, setPerPageState] = useState(() => normalizeListPerPage(initialPerPage));
   const [q, setQ] = useState("");
   const qDebounced = useDebouncedValue(q, debounceMs);
   const [sortState, setSortState] = useState<GridSortState>({
@@ -131,7 +132,7 @@ export function useDataGridQuery<T>(options: Options<T>) {
     page,
     setPage,
     perPage,
-    setPerPage,
+    setPerPage: (n: number) => setPerPageState(normalizeListPerPage(n)),
     q,
     setQ,
     sort,

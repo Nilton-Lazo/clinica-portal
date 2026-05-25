@@ -339,7 +339,7 @@ export default function PresupuestoNuevoPage() {
             if (!codigo) return;
             const res = await buscarServiciosTarifa(currentTarifaId, {
               page: 1,
-              per_page: 25,
+              per_page: 10,
               codigo,
               status: "ACTIVO",
               hora: horaReal,

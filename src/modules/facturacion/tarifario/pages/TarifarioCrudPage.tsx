@@ -1,6 +1,8 @@
 ﻿import * as React from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
+import { listPageSizeOptions } from "../../../../shared/crud/listPageSizeOptions";
+import { normalizeListPerPage } from "../../../../shared/datagrid/buildListQuery";
 import { CrudListGrid } from "../../../../shared/crud/CrudListGrid";
 import { PaginationFooter } from "../../../../shared/crud/PaginationFooter";
 import type { DataGridColumnDef } from "../../../../shared/datagrid";
@@ -119,20 +121,7 @@ function useIsLgUp(): boolean {
 }
 
 function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
-}
-
-function useNoticeToToast(notice: Notice) {
-  const lastRef = React.useRef<Notice | null>(null);
-  React.useEffect(() => {
-    if (!notice?.text) return;
-    if (notice === lastRef.current) return;
-    lastRef.current = notice;
-    if (notice.type === "success") toastService.showSuccess(notice.text);
-    else toastService.showError(notice.text);
-  }, [notice]);
+  return normalizeListPerPage(n);
 }
 
 const statusOptions: SelectOption[] = [
@@ -142,23 +131,19 @@ const statusOptions: SelectOption[] = [
   { value: "SUSPENDIDO", label: "Suspendidos" },
 ];
 
-const perPageOptions: SelectOption[] = [
-  { value: "25", label: "25" },
-  { value: "50", label: "50" },
-  { value: "100", label: "100" },
-];
+const perPageOptions = listPageSizeOptions;
 
 function useCategoriasCrud(tarifaId: number | null) {
   const [data, setData] = React.useState<PaginatedResponse<TarifaCategoria>>({
     data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
   });
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<Notice>(null);
 
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPageState] = React.useState(50);
+  const [perPage, setPerPageState] = React.useState(10);
   const [q, setQ] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
@@ -166,7 +151,7 @@ function useCategoriasCrud(tarifaId: number | null) {
     sortDir: "asc",
   });
   const { sort, sortDir } = sortState;
-  const qDebounced = useDebouncedValue(q, 350);
+  const qDebounced = useDebouncedValue(q, 300);
   const qNormalized = React.useMemo(
     () => normalizeCodigoQuery(qDebounced),
     [qDebounced]
@@ -280,7 +265,7 @@ function useCategoriasCrud(tarifaId: number | null) {
     if (tarifaId) return;
     setData({
       data: [],
-      meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+      meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
     });
     setLoading(false);
     setNotice(null);
@@ -325,7 +310,12 @@ function useCategoriasCrud(tarifaId: number | null) {
   }, [mode, resetToNew, selected]);
 
   const onSave = React.useCallback(async () => {
-    if (!tarifaId) return;
+    if (!tarifaId) {
+      const msg = "Selecciona una tarifa antes de crear o editar una categoría.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setNotice(null);
     if (!isValid) {
       const msg = "Completa la descripción de la categoría correctamente.";
@@ -409,7 +399,12 @@ function useCategoriasCrud(tarifaId: number | null) {
       toastService.showError(msg);
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "La categoría seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 
@@ -495,18 +490,18 @@ function useCategoriasCrud(tarifaId: number | null) {
 function useSubcategoriasCrud(tarifaId: number | null) {
   const [data, setData] = React.useState<PaginatedResponse<TarifaSubcategoria>>({
     data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
   });
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<Notice>(null);
 
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPageState] = React.useState(50);
+  const [perPage, setPerPageState] = React.useState(10);
   const [q, setQ] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [filterCategoriaId, setFilterCategoriaId] = React.useState<number | null>(null);
-  const qDebounced = useDebouncedValue(q, 350);
+  const qDebounced = useDebouncedValue(q, 300);
   const qNormalized = React.useMemo(
     () => normalizeCodigoQuery(qDebounced),
     [qDebounced]
@@ -661,7 +656,7 @@ function useSubcategoriasCrud(tarifaId: number | null) {
     if (tarifaId) return;
     setData({
       data: [],
-      meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+      meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
     });
     setLoading(false);
     setNotice(null);
@@ -710,7 +705,12 @@ function useSubcategoriasCrud(tarifaId: number | null) {
   }, [mode, resetToNew, selected]);
 
   const onSave = React.useCallback(async () => {
-    if (!tarifaId) return;
+    if (!tarifaId) {
+      const msg = "Selecciona una tarifa antes de crear o editar una subcategoría.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setNotice(null);
     if (!isValid) {
       const msg = "Selecciona una categoría y completa la descripción de la subcategoría.";
@@ -799,7 +799,12 @@ function useSubcategoriasCrud(tarifaId: number | null) {
       toastService.showError(msg);
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "La subcategoría seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 
@@ -887,14 +892,14 @@ function useSubcategoriasCrud(tarifaId: number | null) {
 function useServiciosCrud(tarifaId: number | null) {
   const [data, setData] = React.useState<TarifarioServiciosCrudListResponse>({
     data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1, igv_porcentaje: 18 },
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1, igv_porcentaje: 18 },
   });
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [notice, setNotice] = React.useState<Notice>(null);
 
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPageState] = React.useState(50);
+  const [perPage, setPerPageState] = React.useState(10);
   const [q, setQ] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [filterCategoriaId, setFilterCategoriaId] = React.useState<number | null>(null);
@@ -905,7 +910,7 @@ function useServiciosCrud(tarifaId: number | null) {
     sortDir: "asc",
   });
   const { sort, sortDir } = sortState;
-  const qDebounced = useDebouncedValue(q, 350);
+  const qDebounced = useDebouncedValue(q, 300);
   const qNormalized = React.useMemo(
     () => normalizeCodigoQuery(qDebounced),
     [qDebounced]
@@ -1221,7 +1226,7 @@ function useServiciosCrud(tarifaId: number | null) {
     if (tarifaId) return;
     setData({
       data: [],
-      meta: { current_page: 1, per_page: 50, total: 0, last_page: 1, igv_porcentaje: 18 },
+      meta: { current_page: 1, per_page: 10, total: 0, last_page: 1, igv_porcentaje: 18 },
     });
     setLoading(false);
     setNotice(null);
@@ -1310,7 +1315,12 @@ function useServiciosCrud(tarifaId: number | null) {
   }, [mode, resetToNew, selected]);
 
   const onSave = React.useCallback(async () => {
-    if (!tarifaId) return;
+    if (!tarifaId) {
+      const msg = "Selecciona una tarifa antes de crear o editar un servicio.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setNotice(null);
     if (!isValid) {
       const msg = "Selecciona categoría, subcategoría y completa los datos obligatorios del servicio.";
@@ -1416,7 +1426,12 @@ function useServiciosCrud(tarifaId: number | null) {
       toastService.showError(msg);
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "El servicio seleccionado ya está inactivo.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 
@@ -1544,7 +1559,6 @@ export function TarifarioCategoriasCrudView({
   const tarifaReady = Boolean(tarifaId);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  useNoticeToToast(vm.notice);
 
   useRealtimeModuleRefresh({
     module: "facturacion",
@@ -1695,7 +1709,7 @@ export function TarifarioCategoriasCrudView({
           <div
             className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
             onKeyDown={makeEnterKeySaveHandler(
-              Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
+              Boolean(tarifaReady && !vm.saving),
               vm.onSave
             )}
           >
@@ -1745,7 +1759,7 @@ export function TarifarioCategoriasCrudView({
               </div>
 
               <div>
-                <label className="text-sm text-(--color-text-primary)">Descripción</label>
+                <label className="text-sm text-(--color-text-primary)">Descripción *</label>
                 <input
                   value={vm.descripcion}
                   onChange={(e) => vm.setDescripcion(e.target.value)}
@@ -1758,7 +1772,7 @@ export function TarifarioCategoriasCrudView({
             <div className="mt-6 grid grid-cols-3 gap-2">
               <PrimaryButton
                 className="w-full min-w-0"
-                disabled={!tarifaReady || !vm.isValid || !vm.isDirty || vm.saving}
+                disabled={!tarifaReady || vm.saving}
                 onClick={vm.onSave}
               >
                 {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
@@ -1768,7 +1782,7 @@ export function TarifarioCategoriasCrudView({
               </SecondaryButton>
               <DangerButton
                 className="w-full min-w-0"
-                disabled={!tarifaReady || !vm.canDeactivate || vm.saving}
+                disabled={!tarifaReady || vm.saving}
                 onClick={vm.requestDeactivate}
               >
                 Desactivar
@@ -1813,7 +1827,6 @@ export function TarifarioSubcategoriasCrudView({
   const tarifaReady = Boolean(tarifaId);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  useNoticeToToast(vm.notice);
   const categoriaCodigoById = React.useMemo(() => {
     const map = new Map<number, string>();
     vm.categorias.forEach((c) => map.set(c.id, c.codigo));
@@ -2000,7 +2013,7 @@ export function TarifarioSubcategoriasCrudView({
           <div
             className="h-full rounded border border-(--border-color-default) bg-(--color-surface) p-4"
             onKeyDown={makeEnterKeySaveHandler(
-              Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
+              Boolean(tarifaReady && !vm.saving),
               vm.onSave
             )}
           >
@@ -2020,7 +2033,7 @@ export function TarifarioSubcategoriasCrudView({
 
             <div className="mt-4 grid grid-cols-1 gap-4">
               <div>
-                <label className="text-sm text-(--color-text-primary)">Categoría</label>
+                <label className="text-sm text-(--color-text-primary)">Categoría *</label>
                 <div className="mt-1">
                   <SelectMenu
                     value={vm.categoriaId ? String(vm.categoriaId) : ""}
@@ -2077,7 +2090,7 @@ export function TarifarioSubcategoriasCrudView({
               </div>
 
               <div>
-                <label className="text-sm text-(--color-text-primary)">Descripción</label>
+                <label className="text-sm text-(--color-text-primary)">Descripción *</label>
                 <input
                   value={vm.descripcion}
                   onChange={(e) => vm.setDescripcion(e.target.value)}
@@ -2090,7 +2103,7 @@ export function TarifarioSubcategoriasCrudView({
             <div className="mt-6 grid grid-cols-3 gap-2">
               <PrimaryButton
                 className="w-full min-w-0"
-                disabled={!tarifaReady || !vm.isValid || !vm.isDirty || vm.saving}
+                disabled={!tarifaReady || vm.saving}
                 onClick={vm.onSave}
               >
                 {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
@@ -2100,7 +2113,7 @@ export function TarifarioSubcategoriasCrudView({
               </SecondaryButton>
               <DangerButton
                 className="w-full min-w-0"
-                disabled={!tarifaReady || !vm.canDeactivate || vm.saving}
+                disabled={!tarifaReady || vm.saving}
                 onClick={vm.requestDeactivate}
               >
                 Desactivar
@@ -2147,7 +2160,6 @@ export function TarifarioServiciosCrudView({
   const tarifaReady = Boolean(tarifaId);
   const isLgUp = useIsLgUp();
   const formRef = React.useRef<HTMLDivElement | null>(null);
-  useNoticeToToast(vm.notice);
 
   useRealtimeModuleRefresh({
     module: "facturacion",
@@ -2401,7 +2413,7 @@ export function TarifarioServiciosCrudView({
           <div
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded border border-(--border-color-default) bg-(--color-surface)"
             onKeyDown={makeEnterKeySaveHandler(
-              Boolean(tarifaReady && vm.isValid && vm.isDirty && !vm.saving),
+              Boolean(tarifaReady && !vm.saving),
               vm.onSave
             )}
           >
@@ -2582,7 +2594,7 @@ export function TarifarioServiciosCrudView({
               <div className="mt-6 grid grid-cols-3 gap-2">
                 <PrimaryButton
                   className="w-full min-w-0"
-                  disabled={!tarifaReady || !vm.isValid || !vm.isDirty || vm.saving}
+                  disabled={!tarifaReady || vm.saving}
                   onClick={vm.onSave}
                 >
                   {vm.mode === "new" ? (vm.saving ? "Creando..." : "Crear") : vm.saving ? "Guardando..." : "Guardar"}
@@ -2592,7 +2604,7 @@ export function TarifarioServiciosCrudView({
                 </SecondaryButton>
                 <DangerButton
                   className="w-full min-w-0"
-                  disabled={!tarifaReady || !vm.canDeactivate || vm.saving}
+                  disabled={!tarifaReady || vm.saving}
                   onClick={vm.requestDeactivate}
                 >
                   Desactivar

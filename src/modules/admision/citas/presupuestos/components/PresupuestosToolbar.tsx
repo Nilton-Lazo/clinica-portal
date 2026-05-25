@@ -2,6 +2,7 @@ import type { EstadoPresupuestoFiltro } from "../hooks/usePresupuestosLista";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../../shared/ui/buttons";
 import DateInput from "../../../../../shared/ui/DateInput";
+import { listPageSizeOptions } from "../../../../../shared/crud/listPageSizeOptions";
 
 export default function PresupuestosToolbar(props: {
   q: string;
@@ -38,11 +39,7 @@ export default function PresupuestosToolbar(props: {
     { value: "ANULADO", label: "Anulado" },
   ];
 
-  const perPageOptions: SelectOption[] = [
-    { value: "25", label: "25" },
-    { value: "50", label: "50" },
-    { value: "100", label: "100" },
-  ];
+  const perPageOptions = listPageSizeOptions;
 
   return (
     <div className="w-full">

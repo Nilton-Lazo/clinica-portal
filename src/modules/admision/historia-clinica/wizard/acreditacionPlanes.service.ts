@@ -1,4 +1,7 @@
 import { api } from "../../../../shared/api";
+import { buildListQuery } from "../../../../shared/datagrid";
+import type { DataGridFetchParams } from "../../../../shared/datagrid";
+import type { PaginatedResponse } from "../../../../shared/types/pagination";
 import type {
   AcreditacionPlan,
   ParentescoSeguro,
@@ -195,7 +198,7 @@ export async function listTiposClientesLookup(): Promise<TipoClienteLookup[]> {
   const res = await api.get<{
     data: TipoClienteApi[];
     meta: { current_page: number; per_page: number; total: number; last_page: number };
-  }>(`/ficheros/tipos-clientes?page=1&per_page=100&status=ACTIVO`);
+  }>(`/ficheros/tipos-clientes?page=1&per_page=50&status=ACTIVO`);
 
   return (res.data ?? [])
     .map((x) => ({
@@ -212,7 +215,7 @@ export async function listIafasLookup(): Promise<IafaLookup[]> {
   const res = await api.get<{
     data: IafaApi[];
     meta: { current_page: number; per_page: number; total: number; last_page: number };
-  }>(`/ficheros/iafas?page=1&per_page=200&status=ACTIVO`);
+  }>(`/ficheros/iafas?page=1&per_page=50&status=ACTIVO`);
 
   return (res.data ?? [])
     .map((x) => ({
@@ -228,7 +231,7 @@ export async function listContratantesLookup(): Promise<ContratanteLookup[]> {
   const res = await api.get<{
     data: ContratanteApi[];
     meta: { current_page: number; per_page: number; total: number; last_page: number };
-  }>(`/ficheros/contratantes?page=1&per_page=200&status=ACTIVO`);
+  }>(`/ficheros/contratantes?page=1&per_page=50&status=ACTIVO`);
 
   return (res.data ?? [])
     .map((x) => ({
@@ -243,6 +246,14 @@ export type ListPacientePlanesOpts = {
   soloActivos?: boolean;
   incluirPlanId?: number | null;
 };
+
+export async function listPacientePlanesPage(
+  pacienteId: number,
+  params: DataGridFetchParams
+): Promise<PaginatedResponse<AcreditacionPlan>> {
+  const res = await api.get<PaginatedResponse<PlanApi>>(`/admision/pacientes/${pacienteId}/planes${buildListQuery(params)}`);
+  return { ...res, data: (res.data ?? []).map(normalizePlan) };
+}
 
 export async function listPacientePlanes(
   pacienteId: number,

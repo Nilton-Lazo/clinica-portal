@@ -314,7 +314,7 @@ export default function NuevoRegistroEmergenciaPage() {
   }, []);
 
   React.useEffect(() => {
-    listTipoEmergencia({ page: 1, per_page: 100, status: "ACTIVO" })
+    listTipoEmergencia({ page: 1, per_page: 50, status: "ACTIVO" })
       .then((res) => {
         setTipoEmergenciaOptions(
           res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.descripcion}` }))
@@ -324,7 +324,7 @@ export default function NuevoRegistroEmergenciaPage() {
         setTipoEmergenciaOptions([]);
         toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de tipos de emergencia."));
       });
-    listTopico({ page: 1, per_page: 100, status: "ACTIVO" })
+    listTopico({ page: 1, per_page: 50, status: "ACTIVO" })
       .then((res) => {
         setTopicoOptions(
           res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
@@ -334,7 +334,7 @@ export default function NuevoRegistroEmergenciaPage() {
         setTopicoOptions([]);
         toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de tópicos."));
       });
-    listTipoDocumento({ page: 1, per_page: 100, status: "ACTIVO" })
+    listTipoDocumento({ page: 1, per_page: 50, status: "ACTIVO" })
       .then((res) => {
         setTipoDocumentoOptions(
           res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))
@@ -344,7 +344,7 @@ export default function NuevoRegistroEmergenciaPage() {
         setTipoDocumentoOptions([]);
         toastService.showError(getApiErrorMessage(e, "No se pudo cargar el catálogo de tipos de documento SOAT."));
       });
-    listDocumentoAtencion({ page: 1, per_page: 100, status: "ACTIVO" })
+    listDocumentoAtencion({ page: 1, per_page: 50, status: "ACTIVO" })
       .then((res) => {
         setDocumentoAtencionOptions(
           res.data.map((x: ParamOption) => ({ value: String(x.id), label: `${x.codigo} · ${x.descripcion}` }))

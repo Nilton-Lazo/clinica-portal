@@ -5,21 +5,20 @@ import type { PaginatedResponse, PaginationMeta } from "../types/pagination";
 import type { DataGridColumnDef, DataGridFetchParams, SortDirection } from "../datagrid/types";
 import { nextGridSort, type GridSortDefaults, type GridSortState } from "../datagrid/gridSortCycle";
 import { resolveGridSortField } from "../datagrid/gridSortField";
+import { normalizeListPerPage } from "../datagrid/buildListQuery";
 import { toastService } from "../notifications";
 
 export type CrudStatusFilter = "ALL" | string;
 
 const defaultMeta: PaginationMeta = {
   current_page: 1,
-  per_page: 50,
+  per_page: 10,
   total: 0,
   last_page: 1,
 };
 
 export function clampCrudPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
+  return normalizeListPerPage(n);
 }
 
 type Options<T> = {
@@ -39,12 +38,12 @@ export function useCrudListQuery<T>(options: Options<T>) {
     listFn,
     columns,
     errorMessage,
-    initialPerPage = 50,
+    initialPerPage = 10,
     defaultSort: defaultSortOpt,
     defaultSortDir = "asc",
     initialSort,
     initialSortDir = "asc",
-    debounceMs = 350,
+    debounceMs = 300,
   } = options;
 
   const sortDefaults: GridSortDefaults = useMemo(
@@ -59,7 +58,7 @@ export function useCrudListQuery<T>(options: Options<T>) {
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPageState] = useState(initialPerPage);
+  const [perPage, setPerPageState] = useState(() => clampCrudPerPage(initialPerPage));
   const [q, setQ] = useState("");
   const qDebounced = useDebouncedValue(q, debounceMs);
   const [statusFilter, setStatusFilter] = useState<CrudStatusFilter>("ALL");

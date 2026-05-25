@@ -255,7 +255,7 @@ export default function AtencionEmergenciaPage() {
             if (!codigo) return;
             const res = await buscarServiciosTarifa(currentTarifaId, {
               page: 1,
-              per_page: 25,
+              per_page: 10,
               codigo,
               status: "ACTIVO",
               hora: horaReal,
@@ -510,7 +510,7 @@ export default function AtencionEmergenciaPage() {
       if (!medicosOptionsCache.promise) {
         medicosOptionsCache.promise = api
           .get<{ data?: Array<{ id: number; codigo?: string; nombres?: string; apellido_paterno?: string; apellido_materno?: string }> }>(
-            "/ficheros/medicos?status=ACTIVO&per_page=200&page=1"
+            "/ficheros/medicos?status=ACTIVO&per_page=50&page=1"
           )
           .then((res) => {
             const arr = Array.isArray(res.data) ? res.data : [];
@@ -810,7 +810,7 @@ export default function AtencionEmergenciaPage() {
             chunk.map(async (codigo) => {
               const res = await buscarServiciosTarifa(tarifaId, {
                 page: 1,
-                per_page: 25,
+                per_page: 10,
                 codigo,
                 status: "ACTIVO",
                 hora: horaReal,

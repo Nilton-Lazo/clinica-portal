@@ -2,8 +2,10 @@ import * as React from "react";
 import { SecondaryButton } from "../../../../../shared/ui/buttons";
 import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
 import { DataTable, type DataTableColumn } from "../../../../../shared/crud/DataTable";
+import { PaginationFooter } from "../../../../../shared/crud/PaginationFooter";
 import { GridCellText } from "../../../../../shared/datagrid";
 import { MobileEntityList } from "../../../../../shared/crud/MobileEntityList";
+import type { PaginationMeta } from "../../../../../shared/types/pagination";
 import type { PaqueteLookup } from "../../../../ficheros/types/paqueteServicios.types";
 import { listPaquetesByTarifa } from "../../../../ficheros/services/paqueteServicios.service";
 import { formatDecimalFixed } from "../../../../../shared/constants/decimalPrecision";
@@ -12,6 +14,13 @@ import { toastService } from "../../../../../shared/notifications";
 import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 
 type Variant = "drawer" | "fullscreen";
+
+const defaultMeta: PaginationMeta = {
+  current_page: 1,
+  per_page: 10,
+  total: 0,
+  last_page: 1,
+};
 
 type Props = {
   open: boolean;
@@ -53,12 +62,16 @@ export default function PaquetePicker(props: Props) {
 
   const isLgUp = useIsLgUp();
   const [search, setSearch] = React.useState("");
-  const q = useDebouncedValue(search, 250);
+  const q = useDebouncedValue(search, 300);
+  const [page, setPage] = React.useState(1);
   const [loading, setLoading] = React.useState(false);
   const [items, setItems] = React.useState<PaqueteLookup[]>([]);
+  const [meta, setMeta] = React.useState<PaginationMeta>(defaultMeta);
   const [selected, setSelected] = React.useState<PaqueteLookup | null>(null);
   const [igvPct, setIgvPct] = React.useState(18);
   const requestIdRef = React.useRef(0);
+  const filterSignatureRef = React.useRef<string | null>(null);
+  const [reloadKey, setReloadKey] = React.useState(0);
 
   React.useEffect(() => {
     getIgvPorcentaje()
@@ -70,41 +83,52 @@ export default function PaquetePicker(props: Props) {
 
   React.useEffect(() => {
     if (!open || tarifaId == null || tarifaId <= 0) {
+      setItems([]);
+      setMeta(defaultMeta);
+      filterSignatureRef.current = null;
       return;
     }
+    const signature = `${tarifaId}:${q.trim()}`;
+    const filtersChanged = filterSignatureRef.current !== null && filterSignatureRef.current !== signature;
+    if (filtersChanged && page !== 1) {
+      setPage(1);
+      return;
+    }
+    filterSignatureRef.current = signature;
     setLoading(true);
     const requestId = ++requestIdRef.current;
-    listPaquetesByTarifa(tarifaId)
-      .then((rows) => {
+    listPaquetesByTarifa(tarifaId, {
+      page,
+      per_page: 10,
+      q: q.trim() || undefined,
+      sort: "codigo",
+      sort_dir: "asc",
+    })
+      .then((res) => {
         if (requestId !== requestIdRef.current) return;
-        setItems(rows);
+        setItems(res.data);
+        setMeta(res.meta);
       })
       .catch((e) => {
         if (requestId !== requestIdRef.current) return;
         setItems([]);
+        setMeta(defaultMeta);
         toastService.showError(toUserFriendlyMessage(e, "No se pudieron cargar los paquetes activos de la tarifa seleccionada."));
       })
       .finally(() => {
         if (requestId === requestIdRef.current) setLoading(false);
       });
-  }, [open, tarifaId]);
+  }, [open, tarifaId, q, page, reloadKey]);
 
   React.useEffect(() => {
     if (!open) {
       setSearch("");
+      setPage(1);
       setSelected(null);
+      setMeta(defaultMeta);
+      filterSignatureRef.current = null;
     }
   }, [open]);
-
-  const filtered = React.useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!t) return items;
-    return items.filter((p) => {
-      const c = (p.codigo ?? "").toLowerCase();
-      const d = (p.descripcion ?? "").toLowerCase();
-      return c.includes(t) || d.includes(t);
-    });
-  }, [items, q]);
 
   const columns: DataTableColumn<PaqueteLookup>[] = React.useMemo(
     () => [
@@ -156,12 +180,21 @@ export default function PaquetePicker(props: Props) {
     [onPicked, onClose]
   );
 
+  const refresh = React.useCallback(() => {
+    setReloadKey((key) => key + 1);
+  }, []);
+
+  const goFirst = React.useCallback(() => setPage(1), []);
+  const goPrev = React.useCallback(() => setPage((p) => Math.max(1, p - 1)), []);
+  const goNext = React.useCallback(() => setPage((p) => Math.min(meta.last_page, p + 1)), [meta.last_page]);
+  const goLast = React.useCallback(() => setPage(meta.last_page), [meta.last_page]);
+
   const emptyText =
     tarifaId == null || tarifaId <= 0
       ? "No hay tarifa asignada al plan."
       : loading
         ? "Cargando…"
-        : items.length === 0
+        : meta.total === 0 && !q.trim()
           ? "No hay paquetes activos para esta tarifa."
           : "Ningún paquete coincide con la búsqueda.";
 
@@ -193,39 +226,58 @@ export default function PaquetePicker(props: Props) {
       <div className="min-w-0 flex-1 overflow-hidden">
         {isLgUp ? (
           <DataTable
-            rows={filtered}
+            rows={items}
             columns={columns}
             loading={loading}
             selectedId={selected?.id ?? null}
             getRowId={(x) => String(x.id)}
             onSelect={handleRowSelect}
             emptyText={emptyText}
+            meta={meta}
+            onFirst={goFirst}
+            onPrev={goPrev}
+            onNext={goNext}
+            onLast={goLast}
+            onRefresh={refresh}
             exportFilename="paquetes-tarifa"
             enableColumnPicker
             enableExport
+            enableClientSort={false}
           />
         ) : (
-          <MobileEntityList
-            rows={filtered}
-            loading={loading}
-            emptyText={emptyText}
-            selectedId={selected?.id ?? null}
-            getRowId={(x) => x.id}
-            onSelect={handleRowSelect}
-            renderMain={(x) => {
-              const sin = parseFloat(String(x.precio_sin_igv ?? 0)) || 0;
-              const conIgv = Math.round((sin + sin * (igvPct / 100)) * 1000) / 1000;
-              return (
-                <div className="flex flex-col gap-1 text-left">
-                  <div className="font-semibold tabular-nums text-(--color-primary)">{x.codigo || "—"}</div>
-                  <div className="text-sm text-(--color-text-primary)">{x.descripcion || "—"}</div>
-                  <div className="text-sm tabular-nums text-(--color-text-secondary)">
-                    Precio final S/. {formatDecimalFixed(conIgv, 2)}
-                  </div>
-                </div>
-              );
-            }}
-          />
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <MobileEntityList
+                rows={items}
+                loading={loading}
+                emptyText={emptyText}
+                selectedId={selected?.id ?? null}
+                getRowId={(x) => x.id}
+                onSelect={handleRowSelect}
+                renderMain={(x) => {
+                  const sin = parseFloat(String(x.precio_sin_igv ?? 0)) || 0;
+                  const conIgv = Math.round((sin + sin * (igvPct / 100)) * 1000) / 1000;
+                  return (
+                    <div className="flex flex-col gap-1 text-left">
+                      <div className="font-semibold tabular-nums text-(--color-primary)">{x.codigo || "—"}</div>
+                      <div className="text-sm text-(--color-text-primary)">{x.descripcion || "—"}</div>
+                      <div className="text-sm tabular-nums text-(--color-text-secondary)">
+                        Precio final S/. {formatDecimalFixed(conIgv, 2)}
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+            </div>
+            <PaginationFooter
+              meta={meta}
+              variant="mobile"
+              onFirst={goFirst}
+              onPrev={goPrev}
+              onNext={goNext}
+              onLast={goLast}
+            />
+          </div>
         )}
       </div>
     </div>

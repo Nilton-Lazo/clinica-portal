@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { useDebouncedValue } from "../../../../shared/hooks/useDebouncedValue";
 import type {
   PaqueteLookup,
   PaqueteServicioItem,
@@ -53,6 +54,8 @@ export function usePaqueteServicios() {
 
   const [baseAssigned, setBaseAssigned] = useState<Set<number>>(new Set());
   const [workingAssigned, setWorkingAssigned] = useState<Set<number>>(new Set());
+  const [paqueteQuery, setPaqueteQuery] = useState("");
+  const paqueteQueryDebounced = useDebouncedValue(paqueteQuery, 300);
   const [treeQuery, setTreeQueryValue] = useState("");
   const [treeQueryDeferred, setTreeQueryDeferred] = useState("");
   const [treeFilterPending, startTransition] = useTransition();
@@ -99,32 +102,63 @@ export function usePaqueteServicios() {
 
     let alive = true;
     setLoadingPaquetes(true);
-    setLoadingTree(true);
 
-    Promise.all([listPaquetesByTarifa(tarifaId), getTarifaServiciosTree(tarifaId)])
-      .then(([paq, t]) => {
+    listPaquetesByTarifa(tarifaId, {
+      page: 1,
+      per_page: 20,
+      q: paqueteQueryDebounced.trim() || undefined,
+      sort: "codigo",
+      sort_dir: "asc",
+    })
+      .then((res) => {
         if (!alive) return;
-        setPaquetes(paq);
-        setTree(t);
-        if (!paq.some((x) => x.id === paqueteId)) {
+        setPaquetes(res.data);
+        if (!paqueteQueryDebounced.trim() && !res.data.some((x) => x.id === paqueteId)) {
           setPaqueteId(null);
         }
       })
       .catch((e) => {
         if (!alive) return;
-        const msg = toUserMessage(e, "No se pudieron cargar los paquetes y servicios de la tarifa.");
+        const msg = toUserMessage(e, "No se pudieron cargar los paquetes de la tarifa.");
         toastService.showError(msg);
       })
       .finally(() => {
         if (!alive) return;
         setLoadingPaquetes(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [tarifaId, paqueteId, paqueteQueryDebounced, reloadKey]);
+
+  useEffect(() => {
+    if (!tarifaId) {
+      return;
+    }
+
+    let alive = true;
+    setLoadingTree(true);
+
+    getTarifaServiciosTree(tarifaId)
+      .then((t) => {
+        if (!alive) return;
+        setTree(t);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        const msg = toUserMessage(e, "No se pudieron cargar los servicios de la tarifa.");
+        toastService.showError(msg);
+      })
+      .finally(() => {
+        if (!alive) return;
         setLoadingTree(false);
       });
 
     return () => {
       alive = false;
     };
-  }, [tarifaId, paqueteId, reloadKey]);
+  }, [tarifaId, reloadKey]);
 
   useEffect(() => {
     if (!paqueteId) {
@@ -435,14 +469,22 @@ export function usePaqueteServicios() {
     }
   }, [isDirty, paqueteId, refresh, workingAssigned]);
 
+  const changeTarifa = useCallback((id: number | null) => {
+    setTarifaId(id);
+    setPaqueteId(null);
+    setPaqueteQuery("");
+  }, []);
+
   return {
     tarifas,
     paquetes,
     tree,
     tarifaId,
-    setTarifaId,
+    setTarifaId: changeTarifa,
     paqueteId,
     setPaqueteId,
+    paqueteQuery,
+    setPaqueteQuery,
     loadingTarifas,
     loadingPaquetes,
     loadingTree,

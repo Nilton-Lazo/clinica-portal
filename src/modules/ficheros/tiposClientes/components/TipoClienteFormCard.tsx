@@ -72,7 +72,6 @@ export default function TipoClienteFormCard(props: {
 
     isValid,
     isDirty,
-    canDeactivate,
 
     onSave,
     onCancel,
@@ -152,7 +151,7 @@ export default function TipoClienteFormCard(props: {
         </div>
 
         <div>
-          <label className="text-sm text-(--color-text-primary)">Tarifa</label>
+          <label className="text-sm text-(--color-text-primary)">Tarifa *</label>
           <div className="mt-1">
             <SelectMenu
               value={String(tarifaId)}
@@ -175,7 +174,7 @@ export default function TipoClienteFormCard(props: {
             </div>
 
             <div>
-                <label className="text-sm text-(--color-text-primary)">Contratante</label>
+                <label className="text-sm text-(--color-text-primary)">Contratante *</label>
                 <div className="mt-1">
                     <SelectMenu
                     value={String(contratanteId)}
@@ -199,13 +198,13 @@ export default function TipoClienteFormCard(props: {
         </div>
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
-        <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+        <PrimaryButton className="w-full min-w-0" disabled={saving} onClick={onSave}>
           {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar"}
         </PrimaryButton>
         <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
           Cancelar
         </SecondaryButton>
-        <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
+        <DangerButton className="w-full min-w-0" disabled={saving} onClick={onDeactivate}>
           Desactivar
         </DangerButton>
         </div>

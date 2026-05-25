@@ -190,7 +190,7 @@ import type {
     const res = await api.get<{
       data: ContratanteApi[];
       meta: { current_page: number; per_page: number; total: number; last_page: number };
-    }>(`/ficheros/contratantes?page=1&per_page=100&status=ACTIVO`);
+    }>(`/ficheros/contratantes?page=1&per_page=50&status=ACTIVO`);
   
     return (res.data ?? [])
       .map(normalizeContratanteLookup)
@@ -213,7 +213,7 @@ import type {
     const res = await api.get<{
       data: IafaApi[];
       meta: { current_page: number; per_page: number; total: number; last_page: number };
-    }>(`/ficheros/iafas?page=1&per_page=100&status=ACTIVO`);
+    }>(`/ficheros/iafas?page=1&per_page=50&status=ACTIVO`);
   
     return (res.data ?? [])
       .map(normalizeIafaLookup)

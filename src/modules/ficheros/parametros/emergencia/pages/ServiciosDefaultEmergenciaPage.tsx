@@ -135,7 +135,7 @@ export default function ServiciosDefaultEmergenciaPage() {
       try {
         const res = await listTarifas({
           page: 1,
-          per_page: 100,
+          per_page: 50,
           status: "ACTIVO",
         });
         if (!alive) return;
@@ -262,7 +262,7 @@ export default function ServiciosDefaultEmergenciaPage() {
               const rawCodigo = uniqueByNorm.get(norm) ?? norm;
               const res = await buscarServiciosTarifa(tarifaReferenciaId, {
                 page: 1,
-                per_page: 25,
+                per_page: 10,
                 codigo: rawCodigo,
                 status: "ACTIVO",
                 hora: horaReal,

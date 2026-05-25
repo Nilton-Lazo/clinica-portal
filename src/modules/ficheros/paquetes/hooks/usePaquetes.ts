@@ -351,7 +351,12 @@ export function usePaquetes() {
       toastService.showError("Selecciona un paquete para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "El paquete seleccionado ya está inactivo.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 

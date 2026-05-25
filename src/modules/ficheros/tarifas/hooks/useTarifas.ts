@@ -16,6 +16,7 @@ import {
 
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { formatActionIssues } from "../../utils/actionFeedback";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -559,8 +560,43 @@ export function useTarifas() {
     normalizeAllFactors();
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Completa la descripción, IAFAS y factores de la tarifa correctamente." });
-      toastService.showError("Completa la descripción, IAFAS y factores de la tarifa correctamente.");
+      const issues: string[] = [];
+      const d = descripcionTarifa.trim();
+      if (!d) issues.push("ingresa la descripción del tarifario");
+      else if (d.length > 255) issues.push("la descripción del tarifario no debe superar 255 caracteres");
+      const isBaseDesc = isTarifarioBaseDescripcion(d);
+      if (!isBaseDesc && (!iafaId || iafaId <= 0)) issues.push("selecciona una IAFAS");
+      const invalidFactors = [
+        ["clínica", factorClinica],
+        ["laboratorio", factorLaboratorio],
+        ["ecografía", factorEcografia],
+        ["procedimientos", factorProcedimientos],
+        ["rayos X", factorRayosX],
+        ["tomografía", factorTomografia],
+        ["patología", factorPatologia],
+        ["medicina física", factorMedicinaFisica],
+        ["resonancia", factorResonancia],
+        ["honorarios médicos", factorHonorariosMedicos],
+        ["medicinas", factorMedicinas],
+        ["equipos oxígeno", factorEquiposOxigeno],
+        ["banco sangre", factorBancoSangre],
+        ["mamografía", factorMamografia],
+        ["densitometría", factorDensitometria],
+        ["psicoprofilaxis", factorPsicoprofilaxis],
+        ["otros servicios", factorOtrosServicios],
+        ["medicamentos comerciales", factorMedicamentosComerciales],
+        ["medicamentos genéricos", factorMedicamentosGenericos],
+        ["material médico", factorMaterialMedico],
+      ].filter(([, value]) => !isFactorOk(String(value))).map(([label]) => String(label));
+      if (invalidFactors.length > 0) {
+        issues.push(`corrige los factores ${invalidFactors.join(", ")}; deben ser números mayores o iguales a 1`);
+      }
+      const msg = formatActionIssues(
+        mode === "new" ? "No se puede crear la tarifa" : "No se puede guardar la tarifa",
+        issues
+      );
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -571,8 +607,9 @@ export function useTarifas() {
     }
 
     if (!isDirty) {
-      setNotice({ type: "error", text: "No hay cambios para guardar." });
-      toastService.showError("No hay cambios para guardar.");
+      const msg = "No hay cambios para guardar en esta tarifa.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -679,7 +716,12 @@ export function useTarifas() {
       toastService.showError("Selecciona una tarifa para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "La tarifa seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     if (selected.tarifa_base) {
       setNotice({ type: "error", text: "No se puede desactivar el tarifario base. Primero marca otra tarifa como base." });
       toastService.showError("No se puede desactivar el tarifario base. Primero marca otra tarifa como base.");

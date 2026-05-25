@@ -245,7 +245,13 @@ export function useRecargoNoche() {
       toastService.showError("Selecciona una regla de recargo nocturno para desactivar.");
       return;
     }
-    if (selected.estado === "ACTIVO") setConfirmDeactivateOpen(true);
+    if (selected.estado !== "ACTIVO") {
+      const msg = "La regla de recargo nocturno seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
+    setConfirmDeactivateOpen(true);
   }, [selected]);
 
   const onDeactivateConfirmed = React.useCallback(async () => {

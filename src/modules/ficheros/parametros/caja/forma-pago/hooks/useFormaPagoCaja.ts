@@ -146,7 +146,10 @@ export function useFormaPagoCaja() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) { toast.error("Selecciona una forma de pago para desactivar."); return; }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("La forma de pago seleccionada ya está inactiva.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

@@ -236,7 +236,12 @@ export function useCirugias() {
       toast.error("Selecciona una cirugía para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "La cirugía seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toast.error(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

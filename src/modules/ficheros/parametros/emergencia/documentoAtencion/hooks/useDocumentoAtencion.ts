@@ -150,7 +150,10 @@ export function useDocumentoAtencion() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) { toast.error("Selecciona un documento de atención para desactivar."); return; }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El documento de atención seleccionado ya está inactivo.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

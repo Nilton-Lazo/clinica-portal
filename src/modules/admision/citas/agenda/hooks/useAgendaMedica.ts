@@ -76,12 +76,12 @@ export function useAgendaMedica() {
 
   const [data, setData] = React.useState<AgendaCitasPaginated>({
     data: [],
-    meta: { current_page: 1, per_page: 25, total: 0, last_page: 1 },
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
   });
   const [programacion, setProgramacion] = React.useState<AgendaProgramacion | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(25);
+  const [perPage, setPerPage] = React.useState(10);
   const [estadoAtencionFilter, setEstadoAtencionFilter] = React.useState<"ALL" | CitaAtencionEstado>("ALL");
   const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
     sort: null,

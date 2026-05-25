@@ -84,6 +84,6 @@ export function deactivateNumeracionComprobanteCaja(id: number): Promise<{ data:
 }
 
 export async function listTiposDocumentoCajaActivos(): Promise<TipoDocumentoCajaOption[]> {
-  const res = await api.get<{ data: TipoDocumentoCajaOption[] }>(`${TIPOS_BASE}?page=1&per_page=100&status=ACTIVO`);
+  const res = await api.get<{ data: TipoDocumentoCajaOption[] }>(`${TIPOS_BASE}?page=1&per_page=50&status=ACTIVO`);
   return Array.isArray(res.data) ? res.data : [];
 }

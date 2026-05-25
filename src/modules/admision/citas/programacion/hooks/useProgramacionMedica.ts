@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useDebouncedValue } from "../../../../../shared/hooks/useDebouncedValue";
+import { normalizeListPerPage } from "../../../../../shared/datagrid/buildListQuery";
 import { nextGridSort } from "../../../../../shared/datagrid/gridSortCycle";
 import type { RecordStatus } from "../../../../../shared/types/recordStatus";
 import type {
@@ -32,9 +34,7 @@ export type StatusFilter = "ALL" | RecordStatus;
 export type Notice = { type: "success" | "error"; text: string } | null;
 
 function clampPerPage(n: number) {
-  if (n <= 25) return 25;
-  if (n <= 50) return 50;
-  return 100;
+  return normalizeListPerPage(n);
 }
 
 function medicoLabel(m: MedicoLookup): string {
@@ -113,14 +113,14 @@ export function useProgramacionMedica() {
 
   const [data, setData] = React.useState<ProgramacionMedicaPaginated>({
     data: [],
-    meta: { current_page: 1, per_page: 50, total: 0, last_page: 1 },
+    meta: { current_page: 1, per_page: 10, total: 0, last_page: 1 },
   });
 
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(50);
+  const [perPage, setPerPage] = React.useState(10);
 
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
 
@@ -128,6 +128,7 @@ export function useProgramacionMedica() {
   const [to, setTo] = React.useState<string>("");
 
   const [q, setQ] = React.useState<string>("");
+  const qDebounced = useDebouncedValue(q, 300);
   const [sortState, setSortState] = React.useState<{ sort: string | null; sortDir: "asc" | "desc" }>({
     sort: null,
     sortDir: "asc",
@@ -197,7 +198,7 @@ export function useProgramacionMedica() {
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
-      const qClean = q.trim();
+      const qClean = qDebounced.trim();
       const fromClean = from.trim();
       const toClean = to.trim();
 
@@ -218,7 +219,7 @@ export function useProgramacionMedica() {
     } finally {
       setLoading(false);
     }
-  }, [svc, page, perPage, statusFilter, from, to, q, sort, sortDir, toast]);
+  }, [svc, page, perPage, statusFilter, from, to, qDebounced, sort, sortDir, toast]);
 
   const toggleSort = React.useCallback((columnId: string) => {
     setSortState((prev) => nextGridSort(prev, columnId, { column: "fecha", direction: "asc" }));
@@ -226,7 +227,7 @@ export function useProgramacionMedica() {
 
   const lastFiltersRef = React.useRef<string>("");
   React.useEffect(() => {
-    const key = `${clampPerPage(perPage)}|${statusFilter}|${from}|${to}|${q}|${sort}|${sortDir}`;
+    const key = `${clampPerPage(perPage)}|${statusFilter}|${from}|${to}|${qDebounced}|${sort}|${sortDir}`;
     const prev = lastFiltersRef.current;
     lastFiltersRef.current = key;
 
@@ -235,7 +236,7 @@ export function useProgramacionMedica() {
       return;
     }
     refresh();
-  }, [perPage, statusFilter, from, to, q, sort, sortDir, page, refresh]);
+  }, [perPage, statusFilter, from, to, qDebounced, sort, sortDir, page, refresh]);
 
   React.useEffect(() => {
     let alive = true;

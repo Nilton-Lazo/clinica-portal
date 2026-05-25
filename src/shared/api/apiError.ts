@@ -28,6 +28,12 @@ const LARAVEL_VALIDATION_MESSAGE_ES: Record<string, string> = {
   "Error de validación.": "Los datos enviados no son válidos. Revisa los filtros e intenta de nuevo.",
 };
 
+const GENERIC_SERVER_MESSAGES = new Set([
+  "Error interno del servidor.",
+  "Error interno del servidor",
+  "Internal Server Error",
+]);
+
 function localizeValidationMessage(message: string): string {
   const trimmed = message.trim();
   if (!trimmed) return trimmed;
@@ -52,6 +58,9 @@ export function getApiErrorMessage(input: unknown, fallback: string): string {
   }
 
   const message = input.message.trim();
+  if (input.kind === "server" && GENERIC_SERVER_MESSAGES.has(message)) {
+    return `${fallback} El servidor no entregó una causa específica; revisa el registro del servidor para ver el detalle técnico.`;
+  }
   return localizeValidationMessage(message) || fallback;
 }
 

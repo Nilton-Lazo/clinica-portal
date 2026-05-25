@@ -2,6 +2,10 @@ import { toast } from "react-toastify";
 
 const DURATION_DEFAULT = 4000;
 const DURATION_ERROR   = 6000;
+const DUPLICATE_WINDOW_MS = 800;
+
+let lastToastKey = "";
+let lastToastAt = 0;
 
 export const NOTIFICATION_REFRESH_EVENT = "clinica:action:success";
 
@@ -20,23 +24,38 @@ export function dispatchNotificationRefresh(): void {
   }
 }
 
+function shouldShowToast(type: string, message: string): boolean {
+  const now = Date.now();
+  const key = `${type}:${message}`;
+  if (key === lastToastKey && now - lastToastAt < DUPLICATE_WINDOW_MS) {
+    return false;
+  }
+  lastToastKey = key;
+  lastToastAt = now;
+  return true;
+}
+
 export const toastService = {
   showSuccess(message: string, duration = DURATION_DEFAULT): void {
+    if (!shouldShowToast("success", message)) return;
     toast.success(message, { autoClose: duration });
     dispatchNotificationRefresh();
   },
 
   showError(message: string, duration = DURATION_ERROR): void {
+    if (!shouldShowToast("error", message)) return;
     toast.error(message, { autoClose: duration });
     dispatchNotificationRefresh();
   },
 
   showInfo(message: string, duration = DURATION_DEFAULT): void {
+    if (!shouldShowToast("info", message)) return;
     toast.info(message, { autoClose: duration });
     dispatchNotificationRefresh();
   },
 
   showWarning(message: string, duration = DURATION_DEFAULT): void {
+    if (!shouldShowToast("warning", message)) return;
     toast.warning(message, { autoClose: duration });
     dispatchNotificationRefresh();
   },

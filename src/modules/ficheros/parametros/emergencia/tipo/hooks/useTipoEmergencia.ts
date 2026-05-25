@@ -146,7 +146,10 @@ export function useTipoEmergencia() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) { toast.error("Selecciona un tipo de emergencia para desactivar."); return; }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El tipo de emergencia seleccionado ya está inactivo.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

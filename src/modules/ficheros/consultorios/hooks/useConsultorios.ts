@@ -289,7 +289,12 @@ export function useConsultorios() {
       toastService.showError("Selecciona un consultorio para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "El consultorio seleccionado ya está inactivo.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 

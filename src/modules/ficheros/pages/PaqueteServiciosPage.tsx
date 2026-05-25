@@ -249,6 +249,14 @@ export default function PaqueteServiciosPage() {
             buttonClassName={`${ficherosToolbarSelectMdClass} min-w-[200px] shrink-0 basis-full sm:basis-auto`}
             menuClassName="min-w-[200px]"
           />
+          <input
+            value={vm.paqueteQuery}
+            onChange={(e) => vm.setPaqueteQuery(e.target.value)}
+            placeholder="Buscar paquete"
+            disabled={!vm.tarifaId}
+            aria-label="Buscar paquete"
+            className={ficherosToolbarSearchClass}
+          />
           <SelectMenu
             value={vm.paqueteId ? String(vm.paqueteId) : ""}
             onChange={(v) => vm.setPaqueteId(v ? Number(v) : null)}

@@ -318,7 +318,7 @@ export default function AtencionCitaPage() {
             if (!codigo) return;
             const res = await buscarServiciosTarifa(currentTarifaId, {
               page: 1,
-              per_page: 25,
+              per_page: 10,
               codigo,
               status: "ACTIVO",
               hora: horaReal,
@@ -588,7 +588,7 @@ export default function AtencionCitaPage() {
   React.useEffect(() => {
     api
       .get<{ data?: Array<{ id: number; codigo?: string; nombres?: string; apellido_paterno?: string; apellido_materno?: string }> }>(
-        "/ficheros/medicos?status=ACTIVO&per_page=200&page=1"
+        "/ficheros/medicos?status=ACTIVO&per_page=50&page=1"
       )
       .then((res) => {
         const raw = res as { data?: unknown };

@@ -1,6 +1,7 @@
 import type { PeriodPreset } from "../hooks/useRegistroEmergencia";
-import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
+import { SelectMenu } from "../../../../shared/ui/SelectMenu";
 import DateInput from "../../../../shared/ui/DateInput";
+import { listPageSizeOptions } from "../../../../shared/crud/listPageSizeOptions";
 
 const inputBase =
   "rounded border border-(--border-color-default) bg-(--color-surface) px-3 text-sm text-(--color-text-primary) outline-none focus:ring-0 focus:border-(--color-primary)";
@@ -39,11 +40,7 @@ export default function RegistroEmergenciaToolbar(props: {
     onPeriodPresetChange,
   } = props;
 
-  const perPageOptions: SelectOption[] = [
-    { value: "25", label: "25" },
-    { value: "50", label: "50" },
-    { value: "100", label: "100" },
-  ];
+  const perPageOptions = listPageSizeOptions;
 
   return (
     <div className="w-full">

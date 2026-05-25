@@ -60,10 +60,10 @@ export default function CuentaBitacoraDrawer(props: Props) {
     try {
       let data: CuentaBitacoraNotaItem[];
       if (nroCuenta.trim()) {
-        const res = await listCuentaBitacoraNotas(nroCuenta.trim(), { per_page: 100, page: 1 });
+        const res = await listCuentaBitacoraNotas(nroCuenta.trim(), { per_page: 50, page: 1 });
         data = res.data;
       } else if (pacienteId != null && pacienteId > 0) {
-        const res = await listPacienteBitacoraNotas(pacienteId, { per_page: 100, page: 1 });
+        const res = await listPacienteBitacoraNotas(pacienteId, { per_page: 50, page: 1 });
         data = res.data;
       } else {
         data = [];

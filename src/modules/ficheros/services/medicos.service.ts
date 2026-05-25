@@ -259,7 +259,7 @@ import type {
     const res = await api.get<{
       data: EspecialidadApi[];
       meta: { current_page: number; per_page: number; total: number; last_page: number };
-    }>(`/ficheros/especialidades?page=1&per_page=100&status=ACTIVO`);
+    }>(`/ficheros/especialidades?page=1&per_page=50&status=ACTIVO`);
   
     return (res.data ?? [])
       .map((x) => ({

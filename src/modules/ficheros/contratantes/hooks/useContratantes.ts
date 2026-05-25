@@ -11,6 +11,7 @@ import {
 } from "../../services/contratantes.service";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { formatActionIssues } from "../../utils/actionFeedback";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -188,8 +189,19 @@ export function useContratantes() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Completa la razón social y los datos del contratante correctamente." });
-      toastService.showError("Completa la razón social y los datos del contratante correctamente.");
+      const issues: string[] = [];
+      const rs = razonSocial.trim();
+      if (!rs) issues.push("ingresa la razón social");
+      else if (rs.length > 255) issues.push("la razón social no debe superar 255 caracteres");
+      if (!isRuc11OrEmpty(ruc)) issues.push("el RUC debe tener 11 dígitos numéricos o quedar vacío");
+      if (telefono.trim().length > 30) issues.push("el teléfono no debe superar 30 caracteres");
+      if (direccion.trim().length > 255) issues.push("la dirección no debe superar 255 caracteres");
+      const msg = formatActionIssues(
+        mode === "new" ? "No se puede crear el contratante" : "No se puede guardar el contratante",
+        issues
+      );
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -200,8 +212,9 @@ export function useContratantes() {
     }
 
     if (!isDirty) {
-      setNotice({ type: "error", text: "No hay cambios para guardar." });
-      toastService.showError("No hay cambios para guardar.");
+      const msg = "No hay cambios para guardar en este contratante.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -246,7 +259,12 @@ export function useContratantes() {
       toastService.showError("Selecciona un contratante para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "El contratante seleccionado ya está inactivo.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 

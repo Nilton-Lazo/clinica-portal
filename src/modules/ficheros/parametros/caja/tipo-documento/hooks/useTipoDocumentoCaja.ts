@@ -146,7 +146,10 @@ export function useTipoDocumentoCaja() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) { toast.error("Selecciona un tipo de documento para desactivar."); return; }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El tipo de documento seleccionado ya está inactivo.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

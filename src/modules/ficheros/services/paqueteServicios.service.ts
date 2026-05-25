@@ -1,4 +1,7 @@
 import { api } from "../../../shared/api";
+import { listResource } from "../../../shared/api/listResource";
+import type { DataGridFetchParams } from "../../../shared/datagrid";
+import type { PaginatedResponse } from "../../../shared/types/pagination";
 import type {
   PaqueteLookup,
   PaqueteServicioItem,
@@ -60,9 +63,22 @@ export async function listTarifasOperativas(): Promise<TarifaLookup[]> {
   return (res.data ?? []).map(normalizeTarifa).filter((x) => x.id > 0);
 }
 
-export async function listPaquetesByTarifa(tarifaId: number): Promise<PaqueteLookup[]> {
-  const res = await api.get<{ data: unknown[] }>(`/ficheros/tarifas/${tarifaId}/paquetes`);
-  return (res.data ?? []).map(normalizePaquete).filter((x) => x.id > 0);
+export async function listPaquetesByTarifa(
+  tarifaId: number,
+  params: Partial<DataGridFetchParams> = {}
+): Promise<PaginatedResponse<PaqueteLookup>> {
+  const res = await listResource<unknown, PaqueteLookup>(
+    `/ficheros/tarifas/${tarifaId}/paquetes`,
+    {
+      page: params.page ?? 1,
+      per_page: params.per_page ?? 10,
+      q: params.q,
+      sort: params.sort ?? "codigo",
+      sort_dir: params.sort_dir ?? "asc",
+    },
+    normalizePaquete
+  );
+  return { ...res, data: res.data.filter((x) => x.id > 0) };
 }
 
 export async function getTarifaServiciosTree(tarifaId: number): Promise<TarifaServiciosTree> {

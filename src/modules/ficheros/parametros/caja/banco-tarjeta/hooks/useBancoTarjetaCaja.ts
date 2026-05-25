@@ -293,7 +293,10 @@ export function useBancoTarjetaCaja() {
       toast.error("Selecciona un banco o tarjeta para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El banco o tarjeta seleccionado ya está inactivo.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

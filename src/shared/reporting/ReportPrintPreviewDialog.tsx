@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Download, Loader2, X } from "lucide-react";
 import { getApiErrorMessage } from "../api/apiError";
 import type { DownloadReportFileParams } from "./downloadReportFile";
-import { buildAuthenticatedReportViewerUrl } from "./buildAuthenticatedReportViewerUrl";
+import { createPdfObjectUrl } from "./createPdfObjectUrl";
 import { downloadPdfBlob } from "./downloadPdfBlob";
 import { downloadTouchReportPdf } from "./downloadTouchReportPdf";
 import { isReportDownloadCancelledError } from "./reportDownloadCancelledError";
@@ -132,6 +132,7 @@ export function ReportPrintPreviewDialog({
     }
 
     const controller = new AbortController();
+    let objectUrl: string | null = null;
     setLoading(true);
     setError(null);
     setPdfUrl(null);
@@ -139,14 +140,33 @@ export function ReportPrintPreviewDialog({
     setFilename(download.filenameFallback ?? "reporte.pdf");
 
     if (useNativeIframe) {
-      const viewerUrl = buildAuthenticatedReportViewerUrl(download.path, download.format, download.query);
-      if (!viewerUrl) {
-        setError("Inicia sesión en el portal para ver el documento.");
-        setLoading(false);
-        return;
-      }
-      setPdfUrl(viewerUrl);
-      return () => controller.abort();
+      void fetchReportPdfBlob({
+        path: download.path,
+        format: download.format,
+        query: download.query,
+        filenameFallback: download.filenameFallback,
+        signal: controller.signal,
+        timeoutMs: download.timeoutMs,
+      })
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          objectUrl = createPdfObjectUrl(result.blob, result.filename);
+          setPdfBlob(result.blob);
+          setFilename(result.filename);
+          setPdfUrl(objectUrl);
+        })
+        .catch((e) => {
+          if (controller.signal.aborted) return;
+          setError(getApiErrorMessage(e, "No se pudo generar el documento."));
+          setLoading(false);
+        });
+
+      return () => {
+        controller.abort();
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+        }
+      };
     }
 
     void fetchReportPdfBlob({

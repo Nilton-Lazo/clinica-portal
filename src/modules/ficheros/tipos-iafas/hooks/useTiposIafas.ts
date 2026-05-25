@@ -5,6 +5,7 @@ import type { DataGridFetchParams } from "../../../../shared/datagrid";
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
 import { prepareFormText } from "../../../../shared/textInput/uppercaseTextInput";
+import { formatActionIssues } from "../../utils/actionFeedback";
 import {
   createTipoIafa,
   deactivateTipoIafa,
@@ -143,8 +144,16 @@ export function useTiposIafas() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Completa la descripción del tipo de IAFAS correctamente." });
-      toastService.showError("Completa la descripción del tipo de IAFAS correctamente.");
+      const d = prepareFormText(descripcion);
+      const issues: string[] = [];
+      if (!d) issues.push("ingresa la descripción");
+      else if (d.length > 120) issues.push("la descripción no debe superar 120 caracteres");
+      const msg = formatActionIssues(
+        mode === "new" ? "No se puede crear el tipo de IAFAS" : "No se puede guardar el tipo de IAFAS",
+        issues
+      );
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -155,8 +164,9 @@ export function useTiposIafas() {
     }
 
     if (!isDirty) {
-      setNotice({ type: "error", text: "No hay cambios para guardar." });
-      toastService.showError("No hay cambios para guardar.");
+      const msg = "No hay cambios para guardar en este tipo de IAFAS.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -198,7 +208,12 @@ export function useTiposIafas() {
       toastService.showError("Selecciona un tipo de IAFAS para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "El tipo de IAFAS seleccionado ya está inactivo.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 

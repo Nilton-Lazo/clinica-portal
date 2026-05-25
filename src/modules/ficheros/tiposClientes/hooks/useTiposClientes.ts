@@ -22,6 +22,7 @@ import {
 
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { formatActionIssues } from "../../utils/actionFeedback";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -236,8 +237,20 @@ export function useTiposClientes() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Selecciona una tarifa y un contratante para formar el tipo de cliente." });
-      toastService.showError("Selecciona una tarifa y un contratante para formar el tipo de cliente.");
+      const issues: string[] = [];
+      if (!tarifaId || tarifaId <= 0) issues.push("selecciona la tarifa");
+      if (!contratanteId || contratanteId <= 0) issues.push("selecciona el contratante");
+      if (tarifaId > 0 && contratanteId > 0 && !descripcionPreview.trim()) {
+        issues.push("la descripción no se pudo formar; revisa que la tarifa y el contratante tengan descripción");
+      } else if (descripcionPreview.length > 255) {
+        issues.push("la descripción generada no debe superar 255 caracteres");
+      }
+      const msg = formatActionIssues(
+        mode === "new" ? "No se puede crear el tipo de cliente" : "No se puede guardar el tipo de cliente",
+        issues
+      );
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -248,8 +261,9 @@ export function useTiposClientes() {
     }
 
     if (!isDirty) {
-      setNotice({ type: "error", text: "No hay cambios para guardar." });
-      toastService.showError("No hay cambios para guardar.");
+      const msg = "No hay cambios para guardar en este tipo de cliente.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -292,7 +306,12 @@ export function useTiposClientes() {
       toastService.showError("Selecciona un tipo de cliente para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "El tipo de cliente seleccionado ya está inactivo.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 

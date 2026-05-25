@@ -35,7 +35,6 @@ export default function ParamOptionFormCard(props: {
     onEstadoChange,
     isValid,
     isDirty,
-    canDeactivate,
     onSave,
     onCancel,
     onDeactivate,
@@ -96,13 +95,13 @@ export default function ParamOptionFormCard(props: {
           />
         </div>
         <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
-          <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+          <PrimaryButton className="w-full min-w-0" disabled={saving} onClick={onSave}>
             {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar"}
           </PrimaryButton>
           <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
             Cancelar
           </SecondaryButton>
-          <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
+          <DangerButton className="w-full min-w-0" disabled={saving} onClick={onDeactivate}>
             Desactivar
           </DangerButton>
         </div>

@@ -14,6 +14,7 @@ import {
 
 import { toastService } from "../../../../shared/notifications";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
+import { formatActionIssues } from "../../utils/actionFeedback";
 
 export type Mode = "new" | "edit";
 export type StatusFilter = "ALL" | RecordStatus;
@@ -336,8 +337,30 @@ export function useIafas() {
     setNotice(null);
 
     if (!isValid) {
-      setNotice({ type: "error", text: "Completa los datos obligatorios de la IAFAS correctamente." });
-      toastService.showError("Completa los datos obligatorios de la IAFAS correctamente.");
+      const issues: string[] = [];
+      if (!tipoIafaId || tipoIafaId <= 0) issues.push("selecciona el tipo de IAFAS");
+      const rs = razonSocial.trim();
+      if (!rs) issues.push("ingresa la razón social");
+      else if (rs.length > 255) issues.push("la razón social no debe superar 255 caracteres");
+      const dc = descripcionCorta.trim();
+      if (!dc) issues.push("ingresa la descripción corta");
+      else if (dc.length > 120) issues.push("la descripción corta no debe superar 120 caracteres");
+      if (!isRuc11(ruc)) issues.push("el RUC debe tener exactamente 11 dígitos numéricos");
+      if (direccion.trim().length > 255) issues.push("la dirección no debe superar 255 caracteres");
+      if (representanteLegal.trim().length > 150) issues.push("el representante legal no debe superar 150 caracteres");
+      if (telefono.trim().length > 30) issues.push("el teléfono no debe superar 30 caracteres");
+      if (paginaWeb.trim().length > 200) issues.push("la página web no debe superar 200 caracteres");
+      if (!isDateIsoRequired(fechaInicio)) issues.push("ingresa una fecha de inicio de cobertura válida");
+      if (!isDateIsoRequired(fechaFin)) issues.push("ingresa una fecha de fin de cobertura válida");
+      if (isDateIsoRequired(fechaInicio) && isDateIsoRequired(fechaFin) && fechaFin < fechaInicio) {
+        issues.push("la fecha de fin de cobertura no puede ser anterior al inicio");
+      }
+      const msg = formatActionIssues(
+        mode === "new" ? "No se puede crear la IAFAS" : "No se puede guardar la IAFAS",
+        issues
+      );
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -348,8 +371,9 @@ export function useIafas() {
     }
 
     if (!isDirty) {
-      setNotice({ type: "error", text: "No hay cambios para guardar." });
-      toastService.showError("No hay cambios para guardar.");
+      const msg = "No hay cambios para guardar en esta IAFAS.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
       return;
     }
 
@@ -422,7 +446,12 @@ export function useIafas() {
       toastService.showError("Selecciona una IAFAS para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "La IAFAS seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toastService.showError(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected]);
 

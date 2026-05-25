@@ -238,7 +238,12 @@ export function useEspecialidades() {
       toast.error("Selecciona una especialidad para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      const msg = "La especialidad seleccionada ya está inactiva.";
+      setNotice({ type: "error", text: msg });
+      toast.error(msg);
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

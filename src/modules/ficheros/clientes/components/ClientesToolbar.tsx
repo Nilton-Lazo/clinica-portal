@@ -2,6 +2,7 @@ import type { RecordStatus } from "../../types/clientes.types";
 import type { StatusFilter } from "../hooks/useClientes";
 import { SelectMenu, type SelectOption } from "../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../shared/ui/buttons";
+import { listPageSizeOptions } from "../../../../shared/crud/listPageSizeOptions";
 import {
   FicherosCrudToolbarActions,
   FicherosCrudToolbarRow,
@@ -28,11 +29,7 @@ export default function ClientesToolbar(props: {
     { value: "SUSPENDIDO", label: "Suspendidos" },
   ];
 
-  const perPageOptions: SelectOption[] = [
-    { value: "25", label: "25" },
-    { value: "50", label: "50" },
-    { value: "100", label: "100" },
-  ];
+  const perPageOptions = listPageSizeOptions;
 
   return (
     <FicherosCrudToolbarRow>

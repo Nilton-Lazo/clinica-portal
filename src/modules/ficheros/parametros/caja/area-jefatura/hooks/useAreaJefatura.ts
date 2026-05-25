@@ -146,7 +146,10 @@ export function useAreaJefatura() {
 
   const requestDeactivate = useCallback(() => {
     if (!selected) { toast.error("Selecciona un área o jefatura para desactivar."); return; }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El área o jefatura seleccionada ya está inactiva.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

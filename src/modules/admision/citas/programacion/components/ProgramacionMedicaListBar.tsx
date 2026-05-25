@@ -1,5 +1,6 @@
 import type { RecordStatus } from "../../../../../shared/types/recordStatus";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
+import { listPageSizeOptions } from "../../../../../shared/crud/listPageSizeOptions";
 import type { StatusFilter } from "../hooks/useProgramacionMedica";
 import * as React from "react";
 import { Calendar } from "lucide-react";
@@ -44,11 +45,7 @@ export default function ProgramacionMedicaListBar(props: {
     { value: "SUSPENDIDO", label: "Suspendidos" },
   ];
 
-  const perPageOptions: SelectOption[] = [
-    { value: "25", label: "25" },
-    { value: "50", label: "50" },
-    { value: "100", label: "100" },
-  ];
+  const perPageOptions = listPageSizeOptions;
 
   const inputCls = [
     "h-10 rounded-md border border-(--border-color-default) bg-(--color-surface) px-3",

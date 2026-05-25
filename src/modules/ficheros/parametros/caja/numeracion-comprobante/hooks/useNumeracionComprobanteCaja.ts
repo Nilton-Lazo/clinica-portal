@@ -227,7 +227,10 @@ export function useNumeracionComprobanteCaja() {
       toast.error("Selecciona una numeración de comprobante para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("La numeración de comprobante seleccionada ya está inactiva.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

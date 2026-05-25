@@ -4,6 +4,7 @@ import { useRouteMeta } from "../../../app/router/useRouteMeta";
 import { authService } from "../services/auth.service";
 import { sessionEvents } from "../../../shared/auth/sessionEvents";
 import { useAuth } from "../../../shared/auth/useAuth";
+import { normalizeTextInputUppercase, preserveCaseProps } from "../../../shared/textInput";
 
 import AuthLayout from "../../../shared/ui/layouts/AuthLayout";
 import Input from "../../../shared/ui/Input";
@@ -21,6 +22,10 @@ type LocationState = {
   from?: { pathname?: string; search?: string; hash?: string };
   sessionExpiredCode?: string;
 };
+
+function normalizeIdentifier(value: string): string {
+  return normalizeTextInputUppercase(value);
+}
 
 function buildReturnTo(from: LocationState["from"]): string | null {
   if (!from?.pathname) return null;
@@ -89,7 +94,7 @@ export default function LoginPage() {
 
     try {
       const me = await authService.login({
-        identifier: identifier.trim(),
+        identifier: normalizeIdentifier(identifier).trim(),
         password,
       });
 
@@ -126,7 +131,7 @@ export default function LoginPage() {
         <Input
           label="Usuario o correo"
           value={identifier}
-          onChange={(e) => setIdentifier(e.target.value)}
+          onChange={(e) => setIdentifier(normalizeIdentifier(e.target.value))}
           disabled={loading}
           error={fieldErrors.identifier}
           autoComplete="username"
@@ -140,6 +145,7 @@ export default function LoginPage() {
           disabled={loading}
           error={fieldErrors.password}
           autoComplete="current-password"
+          {...preserveCaseProps}
         />
 
         {formError && (

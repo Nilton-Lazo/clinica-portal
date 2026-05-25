@@ -3,6 +3,7 @@ import { FolderInput, SlidersHorizontal } from "lucide-react";
 import { PrimaryButton, SecondaryButton } from "../../../shared/ui/buttons";
 import { SelectField } from "../../admision/historia-clinica/wizard/ui/formFields";
 import { SelectMenu, type SelectOption } from "../../../shared/ui/SelectMenu";
+import { listPageSizeOptions } from "../../../shared/crud/listPageSizeOptions";
 import { toastService } from "../../../shared/notifications";
 import { getApiErrorMessage } from "../../../shared/api/apiError";
 import { useRealtimeModuleRefresh } from "../../../shared/realtime/useRealtimeModuleRefresh";
@@ -61,18 +62,13 @@ const FICHEROS_CAJA_ENTITIES = [
 const ADMISION_REPORTE_ENTITIES = ["cuenta", "cita_atencion", "prefacturacion_hospitalaria", "paciente"];
 const EMERGENCIA_REPORTE_ENTITIES = ["registro_emergencia", "atencion_emergencia"];
 
-const MOV_PER_PAGE_OPTS: SelectOption[] = [
-  { value: "10", label: "10" },
-  { value: "25", label: "25" },
-  { value: "50", label: "50" },
-  { value: "100", label: "100" },
-];
+const MOV_PER_PAGE_OPTS = listPageSizeOptions;
 
 const APERTURAS_PER_PAGE = 6;
 
 const defaultMovMeta: PaginationMeta = {
   current_page: 1,
-  per_page: 25,
+  per_page: 10,
   total: 0,
   last_page: 1,
 };
@@ -120,7 +116,7 @@ export default function ReporteIngresosCajaPage() {
   const [aperturaId, setAperturaId] = React.useState<string | null>(null);
   const [movs, setMovs] = React.useState<ReporteIngresosMovimiento[]>([]);
   const [movPage, setMovPage] = React.useState(1);
-  const [movPerPage, setMovPerPage] = React.useState(25);
+  const [movPerPage, setMovPerPage] = React.useState(10);
   const [movMeta, setMovMeta] = React.useState<PaginationMeta>(defaultMovMeta);
   const [totalesMedio, setTotalesMedio] = React.useState<Record<string, string>>({});
   const [totalesDoc, setTotalesDoc] = React.useState({ facturas: "0.00", boletas: "0.00", recibo_caja: "0.00" });
@@ -618,7 +614,7 @@ export default function ReporteIngresosCajaPage() {
             <div className="w-28 shrink-0">
               <SelectMenu
                 value={String(movPerPage)}
-                onChange={(v) => setMovPerPage(Number(v) || 25)}
+                onChange={(v) => setMovPerPage(Number(v) || 10)}
                 options={MOV_PER_PAGE_OPTS}
                 ariaLabel="Registros por página"
                 buttonClassName="w-full"

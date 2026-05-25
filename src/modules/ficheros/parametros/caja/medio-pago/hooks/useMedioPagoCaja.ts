@@ -195,7 +195,10 @@ export function useMedioPagoCaja() {
       toast.error("Selecciona un medio de pago para desactivar.");
       return;
     }
-    if (selected.estado === "INACTIVO") return;
+    if (selected.estado === "INACTIVO") {
+      toast.error("El medio de pago seleccionado ya está inactivo.");
+      return;
+    }
     setConfirmDeactivateOpen(true);
   }, [selected, toast]);
 

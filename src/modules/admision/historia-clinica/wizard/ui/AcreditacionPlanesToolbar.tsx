@@ -2,6 +2,7 @@ import type { RecordStatus } from "../acreditacionPlanes.types";
 import type { StatusFilter } from "../useAcreditacionPlanes";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../../shared/ui/buttons";
+import { listPageSizeOptions } from "../../../../../shared/crud/listPageSizeOptions";
 
 export default function AcreditacionPlanesToolbar(props: {
   q: string;
@@ -21,11 +22,7 @@ export default function AcreditacionPlanesToolbar(props: {
     { value: "SUSPENDIDO", label: "Suspendidos" },
   ];
 
-  const perPageOptions: SelectOption[] = [
-    { value: "25", label: "25" },
-    { value: "50", label: "50" },
-    { value: "100", label: "100" },
-  ];
+  const perPageOptions = listPageSizeOptions;
 
   return (
     <div className="w-full">

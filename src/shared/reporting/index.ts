@@ -2,7 +2,6 @@ export type { ReportFormat } from "./reportFormat";
 export { REPORT_FORMAT_LABELS } from "./reportFormat";
 export { downloadReportFile, downloadReportFileSafe, type DownloadReportFileParams } from "./downloadReportFile";
 export { fetchReportPreviewHtml, type FetchReportPreviewHtmlParams } from "./fetchReportPreviewHtml";
-export { buildAuthenticatedReportViewerUrl } from "./buildAuthenticatedReportViewerUrl";
 export { buildAuthenticatedReportDownloadUrl } from "./buildAuthenticatedReportDownloadUrl";
 export { createPdfObjectUrl } from "./createPdfObjectUrl";
 export { fetchReportPdfBlob, type FetchReportPdfBlobParams, type FetchReportPdfBlobResult } from "./fetchReportPdfBlob";

@@ -14,7 +14,7 @@ import { useToast } from "../../../../shared/feedback";
 import { getApiErrorMessage } from "../../../../shared/api/apiError";
 
 const DEFAULT_PAGE = 1;
-const DEFAULT_PER_PAGE = 50;
+const DEFAULT_PER_PAGE = 10;
 
 export type PeriodPreset = "" | "hoy" | "ayer" | "ultima_semana" | "este_mes";
 
@@ -71,7 +71,7 @@ export function useRegistroEmergencia() {
   const [page, setPage] = useState(DEFAULT_PAGE);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
   const [q, setQ] = useState("");
-  const qDebounced = useDebouncedValue(q, 350);
+  const qDebounced = useDebouncedValue(q, 300);
   const [fechaDesde, setFechaDesde] = useState(() => toYYYYMMDD(new Date()));
   const [fechaHasta, setFechaHasta] = useState(() => toYYYYMMDD(new Date()));
   const [periodPreset, setPeriodPresetState] = useState<PeriodPreset>("hoy");

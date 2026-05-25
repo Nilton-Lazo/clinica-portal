@@ -2,6 +2,7 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SelectMenu, type SelectOption } from "../../../../../shared/ui/SelectMenu";
 import { PrimaryButton } from "../../../../../shared/ui/buttons";
+import { listPageSizeOptions } from "../../../../../shared/crud/listPageSizeOptions";
 import { ConfirmDialog } from "../../../../ficheros/components/ConfirmDialog";
 import AgendaMedicaCalendarCard from "../components/AgendaMedicaCalendarCard";
 import AgendaMedicaTable from "../components/AgendaMedicaTable";
@@ -11,11 +12,7 @@ import AgendaMedicoProgramadoList from "../components/AgendaMedicoProgramadoList
 import { useAgendaMedicaContext } from "../hooks/useAgendaMedicaContext";
 import { useRealtimeModuleRefresh } from "../../../../../shared/realtime/useRealtimeModuleRefresh";
 
-const perPageOptions: SelectOption[] = [
-  { value: "25", label: "25" },
-  { value: "50", label: "50" },
-  { value: "100", label: "100" },
-];
+const perPageOptions = listPageSizeOptions;
 
 const estadoAtencionOptions: SelectOption[] = [
   { value: "ALL", label: "Todos" },

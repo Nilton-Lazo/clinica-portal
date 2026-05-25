@@ -217,7 +217,6 @@ export default function TarifaFormCard(props: {
 
     isValid,
     isDirty,
-    canDeactivate,
     onSave,
     onCancel,
     onDeactivate,
@@ -304,7 +303,7 @@ export default function TarifaFormCard(props: {
         </div>
 
         <div>
-          <label className="text-sm text-(--color-text-primary)">Descripción del tarifario</label>
+          <label className="text-sm text-(--color-text-primary)">Descripción del tarifario *</label>
           <input
             value={descripcionTarifa}
             onChange={(e) => onDescripcionTarifaChange(e.target.value)}
@@ -313,7 +312,7 @@ export default function TarifaFormCard(props: {
         </div>
 
         <div>
-          <label className="text-sm text-(--color-text-primary)">IAFAS</label>
+          <label className="text-sm text-(--color-text-primary)">IAFAS *</label>
           <div className="mt-1">
             <SelectMenu
               value={String(iafaId)}
@@ -342,42 +341,42 @@ export default function TarifaFormCard(props: {
 
         <Section title="Factores de servicios">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FactorInput label="Factor clínica" value={factorClinica} onChange={onFactorClinicaChange} onBlur={() => normalizeBlur(factorClinica, onFactorClinicaChange)} />
-            <FactorInput label="Factor laboratorio" value={factorLaboratorio} onChange={onFactorLaboratorioChange} onBlur={() => normalizeBlur(factorLaboratorio, onFactorLaboratorioChange)} />
-            <FactorInput label="Factor ecografía" value={factorEcografia} onChange={onFactorEcografiaChange} onBlur={() => normalizeBlur(factorEcografia, onFactorEcografiaChange)} />
-            <FactorInput label="Factor procedimientos" value={factorProcedimientos} onChange={onFactorProcedimientosChange} onBlur={() => normalizeBlur(factorProcedimientos, onFactorProcedimientosChange)} />
-            <FactorInput label="Factor rayos X" value={factorRayosX} onChange={onFactorRayosXChange} onBlur={() => normalizeBlur(factorRayosX, onFactorRayosXChange)} />
-            <FactorInput label="Factor tomografía" value={factorTomografia} onChange={onFactorTomografiaChange} onBlur={() => normalizeBlur(factorTomografia, onFactorTomografiaChange)} />
-            <FactorInput label="Factor patología" value={factorPatologia} onChange={onFactorPatologiaChange} onBlur={() => normalizeBlur(factorPatologia, onFactorPatologiaChange)} />
-            <FactorInput label="Factor medicina física" value={factorMedicinaFisica} onChange={onFactorMedicinaFisicaChange} onBlur={() => normalizeBlur(factorMedicinaFisica, onFactorMedicinaFisicaChange)} />
-            <FactorInput label="Factor resonancia" value={factorResonancia} onChange={onFactorResonanciaChange} onBlur={() => normalizeBlur(factorResonancia, onFactorResonanciaChange)} />
-            <FactorInput label="Factor honorarios médicos" value={factorHonorariosMedicos} onChange={onFactorHonorariosMedicosChange} onBlur={() => normalizeBlur(factorHonorariosMedicos, onFactorHonorariosMedicosChange)} />
-            <FactorInput label="Factor medicinas" value={factorMedicinas} onChange={onFactorMedicinasChange} onBlur={() => normalizeBlur(factorMedicinas, onFactorMedicinasChange)} />
-            <FactorInput label="Factor equipos oxígeno" value={factorEquiposOxigeno} onChange={onFactorEquiposOxigenoChange} onBlur={() => normalizeBlur(factorEquiposOxigeno, onFactorEquiposOxigenoChange)} />
-            <FactorInput label="Factor banco sangre" value={factorBancoSangre} onChange={onFactorBancoSangreChange} onBlur={() => normalizeBlur(factorBancoSangre, onFactorBancoSangreChange)} />
-            <FactorInput label="Factor mamografía" value={factorMamografia} onChange={onFactorMamografiaChange} onBlur={() => normalizeBlur(factorMamografia, onFactorMamografiaChange)} />
-            <FactorInput label="Factor densitometría" value={factorDensitometria} onChange={onFactorDensitometriaChange} onBlur={() => normalizeBlur(factorDensitometria, onFactorDensitometriaChange)} />
-            <FactorInput label="Factor psicoprofilaxis" value={factorPsicoprofilaxis} onChange={onFactorPsicoprofilaxisChange} onBlur={() => normalizeBlur(factorPsicoprofilaxis, onFactorPsicoprofilaxisChange)} />
-            <FactorInput label="Factor otros servicios" value={factorOtrosServicios} onChange={onFactorOtrosServiciosChange} onBlur={() => normalizeBlur(factorOtrosServicios, onFactorOtrosServiciosChange)} />
+            <FactorInput label="Factor clínica *" value={factorClinica} onChange={onFactorClinicaChange} onBlur={() => normalizeBlur(factorClinica, onFactorClinicaChange)} />
+            <FactorInput label="Factor laboratorio *" value={factorLaboratorio} onChange={onFactorLaboratorioChange} onBlur={() => normalizeBlur(factorLaboratorio, onFactorLaboratorioChange)} />
+            <FactorInput label="Factor ecografía *" value={factorEcografia} onChange={onFactorEcografiaChange} onBlur={() => normalizeBlur(factorEcografia, onFactorEcografiaChange)} />
+            <FactorInput label="Factor procedimientos *" value={factorProcedimientos} onChange={onFactorProcedimientosChange} onBlur={() => normalizeBlur(factorProcedimientos, onFactorProcedimientosChange)} />
+            <FactorInput label="Factor rayos X *" value={factorRayosX} onChange={onFactorRayosXChange} onBlur={() => normalizeBlur(factorRayosX, onFactorRayosXChange)} />
+            <FactorInput label="Factor tomografía *" value={factorTomografia} onChange={onFactorTomografiaChange} onBlur={() => normalizeBlur(factorTomografia, onFactorTomografiaChange)} />
+            <FactorInput label="Factor patología *" value={factorPatologia} onChange={onFactorPatologiaChange} onBlur={() => normalizeBlur(factorPatologia, onFactorPatologiaChange)} />
+            <FactorInput label="Factor medicina física *" value={factorMedicinaFisica} onChange={onFactorMedicinaFisicaChange} onBlur={() => normalizeBlur(factorMedicinaFisica, onFactorMedicinaFisicaChange)} />
+            <FactorInput label="Factor resonancia *" value={factorResonancia} onChange={onFactorResonanciaChange} onBlur={() => normalizeBlur(factorResonancia, onFactorResonanciaChange)} />
+            <FactorInput label="Factor honorarios médicos *" value={factorHonorariosMedicos} onChange={onFactorHonorariosMedicosChange} onBlur={() => normalizeBlur(factorHonorariosMedicos, onFactorHonorariosMedicosChange)} />
+            <FactorInput label="Factor medicinas *" value={factorMedicinas} onChange={onFactorMedicinasChange} onBlur={() => normalizeBlur(factorMedicinas, onFactorMedicinasChange)} />
+            <FactorInput label="Factor equipos oxígeno *" value={factorEquiposOxigeno} onChange={onFactorEquiposOxigenoChange} onBlur={() => normalizeBlur(factorEquiposOxigeno, onFactorEquiposOxigenoChange)} />
+            <FactorInput label="Factor banco sangre *" value={factorBancoSangre} onChange={onFactorBancoSangreChange} onBlur={() => normalizeBlur(factorBancoSangre, onFactorBancoSangreChange)} />
+            <FactorInput label="Factor mamografía *" value={factorMamografia} onChange={onFactorMamografiaChange} onBlur={() => normalizeBlur(factorMamografia, onFactorMamografiaChange)} />
+            <FactorInput label="Factor densitometría *" value={factorDensitometria} onChange={onFactorDensitometriaChange} onBlur={() => normalizeBlur(factorDensitometria, onFactorDensitometriaChange)} />
+            <FactorInput label="Factor psicoprofilaxis *" value={factorPsicoprofilaxis} onChange={onFactorPsicoprofilaxisChange} onBlur={() => normalizeBlur(factorPsicoprofilaxis, onFactorPsicoprofilaxisChange)} />
+            <FactorInput label="Factor otros servicios *" value={factorOtrosServicios} onChange={onFactorOtrosServiciosChange} onBlur={() => normalizeBlur(factorOtrosServicios, onFactorOtrosServiciosChange)} />
           </div>
         </Section>
 
         <Section title="Factores de farmacia">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FactorInput
-              label="Factor medicamentos comerciales"
+              label="Factor medicamentos comerciales *"
               value={factorMedicamentosComerciales}
               onChange={onFactorMedicamentosComercialesChange}
               onBlur={() => normalizeBlur(factorMedicamentosComerciales, onFactorMedicamentosComercialesChange)}
             />
             <FactorInput
-              label="Factor medicamentos genéricos"
+              label="Factor medicamentos genéricos *"
               value={factorMedicamentosGenericos}
               onChange={onFactorMedicamentosGenericosChange}
               onBlur={() => normalizeBlur(factorMedicamentosGenericos, onFactorMedicamentosGenericosChange)}
             />
             <FactorInput
-              label="Factor material médico"
+              label="Factor material médico *"
               value={factorMaterialMedico}
               onChange={onFactorMaterialMedicoChange}
               onBlur={() => normalizeBlur(factorMaterialMedico, onFactorMaterialMedicoChange)}
@@ -414,13 +413,13 @@ export default function TarifaFormCard(props: {
         </div>
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-4">
-        <PrimaryButton className="w-full min-w-0" disabled={!saveEnabled} onClick={onSave}>
+        <PrimaryButton className="w-full min-w-0" disabled={saving} onClick={onSave}>
           {mode === "new" ? (saving ? "Creando..." : "Crear") : saving ? "Guardando..." : "Guardar"}
         </PrimaryButton>
         <SecondaryButton className="w-full min-w-0" disabled={saving} onClick={onCancel}>
           Cancelar
         </SecondaryButton>
-        <DangerButton className="w-full min-w-0" disabled={!canDeactivate || saving} onClick={onDeactivate}>
+        <DangerButton className="w-full min-w-0" disabled={saving} onClick={onDeactivate}>
           Desactivar
         </DangerButton>
         </div>

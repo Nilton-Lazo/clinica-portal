@@ -72,7 +72,7 @@ export default function AperturaCajaPage() {
     try {
       const [usuarios, areasRes, res] = await Promise.all([
         listUsuariosActivos(),
-        listAreaJefatura({ page: 1, per_page: 100, status: "ACTIVO" }),
+        listAreaJefatura({ page: 1, per_page: 50, status: "ACTIVO" }),
         getResumenApertura(),
       ]);
       setUserOptions([

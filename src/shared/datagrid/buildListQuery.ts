@@ -1,9 +1,21 @@
 import type { DataGridFetchParams } from "./types";
 
+export const LIST_PAGE_SIZES = [10, 20, 50] as const;
+
+export type ListPageSize = (typeof LIST_PAGE_SIZES)[number];
+
+export function normalizeListPerPage(value: number | undefined): ListPageSize {
+  const n = Number(value ?? 10);
+  if (!Number.isFinite(n)) return 10;
+  if (n === 20) return 20;
+  if (n === 50) return 50;
+  return 10;
+}
+
 export function buildListQuery(params: DataGridFetchParams): string {
   const search = new URLSearchParams();
   search.set("page", String(params.page ?? 1));
-  search.set("per_page", String(params.per_page ?? 25));
+  search.set("per_page", String(normalizeListPerPage(params.per_page)));
 
   if (params.q?.trim()) {
     search.set("q", params.q.trim());
