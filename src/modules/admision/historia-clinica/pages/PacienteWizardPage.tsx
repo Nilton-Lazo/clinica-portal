@@ -25,7 +25,7 @@ import {
   hojaFiliacionFilenameFallback,
   hojaFiliacionReportPath,
 } from "../services/hojaFiliacionPaciente.service";
-import { ReportPrintPreviewDialog } from "../../../../shared/reporting";
+import { ReportPrintPreviewDialog, isIosDevice } from "../../../../shared/reporting";
 import { useRealtimeModuleRefresh } from "../../../../shared/realtime/useRealtimeModuleRefresh";
 
 type StepKey = "datos-generales" | "datos-adicionales" | "acreditacion";
@@ -234,6 +234,22 @@ function WizardInner({
     };
   }, [pacienteId]);
 
+  const filiacionPreviewHeader = React.useMemo(() => {
+    const d = state.draft;
+    const hc = String((d as unknown as { hc?: unknown })?.hc ?? "").trim();
+    const name = fullNameFromDraft(d);
+    const desktopParts: string[] = [];
+    if (hc) desktopParts.push(`HC ${hc}`);
+    if (name) desktopParts.push(name);
+    desktopParts.push("Hoja de filiación");
+    return {
+      title: "Vista previa para imprimir",
+      subtitle: desktopParts.join(" · "),
+      compactSubtitle: "Hoja de filiación del paciente",
+      detailLine: hc ? `HC ${hc}` : name || undefined,
+    };
+  }, [state.draft]);
+
   const save = async () => {
     actions.markSaving(true);
     try {
@@ -343,11 +359,20 @@ function WizardInner({
         <ReportPrintPreviewDialog
           open={filiacionPreviewOpen}
           onClose={onCloseFiliacionPrintPreview}
-          title="Hoja de filiación del paciente"
-          subtitle="Revise el documento, imprímalo o descargue el PDF si lo necesita."
-          preview={{ path: filiacionReportPreview.path }}
+          title={filiacionPreviewHeader.title}
+          subtitle={filiacionPreviewHeader.subtitle}
+          compactSubtitle={filiacionPreviewHeader.compactSubtitle}
+          detailLine={filiacionPreviewHeader.detailLine}
           download={filiacionReportPreview.download}
-          onDownloadSuccess={() => toastService.showSuccess("Hoja de filiación descargada.")}
+          onDownloadSuccess={() => {
+            if (isIosDevice()) {
+              toastService.showSuccess(
+                "PDF abierto. En Safari use Compartir y «Guardar en Archivos» para guardarlo con su nombre."
+              );
+              return;
+            }
+            toastService.showSuccess("Hoja de filiación descargada.");
+          }}
         />
       ) : null}
     </div>
