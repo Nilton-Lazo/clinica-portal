@@ -21,7 +21,7 @@ function SummaryItem({ label, value }: { label: string; value: React.ReactNode }
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5">
       <span className="shrink-0 opacity-90">{label}</span>
-      <span className="min-w-0 font-semibold break-words">{value}</span>
+      <span className="min-w-0 font-semibold wrap-break-words">{value}</span>
     </span>
   );
 }
@@ -30,7 +30,7 @@ function SummaryField({ label, value }: { label: string; value: React.ReactNode 
   return (
     <div className="min-w-0">
       <div className="text-[11px] leading-tight opacity-90">{label}</div>
-      <div className="text-sm leading-snug font-semibold break-words">{value}</div>
+      <div className="text-sm leading-snug font-semibold wrap-break-words">{value}</div>
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function PacienteSummaryBar({ compact = false, className = "" }: Paciente
       <SummaryField label="Estado" value={estado} />
       <div className="col-span-2 min-w-0 border-t border-white/15 pt-2">
         <div className="text-[11px] leading-tight opacity-90">Paciente</div>
-        <div className="text-sm leading-snug font-semibold break-words">{nombre}</div>
+        <div className="text-sm leading-snug font-semibold wrap-break-words">{nombre}</div>
       </div>
     </div>
   );
@@ -102,7 +102,7 @@ export function PacienteSummaryBar({ compact = false, className = "" }: Paciente
         <SummaryItem label="Edad:" value={edad !== null ? `${edad} años` : "—"} />
         <SummaryItem label="Sexo:" value={sexo} />
         <SummaryItem label="Estado:" value={estado} />
-        <span className="col-span-2 font-semibold break-words">{nombre}</span>
+        <span className="col-span-2 font-semibold wrap-break-words">{nombre}</span>
       </div>
 
       <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-sm sm:flex">
