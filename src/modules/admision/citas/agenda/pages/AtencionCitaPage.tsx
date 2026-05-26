@@ -645,11 +645,6 @@ export default function AtencionCitaPage() {
     }
   }, [parentescoSeguro, data?.paciente]);
 
-  const onRegresar = React.useCallback(() => {
-    if (Number.isFinite(id)) clearDraftForCita(id);
-    navigate("/admision/citas/agenda", { state: { returnFromAtencion: true, citaId: id } });
-  }, [navigate, id, clearDraftForCita]);
-
   const onAcudioChange = React.useCallback((checked: boolean) => {
     setAcudio(checked);
     if (checked) setHoraAsistenciaDisplay(formatHoraLocal());
@@ -884,53 +879,71 @@ export default function AtencionCitaPage() {
 
   return (
     <div className="flex w-full min-w-0 flex-col space-y-4 lg:space-y-2">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:gap-2">
-        <div className="w-full min-w-0 rounded-2xl border border-(--border-color-default) bg-(--color-panel-options-bg) px-4 py-3 lg:px-3 lg:py-2 sm:w-auto">
-          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+      <div className="rounded-2xl border border-(--border-color-default) bg-(--color-surface) px-4 py-3 shadow-sm lg:px-3 lg:py-2">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
             {cita.motivo ? (
-              <span className="text-base font-bold text-(--color-danger) shrink-0">{cita.motivo}</span>
+              <span className="inline-flex w-fit items-center rounded-full bg-(--color-danger)/10 px-3 py-1 text-sm font-semibold text-(--color-danger)">
+                {cita.motivo}
+              </span>
             ) : null}
-            <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
-              <span className="text-sm font-semibold text-(--color-text-primary) shrink-0">N° de cuenta:</span>
-              <input
-                value={nroCuenta || "—"}
-                readOnly
-                className="min-w-0 flex-1 rounded border border-(--border-color-default) bg-(--color-surface) px-3 py-2 text-center text-base font-semibold tabular-nums text-(--color-text-primary) outline-none sm:w-48 sm:flex-none"
-              />
+            <div className="flex w-full min-w-0 items-center overflow-hidden rounded-xl border border-(--color-primary)/30 bg-(--color-primary)/6 sm:w-auto">
+              <span className="shrink-0 border-r border-(--color-primary)/15 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-(--color-primary)">
+                N° cuenta
+              </span>
+              <span className="min-w-40 flex-1 px-4 py-2 text-center text-lg font-black leading-none tabular-nums text-(--color-text-primary) sm:flex-none">
+                {nroCuenta || "—"}
+              </span>
             </div>
           </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end" role="group" aria-label="Acciones de la atención">
+            {hasPendingDataChanges ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    toastService.showInfo("Cambios descartados.");
+                    setPacientePlanId(lastSavedPlanId);
+                    setParentescoSeguro(lastSavedParentesco);
+                    setTitularNombre(lastSavedTitular);
+                  }}
+                  disabled={saving || bloqueadaFacturacion}
+                  className={[
+                    "h-10 rounded-lg px-3 text-sm font-medium transition-colors",
+                    saving || bloqueadaFacturacion
+                      ? "cursor-not-allowed text-(--color-text-secondary) opacity-50"
+                      : "text-(--color-text-secondary) hover:bg-(--color-surface-hover) hover:text-(--color-text-primary)",
+                  ].join(" ")}
+                  title="Descartar cambios en plan, parentesco y titular"
+                >
+                  Descartar datos
+                </button>
+                <SecondaryButton
+                  onClick={onActualizarDatos}
+                  disabled={saving || bloqueadaFacturacion}
+                  className="w-full rounded-lg sm:w-auto"
+                  title="Guardar solo los datos del paciente en el servidor"
+                >
+                  {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
+                </SecondaryButton>
+              </>
+            ) : null}
+            <PrimaryButton
+              onClick={onGuardar}
+              disabled={saving || !canGuardarAtencion || bloqueadaFacturacion}
+              className="w-full rounded-lg sm:w-auto"
+              title="Guardar la atención completa (asistencia, servicios y montos)"
+            >
+              {savingState === "guardar" ? "Guardando…" : "Guardar atención"}
+            </PrimaryButton>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Acciones de la atención">
-          <SecondaryButton onClick={onRegresar} title="Volver a gestión de citas (los cambios no guardados se pierden)">
-            Regresar
-          </SecondaryButton>
-          <SecondaryButton
-            onClick={() => {
-              if (hasPendingDataChanges) toastService.showInfo("Cambios descartados.");
-              setPacientePlanId(lastSavedPlanId);
-              setParentescoSeguro(lastSavedParentesco);
-              setTitularNombre(lastSavedTitular);
-            }}
-            disabled={saving || !hasPendingDataChanges || bloqueadaFacturacion}
-            title="Descartar cambios en plan, parentesco y titular (restaurar últimos guardados)"
-          >
-            Cancelar
-          </SecondaryButton>
-          <SecondaryButton
-            onClick={onActualizarDatos}
-            disabled={saving || !hasPendingDataChanges || bloqueadaFacturacion}
-            title="Guardar solo los datos del paciente en el servidor (plan, parentesco, titular)"
-          >
-            {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
-          </SecondaryButton>
-          <PrimaryButton
-            onClick={onGuardar}
-            disabled={saving || !canGuardarAtencion || bloqueadaFacturacion}
-            title="Guardar la atención completa (asistencia, servicios y montos)"
-          >
-            {savingState === "guardar" ? "Guardando…" : "Guardar atención"}
-          </PrimaryButton>
-        </div>
+        {hasPendingDataChanges && !bloqueadaFacturacion ? (
+          <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+            Hay cambios en datos del paciente. Actualízalos antes de guardar la atención completa.
+          </div>
+        ) : null}
       </div>
       {bloqueadaFacturacion ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
@@ -976,7 +989,7 @@ export default function AtencionCitaPage() {
                     disabled={horaAsistenciaGuardada}
                     className="h-4 w-4 shrink-0 rounded border border-(--border-color-default) disabled:cursor-not-allowed"
                   />
-                  Hora de atención
+                  Hora de atención *
                 </span>
               </label>
               <input

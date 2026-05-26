@@ -1060,7 +1060,7 @@ export function ServiciosSolicitadosSection({
         largerTypography ? "[&_th]:text-sm [&_td]:text-sm [&_label]:text-sm [&_p]:text-sm [&_span]:text-sm [&_h2]:text-base" : ""
       }`}
     >
-      <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios solicitados</h2>
+      <h2 className="text-sm font-semibold text-(--color-text-primary)">Servicios solicitados *</h2>
       <p className="mt-0.5 text-xs leading-snug text-(--color-text-secondary)">{headerDescription}</p>
 
       <div className="mt-3 flex flex-col gap-3">
