@@ -19,6 +19,12 @@ import { toUserFriendlyMessage } from "../../utils/userFriendlyError";
 import { PRECISION_DECIMAL } from "../../../../../shared/constants/decimalPrecision";
 import { ServiciosSolicitadosSection } from "../components/ServiciosSolicitadosSection";
 import { useRealtimeModuleRefresh } from "../../../../../shared/realtime/useRealtimeModuleRefresh";
+import { Printer } from "lucide-react";
+import { ReportPrintPreviewDialog, isIosDevice } from "../../../../../shared/reporting";
+import {
+  atencionCitaFilenameFallback,
+  atencionCitaReportPath,
+} from "../services/atencionCitaReport.service";
 
 const PARENTESCO_OPTIONS: SelectOption[] = [
   { value: "TITULAR", label: "Titular" },
@@ -32,6 +38,10 @@ const PARENTESCO_OPTIONS: SelectOption[] = [
   { value: "HIJO_INCAPACITADO", label: "Hijo incapacitado" },
   { value: "NO_DEFINIDO", label: "No definido" },
 ];
+
+const REPORT_ICON_BTN =
+  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-(--border-color-default) bg-(--color-panel-context) text-(--color-base-primary) transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary) focus-visible:ring-offset-2 focus-visible:ring-offset-(--color-surface)";
+const REPORT_ICON_BTN_DISABLED = "cursor-not-allowed opacity-50 hover:scale-100 active:scale-100";
 
 function formatMedico(p: NonNullable<AtencionCitaData["programacion"]>["medico"]): string {
   if (!p) return "—";
@@ -141,6 +151,7 @@ export default function AtencionCitaPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [savingState, setSavingState] = React.useState<"actualizar" | "guardar" | null>(null);
   const [realtimeReloadKey, setRealtimeReloadKey] = React.useState(0);
+  const [atencionPreviewOpen, setAtencionPreviewOpen] = React.useState(false);
   const saving = savingState !== null;
 
   const [lineas, setLineas] = React.useState<AtencionServicioLineaDisplay[]>([]);
@@ -173,12 +184,14 @@ export default function AtencionCitaPage() {
 
   const DRAFT_STORAGE_KEY_PREFIX = "admision:atencionCitaDraft:";
   const loadRunIdRef = React.useRef(0);
+  const reportBusyRef = React.useRef(false);
   const atencionDataCacheRef = React.useRef<Record<number, AtencionCitaData>>({});
 
   useRealtimeModuleRefresh({
     module: "admision",
     entities: ["agenda_cita", "cita_atencion", "cita_atencion_servicio", "cuenta"],
     onEvent: (event) => {
+      if (reportBusyRef.current) return;
       const eventId = event.id != null ? Number(event.id) : null;
       const currentAtencionId = data?.atencion?.id ?? null;
       const currentCuenta = data?.atencion?.nro_cuenta ?? null;
@@ -699,6 +712,55 @@ export default function AtencionCitaPage() {
     lineas.length > 0 &&
     hasFormChangesComparedToSaved;
   const horaAsistenciaGuardada = Boolean(data?.atencion?.hora_asistencia);
+  const nroCuentaGuardada = data?.atencion?.nro_cuenta ?? data?.cita?.cuenta ?? "";
+  const canPrintAtencion =
+    Boolean(data?.atencion?.id && nroCuentaGuardada) &&
+    !saving &&
+    !hasPendingDataChanges &&
+    !hasFormChangesComparedToSaved;
+
+  const onOpenAtencionPrintPreview = React.useCallback(() => {
+    if (!Number.isFinite(id)) return;
+    if (!data?.atencion?.id || !nroCuentaGuardada) {
+      toastService.showError("Guarda la atención antes de imprimir el reporte.");
+      return;
+    }
+    if (hasPendingDataChanges || hasFormChangesComparedToSaved) {
+      toastService.showError("Guarda los cambios pendientes antes de imprimir el reporte.");
+      return;
+    }
+    reportBusyRef.current = true;
+    setAtencionPreviewOpen(true);
+  }, [id, data?.atencion?.id, nroCuentaGuardada, hasPendingDataChanges, hasFormChangesComparedToSaved]);
+
+  const onCloseAtencionPrintPreview = React.useCallback(() => {
+    setAtencionPreviewOpen(false);
+    reportBusyRef.current = false;
+  }, []);
+
+  const atencionReportPreview = React.useMemo(() => {
+    if (!Number.isFinite(id) || !data?.atencion?.id || !nroCuentaGuardada) return null;
+    const pacienteIdentifier = data.paciente.numero_documento ?? data.paciente.nr ?? String(data.paciente.id);
+    return {
+      download: {
+        path: atencionCitaReportPath(id),
+        format: "pdf" as const,
+        filenameFallback: atencionCitaFilenameFallback(id, pacienteIdentifier),
+      },
+    };
+  }, [id, data?.atencion?.id, data?.paciente.id, data?.paciente.nr, data?.paciente.numero_documento, nroCuentaGuardada]);
+
+  const atencionPreviewHeader = React.useMemo(() => {
+    const pacienteNombre = data?.paciente?.apellidos_nombres ?? "";
+    const hc = String(data?.paciente?.numero_documento ?? data?.paciente?.nr ?? "").trim();
+    const parts = [hc ? `HC ${hc}` : "", pacienteNombre, "Atención de cita"].filter(Boolean);
+    return {
+      title: "Vista previa para imprimir",
+      subtitle: parts.join(" · "),
+      compactSubtitle: "Atención de cita",
+      detailLine: pacienteNombre || (hc ? `HC ${hc}` : undefined),
+    };
+  }, [data?.paciente?.apellidos_nombres, data?.paciente?.nr, data?.paciente?.numero_documento]);
 
   React.useEffect(() => {
     if (!error) return;
@@ -777,16 +839,12 @@ export default function AtencionCitaPage() {
       actualizarGuardado(res);
       clearDraftForCita(id);
       toastService.showSuccess("Atención guardada correctamente.");
-      navigate("/admision/citas/agenda", {
-        replace: true,
-        state: { returnFromAtencion: true, citaId: id },
-      });
     } catch (e) {
       toastService.showError(toUserFriendlyMessage(e, "No se pudo guardar la atención de la cita."));
     } finally {
       setSavingState(null);
     }
-  }, [id, data?.bloqueada_facturacion, data?.cuenta?.bloqueada, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, navigate, clearDraftForCita]);
+  }, [id, data?.bloqueada_facturacion, data?.cuenta?.bloqueada, acudio, horaAsistenciaDisplay, pacientePlanId, parentescoSeguro, titularNombre, controlPrePostNatal, controlNinoSano, chequeo, carencia, latencia, soatActivo, soatNumeroPoliza, soatNumeroPlaca, montoAPagar, lineas, actualizarGuardado, clearDraftForCita]);
 
   const onActualizarDatos = React.useCallback(async () => {
     if (!Number.isFinite(id) || !hasPendingDataChanges) return;
@@ -928,6 +986,18 @@ export default function AtencionCitaPage() {
                   {savingState === "actualizar" ? "Guardando…" : "Actualizar datos"}
                 </SecondaryButton>
               </>
+            ) : null}
+            {atencionReportPreview ? (
+              <button
+                type="button"
+                onClick={onOpenAtencionPrintPreview}
+                disabled={!canPrintAtencion}
+                className={`${REPORT_ICON_BTN} ${!canPrintAtencion ? REPORT_ICON_BTN_DISABLED : ""}`}
+                title="Imprimir reporte de atención"
+                aria-label="Imprimir reporte de atención"
+              >
+                <Printer className="h-[18px] w-[18px] shrink-0" aria-hidden />
+              </button>
             ) : null}
             <PrimaryButton
               onClick={onGuardar}
@@ -1282,6 +1352,26 @@ export default function AtencionCitaPage() {
           hideEditionControls={bloqueadaFacturacion}
         />
       </div>
+      {atencionReportPreview ? (
+        <ReportPrintPreviewDialog
+          open={atencionPreviewOpen}
+          onClose={onCloseAtencionPrintPreview}
+          title={atencionPreviewHeader.title}
+          subtitle={atencionPreviewHeader.subtitle}
+          compactSubtitle={atencionPreviewHeader.compactSubtitle}
+          detailLine={atencionPreviewHeader.detailLine}
+          download={atencionReportPreview.download}
+          onDownloadSuccess={() => {
+            if (isIosDevice()) {
+              toastService.showSuccess(
+                "PDF abierto. En Safari use Compartir y «Guardar en Archivos» para guardarlo con su nombre."
+              );
+              return;
+            }
+            toastService.showSuccess("Reporte de atención descargado.");
+          }}
+        />
+      ) : null}
     </div>
   );
 }
